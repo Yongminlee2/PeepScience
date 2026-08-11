@@ -200,7 +200,12 @@ class StageData {
       if (goalJson is! Map<String, dynamic>) {
         throw FormatException('$id: goal must be an object');
       }
-      final goal = GoalSpec.fromJson(goalJson);
+      late final GoalSpec goal;
+      try {
+        goal = GoalSpec.fromJson(goalJson);
+      } on FormatException catch (e) {
+        throw FormatException('$id: ${e.message}');
+      }
 
       final presetJson = j['preset'];
       if (presetJson is! List) {
@@ -211,7 +216,11 @@ class StageData {
         if (p is! Map<String, dynamic>) {
           throw FormatException('$id: preset item must be an object');
         }
-        preset.add(PresetObject.fromJson(p));
+        try {
+          preset.add(PresetObject.fromJson(p));
+        } on FormatException catch (e) {
+          throw FormatException('$id: ${e.message}');
+        }
       }
 
       final trayJson = j['tray'];
@@ -223,7 +232,12 @@ class StageData {
         if (t is! Map<String, dynamic>) {
           throw FormatException('$id: tray item must be an object');
         }
-        final entry = TrayEntry.fromJson(t);
+        late final TrayEntry entry;
+        try {
+          entry = TrayEntry.fromJson(t);
+        } on FormatException catch (e) {
+          throw FormatException('$id: ${e.message}');
+        }
         if (entry.count < 1) {
           throw FormatException('$id: tray count must be >= 1');
         }
@@ -242,7 +256,11 @@ class StageData {
         if (s is! Map<String, dynamic>) {
           throw FormatException('$id: solution item must be an object');
         }
-        solution.add(Placement.fromJson(s));
+        try {
+          solution.add(Placement.fromJson(s));
+        } on FormatException catch (e) {
+          throw FormatException('$id: ${e.message}');
+        }
       }
 
       return StageData(

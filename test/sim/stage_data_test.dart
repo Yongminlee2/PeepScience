@@ -34,4 +34,15 @@ void main() {
     final rot = PartType.values.where((p) => Catalog.of(p).rotatable).toSet();
     expect(rot, {PartType.plank, PartType.fan});
   });
+  test('에러 메시지에 스테이지 id 포함', () {
+    final bad = sample.replaceFirst('"plank"', '"rocket"');
+    expect(
+      () => StageData.fromJson(jsonDecode(bad)),
+      throwsA(isA<FormatException>().having(
+        (e) => e.message,
+        'message',
+        contains('w1_s01:'),
+      )),
+    );
+  });
 }
