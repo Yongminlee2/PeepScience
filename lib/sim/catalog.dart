@@ -28,6 +28,8 @@ class PartSpec {
   final double? linearDamping; // for balloon
   final double? motorSpeed; // for motorGear (rad/s)
   final double? motorTorque; // for motorGear
+  final double? windForce; // for fan (N), applied along local +x
+  final double? jointLimit; // for seesaw: +-rad pivot limit
 
   const PartSpec({
     this.radius,
@@ -41,6 +43,8 @@ class PartSpec {
     this.linearDamping,
     this.motorSpeed,
     this.motorTorque,
+    this.windForce,
+    this.jointLimit,
   });
 }
 
@@ -99,6 +103,7 @@ class Catalog {
           restitution: 0.1,
           rotatable: false,
           gravityScale: 1.0,
+          jointLimit: 0.6,
         ),
       PartType.motorGear => const PartSpec(
           radius: 0.5,
@@ -136,6 +141,7 @@ class Catalog {
           restitution: 0.0,
           rotatable: true,
           gravityScale: 1.0,
+          windForce: 1.5,
         ),
       PartType.trampoline => const PartSpec(
           w: 1.2,

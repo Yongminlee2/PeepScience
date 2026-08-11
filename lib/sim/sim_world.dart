@@ -32,6 +32,7 @@ class SimWorld {
   bool cleared = false;
   int stepCount = 0;
   final List<Body> _destroyQueue = [];
+  final List<_FanZone> _fanZones = [];
 
   // pop_balloons / topple_dominoes count only preset-origin parts (fromPreset
   // == true); a player-placed balloon/domino never contributes. press_button
@@ -119,9 +120,41 @@ class SimWorld {
       final pivot = RevoluteJointDef()
         ..initialize(pin, body, body.worldCenter)
         ..enableLimit = true
-        ..lowerAngle = -0.6
-        ..upperAngle = 0.6;
+        ..lowerAngle = -spec.jointLimit!
+        ..upperAngle = spec.jointLimit!;
       world.createJoint(RevoluteJoint(pivot));
+    } else if (type == PartType.motorGear ||
+        type == PartType.gear ||
+        type == PartType.paddleGear) {
+      if (type == PartType.paddleGear) {
+        // Paddle arm straight through the gear's own center (spans both
+        // sides). Same PartSpec drives both fixtures - it's the only
+        // density/friction/restitution record paddleGear has.
+        body.createFixture(FixtureDef(
+          PolygonShape()..setAsBoxXY(spec.w! / 2, spec.h! / 2),
+          density: spec.density!,
+          friction: spec.friction,
+          restitution: spec.restitution,
+        ));
+      }
+      // Free-spinning revolute pin at the gear's own center - no angle
+      // limit (unlike the seesaw), so a meshed contact's friction can spin
+      // it continuously.
+      // ponytail: 마찰 전달, 미끄러짐이 문제되면 GearJoint로 승격
+      final pin = world.createBody(BodyDef(
+        type: BodyType.static,
+        position: Vector2(x, y),
+      ));
+      final jointDef = RevoluteJointDef()
+        ..initialize(pin, body, body.worldCenter);
+      if (type == PartType.motorGear) {
+        jointDef.enableMotor = true;
+        jointDef.motorSpeed = spec.motorSpeed!;
+        jointDef.maxMotorTorque = spec.motorTorque!;
+      }
+      world.createJoint(RevoluteJoint(jointDef));
+    } else if (type == PartType.fan) {
+      _fanZones.add(_FanZone(body, spec));
     }
     return body;
   }
@@ -197,7 +230,11 @@ class SimWorld {
   }
 
   void step() {
-    // (Task 5에서 바람 힘 추가 지점)
+    for (final zone in _fanZones) {
+      for (final b in world.bodies) {
+        zone.pushIfInside(b);
+      }
+    }
     world.stepDt(dt);
     for (final b in world.bodies.toList()) {
       final p = b.position;
@@ -253,6 +290,41 @@ class SimWorld {
       w.step();
     }
     return w.cleared;
+  }
+}
+
+// A fan's push zone: a 3.0(long) x 0.8(wide) rectangle starting at the fan's
+// own +x face, rotated by the fan's angle. Fans are static so their
+// position/angle never change after this - dir/perp (the rotated local
+// +x/+y axes) are computed once here instead of every step.
+class _FanZone {
+  _FanZone(Body fan, PartSpec spec)
+      : origin = fan.position.clone(),
+        dir = Vector2(cos(fan.angle), sin(fan.angle)),
+        perp = Vector2(-sin(fan.angle), cos(fan.angle)),
+        near = spec.w! / 2,
+        far = spec.w! / 2 + _zoneLength,
+        halfWidth = _zoneWidth / 2,
+        force = spec.windForce!;
+
+  static const _zoneLength = 3.0;
+  static const _zoneWidth = 0.8;
+
+  final Vector2 origin;
+  final Vector2 dir;
+  final Vector2 perp;
+  final double near;
+  final double far;
+  final double halfWidth;
+  final double force;
+
+  void pushIfInside(Body b) {
+    if (b.bodyType != BodyType.dynamic) return;
+    final rel = b.position - origin;
+    final along = rel.dot(dir);
+    if (along < near || along > far) return;
+    if (rel.dot(perp).abs() > halfWidth) return;
+    b.applyForce(dir * force);
   }
 }
 
