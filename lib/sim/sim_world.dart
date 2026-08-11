@@ -33,6 +33,7 @@ class SimWorld {
   int stepCount = 0;
   final List<Body> _destroyQueue = [];
   final List<_FanZone> _fanZones = [];
+  final List<_GearPin> _gearPins = [];
 
   // pop_balloons / topple_dominoes count only preset-origin parts (fromPreset
   // == true); a player-placed balloon/domino never contributes. press_button
@@ -61,6 +62,37 @@ class SimWorld {
     }
     _presetBalloonTotal = _countFromPreset(PartType.balloon);
     _presetDominoTotal = _countFromPreset(PartType.domino);
+    _meshGears();
+  }
+
+  // Pairwise: any two gear-family bodies whose centers are within
+  // r1+r2+0.05 of each other get a GearJoint linking their revolute pins.
+  // A 3-gear chain (A-B-C) just gets two pairwise joints (A-B, B-C) - no
+  // separate chain-handling needed. 0.05 slack above the exact meshing
+  // distance covers rounding from the placement snap; test/preset stages
+  // place gears explicitly so this never over-matches in practice.
+  void _meshGears() {
+    for (var i = 0; i < _gearPins.length; i++) {
+      for (var j = i + 1; j < _gearPins.length; j++) {
+        final a = _gearPins[i];
+        final b = _gearPins[j];
+        final dist = (a.body.position - b.body.position).length;
+        if (dist > a.radius + b.radius + 0.05) continue;
+        final def = GearJointDef()
+          ..bodyA = a.body
+          ..bodyB = b.body
+          ..joint1 = a.pin
+          ..joint2 = b.pin
+          // Externally meshed gears spin opposite ways: the GearJoint
+          // constraint is coordinateA + ratio*coordinateB = const, so
+          // omegaB = -omegaA/ratio. Opposite sign needs ratio > 0; matching
+          // the physical rolling-contact relation omegaB/omegaA = -rA/rB
+          // gives ratio = rB/rA (verified against gear_joint.dart's own
+          // coordinate formula, not guessed).
+          ..ratio = b.radius / a.radius;
+        world.createJoint(GearJoint(def));
+      }
+    }
   }
 
   int _countFromPreset(PartType type) => world.bodies.where((b) {
@@ -138,9 +170,10 @@ class SimWorld {
         ));
       }
       // Free-spinning revolute pin at the gear's own center - no angle
-      // limit (unlike the seesaw), so a meshed contact's friction can spin
-      // it continuously.
-      // ponytail: 마찰 전달, 미끄러짐이 문제되면 GearJoint로 승격
+      // limit (unlike the seesaw), so a meshed pair's GearJoint can spin it
+      // continuously.
+      // ponytail: GearJoint 전달(마찰 방식은 핀 고정 원끼리 수직항력 0이라
+      // 불가 판명 - task-5-report 참고)
       final pin = world.createBody(BodyDef(
         type: BodyType.static,
         position: Vector2(x, y),
@@ -152,7 +185,9 @@ class SimWorld {
         jointDef.motorSpeed = spec.motorSpeed!;
         jointDef.maxMotorTorque = spec.motorTorque!;
       }
-      world.createJoint(RevoluteJoint(jointDef));
+      final revolute = RevoluteJoint(jointDef);
+      world.createJoint(revolute);
+      _gearPins.add(_GearPin(body, revolute, spec.radius!));
     } else if (type == PartType.fan) {
       _fanZones.add(_FanZone(body, spec));
     }
@@ -291,6 +326,15 @@ class SimWorld {
     }
     return w.cleared;
   }
+}
+
+// A gear-family body plus the RevoluteJoint pinning it to its own static
+// anchor, kept around so _meshGears can link meshed pairs with a GearJoint.
+class _GearPin {
+  _GearPin(this.body, this.pin, this.radius);
+  final Body body;
+  final RevoluteJoint pin;
+  final double radius;
 }
 
 // A fan's push zone: a 3.0(long) x 0.8(wide) rectangle starting at the fan's

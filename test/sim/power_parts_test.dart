@@ -4,78 +4,51 @@ import 'package:piyak_science/sim/sim_world.dart';
 
 import 'helpers.dart';
 
-// Skip reason shared by the two gear-mesh tests below - see
-// task-5-report.md "Concerns" section for the full writeup. Summary: two
-// circles that are EACH independently pinned in place by their own
-// revolute joint (as the plan specifies) never develop a compressive
-// normal-impulse between them, because pure rotation about a circle's own
-// center is mathematically always perpendicular to the circle-circle
-// contact normal (an exact geometric identity, true for any arrangement).
-// forge2d's friction impulse is capped at `friction * normalImpulse`
-// (contact_solver.dart:292); with normalImpulse pinned at ~0 forever,
-// friction never engages regardless of overlap depth. Verified empirically
-// at both the prescribed 0.03 overlap and a 0.2 overlap (6x deeper): gear
-// stayed at exactly 0.0 rad/s for 100 steps either way; paddleGear showed
-// only ~1e-7 rad/s drift (solver noise) after 350 steps. This is a
-// fundamental limit of velocity-based Coulomb friction + separate NGS
-// position correction (not forge2d-specific) - real friction-driven gears
-// need an actual compressive force (spring/weight/tensioner) holding them
-// together, which passive overlap between two fully-pinned circles never
-// provides. Flagged for the controller per the brief's designated
-// GearJoint-upgrade fallback; not implemented unilaterally.
-const _gearMeshBlocked = 'BLOCKED: 마찰만으로는 두 독립 revolute-pinned 원이 서로 누르는 '
-    '힘을 만들 수 없음 (회전은 항상 접촉 법선과 수직) - normalImpulse가 0에 고정되어 '
-    'friction*normalImpulse도 항상 0. task-5-report.md 참고, GearJoint 승격은 '
-    '컨트롤러 결정 대기.';
-
 void main() {
-  test(
-    '모터 톱니가 맞닿은 톱니를 마찰로 돌린다',
-    () {
-      final s = stage(
-        '{"type":"motor_gear","x":5,"y":4,"angle":0},'
-        '{"type":"gear","x":5.97,"y":4,"angle":0}',
-        '',
-        '{"type":"plank","x":0,"y":0,"angle":0}',
-      );
-      final w = SimWorld(s, const []);
-      final motor = w.world.bodies.firstWhere(
-          (b) => (b.userData as PartTag?)?.part == PartType.motorGear);
-      final gear = w.world.bodies.firstWhere(
-          (b) => (b.userData as PartTag?)?.part == PartType.gear);
-      for (var i = 0; i < 120; i++) {
-        w.step();
-      }
-      expect(gear.angularVelocity.abs(), greaterThan(0.5));
-      expect(gear.angularVelocity.sign, equals(-motor.angularVelocity.sign));
-    },
-    skip: _gearMeshBlocked,
-  );
+  test('모터 톱니가 맞닿은 톱니를 마찰로 돌린다', () {
+    final s = stage(
+      '{"type":"motor_gear","x":5,"y":4,"angle":0},'
+      '{"type":"gear","x":5.97,"y":4,"angle":0}',
+      '',
+      '{"type":"plank","x":0,"y":0,"angle":0}',
+    );
+    final w = SimWorld(s, const []);
+    final motor = w.world.bodies.firstWhere(
+        (b) => (b.userData as PartTag?)?.part == PartType.motorGear);
+    final gear = w.world.bodies
+        .firstWhere((b) => (b.userData as PartTag?)?.part == PartType.gear);
+    for (var i = 0; i < 120; i++) {
+      w.step();
+    }
+    expect(gear.angularVelocity.abs(), greaterThan(0.5));
+    expect(gear.angularVelocity.sign, equals(-motor.angularVelocity.sign));
+  });
 
-  test(
-    '패들 톱니가 공을 쳐낸다',
-    () {
-      final s = stage(
-        '{"type":"motor_gear","x":5,"y":4,"angle":0},'
-        '{"type":"paddle_gear","x":5.97,"y":4,"angle":0},'
-        '{"type":"platform","x":5.97,"y":5.4,"angle":0,"w":1.0},'
-        '{"type":"rubber_ball","x":5.97,"y":4.9,"angle":0}',
-        '',
-        '{"type":"plank","x":0,"y":0,"angle":0}',
-      );
-      final w = SimWorld(s, const []);
-      final ball = w.world.bodies.firstWhere(
-          (b) => (b.userData as PartTag?)?.part == PartType.rubberBall);
-      var maxSpeed = 0.0;
-      for (var i = 0; i < 400; i++) {
-        w.step();
-        final speed = ball.linearVelocity.length;
-        if (speed > maxSpeed) maxSpeed = speed;
-      }
-      expect(maxSpeed, greaterThan(1.0));
-    },
-    skip: _gearMeshBlocked,
-  );
+  test('패들 톱니가 공을 쳐낸다', () {
+    // 공은 paddleGear 중심에서 반지름 0.85 (허브+공 반지름 합 0.8보다 밖,
+    // 패들 도달거리+공 반지름 1.0보다 안) - 정지 시 허브와 안 겹치면서 패들이
+    // 닿을 수 있는 위치. 400스텝 동안 패들이 여러 차례 스치며 공이 점점
+    // 파들 궤도 안쪽으로 자리를 잡다가, 정면으로 제대로 맞는 스윙에서
+    // 크게 튕겨나간다(관측: ~11 m/s, 문턱 1.0의 10배 이상 여유).
+    final s = stage(
+      '{"type":"motor_gear","x":5,"y":4,"angle":0},'
+      '{"type":"paddle_gear","x":5.97,"y":4,"angle":0},'
+      '{"type":"platform","x":5.97,"y":5.35,"angle":0,"w":1.0},'
+      '{"type":"rubber_ball","x":5.97,"y":4.85,"angle":0}',
+      '',
+      '{"type":"plank","x":0,"y":0,"angle":0}',
+    );
+    final w = SimWorld(s, const []);
+    final ball = w.world.bodies.firstWhere(
+        (b) => (b.userData as PartTag?)?.part == PartType.rubberBall);
+    var maxSpeed = 0.0;
+    for (var i = 0; i < 400; i++) {
+      w.step();
+      final speed = ball.linearVelocity.length;
+      if (speed > maxSpeed) maxSpeed = speed;
+    }
+    expect(maxSpeed, greaterThan(1.0));
+  });
 
   test('선풍기: 고무공은 밀리고 쇠공은 안 밀린다', () {
     // 고무공: 브리핑이 명시한 그대로 (4.5,6.5) - 60스텝 내내 존 안에 머물러
