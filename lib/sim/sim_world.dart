@@ -17,6 +17,9 @@ class PartTag {
 /// Fixture-level tag on the basket's inner sensor fixture.
 const _basketSensorTag = 'basket_sensor';
 
+/// Fixture-level tag on the button's top-face press sensor fixture.
+const _buttonSensorTag = 'button_sensor';
+
 class SimWorld {
   SimWorld(this.stage, this.placements) {
     _build();
@@ -29,6 +32,14 @@ class SimWorld {
   bool cleared = false;
   int stepCount = 0;
   final List<Body> _destroyQueue = [];
+
+  // pop_balloons / topple_dominoes count only preset-origin parts (fromPreset
+  // == true); a player-placed balloon/domino never contributes. press_button
+  // latches once and never resets, matching `cleared`'s own latch semantics.
+  int poppedPresetCount = 0;
+  int _presetBalloonTotal = 0;
+  int _presetDominoTotal = 0;
+  bool _buttonPressed = false;
 
   void _build() {
     world.setContactListener(_GoalContactListener(this));
@@ -47,15 +58,24 @@ class SimWorld {
     for (final pl in placements) {
       _buildCatalogBody(pl.type, pl.x, pl.y, pl.angleDeg, fromPreset: false);
     }
+    _presetBalloonTotal = _countFromPreset(PartType.balloon);
+    _presetDominoTotal = _countFromPreset(PartType.domino);
   }
 
+  int _countFromPreset(PartType type) => world.bodies.where((b) {
+        final tag = b.userData as PartTag?;
+        return tag?.part == type && tag!.fromPreset;
+      }).length;
+
   // Any catalog PartType -> single-fixture body (circle if the spec has a
-  // radius, box otherwise). Covers plank/rubberBall/metalBall/balloon/domino/
-  // trampoline plus a reasonable physical stand-in for the joint/compound
-  // parts (gear family, paddleGear, fan, seesaw).
-  // ponytail: gear revolute joints, paddleGear's paddle box, seesaw's pivot
-  // and fan's local wind force aren't built yet - single-fixture body only.
-  // Upgrade in T5 (gears/fan) when those behaviors are actually needed.
+  // radius, box otherwise), plus the couple of per-type extras wired in
+  // below (seesaw's center pivot, tack's sensor flag). Covers
+  // plank/rubberBall/metalBall/balloon/domino/trampoline/seesaw fully, and is
+  // a reasonable physical stand-in for the remaining joint/compound parts
+  // (gear family, paddleGear, fan).
+  // ponytail: gear revolute+motor joints, paddleGear's paddle box, and fan's
+  // local wind force aren't built yet - single-fixture body only. Upgrade in
+  // T5 when those behaviors are actually needed.
   Body _buildCatalogBody(PartType type, double x, double y, double angleDeg,
       {required bool fromPreset}) {
     final spec = Catalog.of(type);
@@ -84,6 +104,25 @@ class SimWorld {
         body.linearDamping = spec.linearDamping!;
       }
     }
+    if (type == PartType.seesaw) {
+      // Pin the plank to a static anchor at its own center so it teeters
+      // instead of falling. body.worldCenter == (x, y) here since the box
+      // fixture has no local offset.
+      // A real seesaw's tilt is bounded by its ends touching the ground on
+      // either side; without a limit here a free pivot just spins like a
+      // propeller once anything uneven sits on one end (verified against
+      // this exact failure while tuning the parts_test seesaw case).
+      final pin = world.createBody(BodyDef(
+        type: BodyType.static,
+        position: Vector2(x, y),
+      ));
+      final pivot = RevoluteJointDef()
+        ..initialize(pin, body, body.worldCenter)
+        ..enableLimit = true
+        ..lowerAngle = -0.6
+        ..upperAngle = 0.6;
+      world.createJoint(RevoluteJoint(pivot));
+    }
     return body;
   }
 
@@ -108,11 +147,17 @@ class SimWorld {
       angle: p.angleDeg * pi / 180,
       userData: const PartTag(preset: 'button', fromPreset: true),
     ));
-    // Physical box only for now; the top-face press sensor + latch belongs
-    // to the press_button goal check added in T4.
     body.createFixture(FixtureDef(
       PolygonShape()..setAsBoxXY(0.4, 0.11),
       friction: 0.5,
+    ));
+    // Top-face press sensor, straddling the box's top surface (local y =
+    // -0.11 in this y-down frame) so it overlaps as soon as anything rests
+    // on top, matching the basket sensor's "generous straddle" pattern.
+    body.createFixture(FixtureDef(
+      PolygonShape()..setAsBox(0.38, 0.05, Vector2(0, -0.11), 0),
+      isSensor: true,
+      userData: _buttonSensorTag,
     ));
   }
 
@@ -167,8 +212,39 @@ class SimWorld {
   }
 
   void _checkGoal() {
-    // ball_in_basket은 _GoalContactListener.beginContact가 cleared를 래치.
-    // press_button / pop_balloons / topple_dominoes 카운트는 Task 4에서 추가.
+    if (cleared) return;
+    if (stage.goal.type == GoalType.pressButton && _buttonPressed) {
+      cleared = true;
+    } else if (stage.goal.type == GoalType.popBalloons &&
+        _presetBalloonTotal > 0 &&
+        poppedPresetCount >= _presetBalloonTotal) {
+      cleared = true;
+    } else if (stage.goal.type == GoalType.toppleDominoes &&
+        _dominoesAllToppled()) {
+      cleared = true;
+    }
+    // ball_in_basket은 _GoalContactListener.beginContact가 직접 래치한다.
+  }
+
+  bool _dominoesAllToppled() {
+    if (_presetDominoTotal == 0) return false;
+    return !world.bodies.any((b) {
+      final tag = b.userData as PartTag?;
+      return tag?.part == PartType.domino &&
+          tag!.fromPreset &&
+          b.angle.abs() <= 0.7;
+    });
+  }
+
+  // Queues a popped balloon for removal (processed after stepDt returns,
+  // alongside the off-screen cleanup queue) and counts it toward the
+  // pop_balloons goal only if it came from the stage preset.
+  void _popBalloon(Body b) {
+    if (_destroyQueue.contains(b)) return;
+    _destroyQueue.add(b);
+    if ((b.userData as PartTag?)?.fromPreset == true) {
+      poppedPresetCount++;
+    }
   }
 
   static bool verify(StageData s, List<Placement> p, {int maxSteps = 1800}) {
@@ -186,9 +262,13 @@ class _GoalContactListener extends ContactListener {
 
   @override
   void beginContact(Contact contact) {
-    if (_ballEnteredBasket(contact.fixtureA, contact.fixtureB)) {
+    final a = contact.fixtureA;
+    final b = contact.fixtureB;
+    if (_ballEnteredBasket(a, b)) {
       _sim.cleared = true;
     }
+    _maybePopBalloon(a, b);
+    _maybePressButton(a, b);
   }
 
   bool _ballEnteredBasket(Fixture a, Fixture b) {
@@ -203,4 +283,27 @@ class _GoalContactListener extends ContactListener {
     final tag = other.body.userData as PartTag?;
     return tag?.part == PartType.rubberBall || tag?.part == PartType.metalBall;
   }
+
+  void _maybePopBalloon(Fixture a, Fixture b) {
+    if (_isTack(a) && _isBalloon(b)) {
+      _sim._popBalloon(b.body);
+    } else if (_isTack(b) && _isBalloon(a)) {
+      _sim._popBalloon(a.body);
+    }
+  }
+
+  bool _isTack(Fixture f) => (f.body.userData as PartTag?)?.part == PartType.tack;
+  bool _isBalloon(Fixture f) =>
+      (f.body.userData as PartTag?)?.part == PartType.balloon;
+
+  void _maybePressButton(Fixture a, Fixture b) {
+    if (a.userData == _buttonSensorTag && _isDynamicSolid(b)) {
+      _sim._buttonPressed = true;
+    } else if (b.userData == _buttonSensorTag && _isDynamicSolid(a)) {
+      _sim._buttonPressed = true;
+    }
+  }
+
+  bool _isDynamicSolid(Fixture f) =>
+      !f.isSensor && f.body.bodyType == BodyType.dynamic;
 }

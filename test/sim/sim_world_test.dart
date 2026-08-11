@@ -1,12 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:piyak_science/sim/sim_world.dart';
-import 'package:piyak_science/sim/stage_data.dart';
-import 'dart:convert';
 
-StageData stage(String preset, String tray, String sol,
-        {String goal = 'ball_in_basket'}) =>
-    StageData.fromJson(jsonDecode('{"id":"t","world":1,"index":1,'
-        '"goal":{"type":"$goal"},"preset":[$preset],"tray":[$tray],"solution":[$sol]}'));
+import 'helpers.dart';
 
 void main() {
   test('경사로만으로는 미달, 솔루션 널빤지를 놓으면 클리어', () {
