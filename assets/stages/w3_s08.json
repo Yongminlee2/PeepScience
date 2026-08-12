@@ -1,0 +1,20 @@
+{
+  "id": "w3_s08",
+  "world": 3,
+  "index": 8,
+  "goal": { "type": "ball_in_basket" },
+  "preset": [
+    { "type": "motor_gear", "x": 4.03, "y": 4.0, "angle": 0 },
+    { "type": "platform", "x": 5.0, "y": 5.35, "angle": 0, "w": 1.0 },
+    { "type": "rubber_ball", "x": 5.0, "y": 4.85, "angle": 0 },
+    { "type": "basket", "x": 7.4, "y": 5.5, "angle": 0 }
+  ],
+  "tray": [
+    { "type": "paddle_gear", "count": 1 },
+    { "type": "trampoline", "count": 1 }
+  ],
+  "solution": [
+    { "type": "paddle_gear", "x": 5.0, "y": 4.0, "angle": 0 },
+    { "type": "trampoline", "x": 5.9, "y": 6.2, "angle": 0 }
+  ]
+}

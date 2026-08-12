@@ -1,0 +1,14 @@
+{
+  "id": "w3_s03",
+  "world": 3,
+  "index": 3,
+  "goal": { "type": "press_button" },
+  "preset": [
+    { "type": "motor_gear", "x": 2.5, "y": 5.0, "angle": 0 },
+    { "type": "platform", "x": 3.47, "y": 6.35, "angle": 0, "w": 1.0 },
+    { "type": "rubber_ball", "x": 3.47, "y": 5.85, "angle": 0 },
+    { "type": "button", "x": 4.0, "y": 6.4, "angle": 0 }
+  ],
+  "tray": [ { "type": "paddle_gear", "count": 1 } ],
+  "solution": [ { "type": "paddle_gear", "x": 3.47, "y": 5.0, "angle": 0 } ]
+}

@@ -1,0 +1,12 @@
+{
+  "id": "w3_s09",
+  "world": 3,
+  "index": 9,
+  "goal": { "type": "pop_balloons" },
+  "preset": [
+    { "type": "balloon", "x": 3.75, "y": 8.5, "angle": 0 },
+    { "type": "tack", "x": 4.3, "y": 3.0, "angle": 0 }
+  ],
+  "tray": [ { "type": "gear", "count": 1 } ],
+  "solution": [ { "type": "gear", "x": 3.0, "y": 6.0, "angle": 0 } ]
+}
