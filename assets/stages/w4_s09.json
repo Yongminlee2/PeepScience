@@ -14,5 +14,5 @@
     { "type": "domino", "x": 8.6, "y": 6.35, "angle": 0 }
   ],
   "tray": [ { "type": "fan", "count": 1 } ],
-  "solution": [ { "type": "fan", "x": 3.70, "y": 7.10, "angle": -30 } ]
+  "solution": [ { "type": "fan", "x": 3.30, "y": 7.10, "angle": -30 } ]
 }

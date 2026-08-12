@@ -5,10 +5,8 @@
   "goal": { "type": "ball_in_basket" },
   "preset": [
     { "type": "motor_gear", "x": 5.0, "y": 5.5, "angle": 0 },
-    { "type": "platform", "x": 5.97, "y": 6.85, "angle": 0, "w": 1.0 },
-    { "type": "rubber_ball", "x": 5.97, "y": 6.35, "angle": 0 },
-    { "type": "fan", "x": 7.0, "y": 7.5, "angle": 0 },
-    { "type": "basket", "x": 10.0, "y": 7.0, "angle": 0 }
+    { "type": "rubber_ball", "x": 8.7, "y": 4.0, "angle": 0 },
+    { "type": "basket", "x": 8.7, "y": 3.0, "angle": 180 }
   ],
   "tray": [
     { "type": "paddle_gear", "count": 1 },
@@ -16,6 +14,6 @@
   ],
   "solution": [
     { "type": "paddle_gear", "x": 5.97, "y": 5.5, "angle": 0 },
-    { "type": "trampoline", "x": 8.6, "y": 8.1, "angle": 0 }
+    { "type": "trampoline", "x": 8.7, "y": 7.25, "angle": 0 }
   ]
 }

@@ -10,5 +10,5 @@
     { "type": "rubber_ball", "x": 2.0, "y": 1.0, "angle": 0 }
   ],
   "tray": [ { "type": "plank", "count": 1 } ],
-  "solution": [ { "type": "plank", "x": 2.0, "y": 2.3, "angle": 30 } ]
+  "solution": [ { "type": "plank", "x": 1.8, "y": 2.5, "angle": 25 } ]
 }

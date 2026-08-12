@@ -9,5 +9,5 @@
     { "type": "basket", "x": 7.8, "y": 7.1, "angle": 0 }
   ],
   "tray": [ { "type": "rubber_ball", "count": 1 } ],
-  "solution": [ { "type": "rubber_ball", "x": 6.0, "y": 5.7, "angle": 0 } ]
+  "solution": [ { "type": "rubber_ball", "x": 6.0, "y": 5.35, "angle": 0 } ]
 }

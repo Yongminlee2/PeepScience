@@ -5,7 +5,7 @@
   "goal": { "type": "ball_in_basket" },
   "preset": [
     { "type": "rubber_ball", "x": 3.0, "y": 1.0, "angle": 0 },
-    { "type": "platform", "x": 3.0, "y": 1.6, "angle": 25, "w": 3.0 },
+    { "type": "platform", "x": 3.0, "y": 1.6, "angle": 25, "w": 2.2 },
     { "type": "basket", "x": 7.7, "y": 0.5, "angle": 180 }
   ],
   "tray": [ { "type": "trampoline", "count": 2 } ],

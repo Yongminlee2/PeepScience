@@ -6,11 +6,11 @@
   "preset": [
     { "type": "plank", "x": 2.0, "y": 2.3, "angle": 30 },
     { "type": "platform", "x": 4.25, "y": 5.2, "angle": 0, "w": 6.5 },
-    { "type": "platform", "x": 10.5, "y": 5.2, "angle": 0, "w": 3.0 },
-    { "type": "platform", "x": 8.25, "y": 7.5, "angle": 0, "w": 2.0 },
-    { "type": "button", "x": 11.0, "y": 5.11, "angle": 0 },
+    { "type": "platform", "x": 11.1, "y": 5.2, "angle": 0, "w": 3.0 },
+    { "type": "platform", "x": 8.55, "y": 7.5, "angle": 0, "w": 2.0 },
+    { "type": "button", "x": 11.6, "y": 5.11, "angle": 0 },
     { "type": "rubber_ball", "x": 2.0, "y": 1.0, "angle": 0 }
   ],
   "tray": [ { "type": "plank", "count": 1 } ],
-  "solution": [ { "type": "plank", "x": 8.25, "y": 5.12, "angle": 0 } ]
+  "solution": [ { "type": "plank", "x": 8.55, "y": 5.12, "angle": 0 } ]
 }

@@ -12,5 +12,5 @@
     { "type": "rubber_ball", "count": 1 },
     { "type": "metal_ball", "count": 1 }
   ],
-  "solution": [ { "type": "rubber_ball", "x": 7.5, "y": 7.3, "angle": 0 } ]
+  "solution": [ { "type": "rubber_ball", "x": 7.5, "y": 7.2, "angle": 0 } ]
 }

@@ -8,5 +8,5 @@
     { "type": "tack", "x": 8.1, "y": -0.5, "angle": 0 }
   ],
   "tray": [ { "type": "fan", "count": 1 } ],
-  "solution": [ { "type": "fan", "x": 2.94, "y": 8.06, "angle": -45 } ]
+  "solution": [ { "type": "fan", "x": 3.30, "y": 6.0, "angle": -45 } ]
 }
