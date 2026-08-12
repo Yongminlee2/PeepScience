@@ -32,4 +32,13 @@ void main() {
     expect(s.ok, isFalse);
     expect(s.failReason, contains('self-solving'));
   });
+
+  test('파일명과 내부 id가 다르면(복붙 흔적) 실패한다', () {
+    // w1_s01.json 파일 안에 "id": "w1_s02"가 들어있는 복붙 실수 케이스.
+    final report = validateAllStages('test/fixtures/stages_id_mismatch');
+    final s = report.stages.single;
+    expect(s.id, 'w1_s01');
+    expect(s.ok, isFalse);
+    expect(s.failReason, contains('id'));
+  });
 }

@@ -1,0 +1,15 @@
+{
+  "id": "w1_s08",
+  "world": 1,
+  "index": 8,
+  "goal": { "type": "press_button" },
+  "preset": [
+    { "type": "platform", "x": 5.0, "y": 4.0, "angle": 0, "w": 6.0 },
+    { "type": "domino", "x": 4.4, "y": 3.35, "angle": 0 },
+    { "type": "rubber_ball", "x": 5.0, "y": 3.5, "angle": 0 },
+    { "type": "button", "x": 6.5, "y": 3.91, "angle": 0 },
+    { "type": "rubber_ball", "x": 2.0, "y": 1.0, "angle": 0 }
+  ],
+  "tray": [ { "type": "plank", "count": 1 } ],
+  "solution": [ { "type": "plank", "x": 2.0, "y": 2.3, "angle": 30 } ]
+}

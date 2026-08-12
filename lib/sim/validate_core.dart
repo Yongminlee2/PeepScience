@@ -112,6 +112,17 @@ StageValidation _validateOne(String dir, String id, int maxSteps) {
     );
   }
 
+  if (data.id != id) {
+    return StageValidation(
+      id: id,
+      ok: false,
+      failReason: 'filename/id mismatch: $id.json declares id "${data.id}" '
+          '(copy-paste 흔적 의심)',
+      stepsToClear: null,
+      jitterStepsToClear: const [],
+    );
+  }
+
   final stepsToClear = _runToClear(data, data.solution, maxSteps);
   final jitterSteps = [
     for (final (dx, dAngle) in jitterVariants)

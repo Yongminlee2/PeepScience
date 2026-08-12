@@ -1,0 +1,17 @@
+{
+  "id": "w1_s05",
+  "world": 1,
+  "index": 5,
+  "goal": { "type": "topple_dominoes" },
+  "preset": [
+    { "type": "platform", "x": 3.85, "y": 4.0, "angle": 0, "w": 1.7 },
+    { "type": "platform", "x": 5.0, "y": 4.35, "angle": 0, "w": 0.6 },
+    { "type": "platform", "x": 6.15, "y": 4.7, "angle": 0, "w": 1.7 },
+    { "type": "domino", "x": 4.4, "y": 3.35, "angle": 0 },
+    { "type": "domino", "x": 5.0, "y": 3.70, "angle": 0 },
+    { "type": "domino", "x": 5.6, "y": 4.05, "angle": 0 },
+    { "type": "rubber_ball", "x": 2.0, "y": 1.0, "angle": 0 }
+  ],
+  "tray": [ { "type": "plank", "count": 1 } ],
+  "solution": [ { "type": "plank", "x": 2.0, "y": 2.3, "angle": 30 } ]
+}
