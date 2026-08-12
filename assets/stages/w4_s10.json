@@ -2,21 +2,19 @@
   "id": "w4_s10",
   "world": 4,
   "index": 10,
-  "goal": { "type": "ball_in_basket" },
+  "goal": { "type": "pop_balloons" },
   "preset": [
-    { "type": "motor_gear", "x": 6.5, "y": 4.5, "angle": 0 },
-    { "type": "platform", "x": 7.47, "y": 5.85, "angle": 0, "w": 1.0 },
-    { "type": "rubber_ball", "x": 7.47, "y": 5.35, "angle": 0 },
-    { "type": "basket", "x": 11.5, "y": 6.0, "angle": 0 }
+    { "type": "balloon", "x": 2.0, "y": 8.0, "angle": 0 },
+    { "type": "tack", "x": 4.27, "y": -1.0, "angle": 0 }
   ],
   "tray": [
-    { "type": "paddle_gear", "count": 1 },
+    { "type": "plank", "count": 1 },
     { "type": "fan", "count": 1 },
-    { "type": "trampoline", "count": 1 }
+    { "type": "gear", "count": 1 }
   ],
   "solution": [
-    { "type": "paddle_gear", "x": 7.47, "y": 4.5, "angle": 0 },
-    { "type": "fan", "x": 8.5, "y": 6.5, "angle": 0 },
-    { "type": "trampoline", "x": 10.1, "y": 7.1, "angle": 0 }
+    { "type": "plank", "x": 2.0, "y": 5.0, "angle": 0 },
+    { "type": "fan", "x": 0.2, "y": 5.6, "angle": 0 },
+    { "type": "gear", "x": 5.5, "y": 5.1, "angle": 0 }
   ]
 }
