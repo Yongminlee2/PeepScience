@@ -8,6 +8,7 @@ import 'package:forge2d/forge2d.dart' hide World;
 import '../sim/catalog.dart';
 import '../sim/sim_world.dart';
 import '../sim/stage_data.dart';
+import 'hud.dart';
 import 'part_view.dart';
 
 enum GameMode { edit, run }
@@ -56,6 +57,9 @@ class PiyakGame extends FlameGame {
     // (0,0) - the default).
     camera.viewfinder.anchor = Anchor.topLeft;
     _rebuildViews();
+    // Screen-space HUD (viewport, not world) - see hud.dart's own doc
+    // comment for why it has to be mounted there.
+    camera.viewport.add(TrayBar(this));
   }
 
   @override
@@ -70,6 +74,17 @@ class PiyakGame extends FlameGame {
   void resetToEdit() {
     sim = null;
     mode = GameMode.edit;
+    _rebuildViews();
+  }
+
+  /// Adds a player-placed part and immediately refreshes the render layer -
+  /// the tray drag-input layer (lib/game/hud.dart) is the only caller today,
+  /// via `canPlaceAt`/`resolveDrop` in lib/game/input.dart deciding whether
+  /// and where. Task 8/12 will add more mutators (move/delete) alongside
+  /// this one; they should follow the same call-_rebuildViews()-immediately
+  /// pattern so `placements` and the rendered scene never drift apart.
+  void addPlacement(Placement p) {
+    placements.add(p);
     _rebuildViews();
   }
 
@@ -115,6 +130,17 @@ class PiyakGame extends FlameGame {
         ? const <Body>[]
         : sim!.world.bodies.where((b) => b.userData is PartTag).toList();
     final entries = _sceneEntries();
+    // SimWorld._build() must create exactly one PartTag body per
+    // preset/placement entry, in that same order (see the comment above) -
+    // this was previously only a documented assumption; placements now
+    // change at runtime (lib/game/hud.dart's tray drag), so a silent
+    // mis-pairing here would show the wrong body under the wrong part.
+    // Fail loudly instead.
+    assert(
+      sim == null || bodies.length == entries.length,
+      '_rebuildViews: expected ${entries.length} tagged bodies for '
+      '${entries.length} scene entries, got ${bodies.length}',
+    );
     for (var i = 0; i < entries.length; i++) {
       final e = entries[i];
       final view = PartView(

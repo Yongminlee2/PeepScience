@@ -24,6 +24,7 @@ class PartView extends PositionComponent {
     this.part,
     this.preset = '',
     this.platformWidthM = 0,
+    this.ghostColor,
     required Vector2 posM,
     required double angleRad,
   }) : super(
@@ -45,18 +46,25 @@ class PartView extends PositionComponent {
   /// Only meaningful when preset == 'platform' (stage-configurable width).
   final double platformWidthM;
 
+  /// Non-null turns every paint (fill/stroke/highlight/accent) into this one
+  /// translucent color, overriding the catalog/preset palette - used by the
+  /// drag-placement ghost (lib/game/hud.dart) so any part type gets a
+  /// uniform "can I drop here" green/red silhouette for free, reusing this
+  /// class's existing per-shape render methods instead of duplicating them.
+  final Color? ghostColor;
+
   late final PartSpec? spec = part == null ? null : Catalog.of(part!);
   late final _Shape _shape = _shapeFor(part, preset);
 
-  late final Paint _fill = Paint()..color = _colorFrom(_colorArgb);
+  late final Paint _fill = Paint()..color = ghostColor ?? _colorFrom(_colorArgb);
   late final Paint _stroke = Paint()
-    ..color = const Color(0x66263238)
+    ..color = ghostColor?.withAlpha(220) ?? const Color(0x66263238)
     ..style = PaintingStyle.stroke
     ..strokeWidth = 2.5;
-  late final Paint _highlight = Paint()..color = const Color(0x99FFFFFF);
-  late final Paint _accent = Paint()..color = const Color(0xFF37474F);
+  late final Paint _highlight = Paint()..color = ghostColor ?? const Color(0x99FFFFFF);
+  late final Paint _accent = Paint()..color = ghostColor ?? const Color(0xFF37474F);
   late final Paint _zigzag = Paint()
-    ..color = const Color(0xFF37474F)
+    ..color = ghostColor ?? const Color(0xFF37474F)
     ..style = PaintingStyle.stroke
     ..strokeWidth = 2.5;
 
@@ -177,7 +185,7 @@ class PartView extends PositionComponent {
     canvas.drawCircle(Offset(c.dx + r * 0.55, c.dy), r * 0.15, _accent);
   }
 
-  late final Paint _accentFill = Paint()..color = const Color(0xFF546E7A);
+  late final Paint _accentFill = Paint()..color = ghostColor ?? const Color(0xFF546E7A);
 
   void _renderSeesaw(Canvas canvas) {
     final hw = spec!.w! / 2 * kPpm;
