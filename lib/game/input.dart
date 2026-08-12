@@ -5,6 +5,7 @@ import 'package:flame/events.dart';
 import 'package:flutter/widgets.dart'
     show Canvas, Color, Offset, Paint, PaintingStyle;
 
+import '../services/sound.dart';
 import '../sim/catalog.dart';
 import '../sim/stage_data.dart';
 import 'part_view.dart' show kPpm;
@@ -308,6 +309,7 @@ void handleEditTapUp(PiyakGame game, TapUpEvent event) {
       // removePlacement itself nulls/adjusts selectedIndex - single choke
       // point, see its own doc comment (piyak_game.dart).
       game.removePlacement(idx);
+      Sound.play(Sfx.tap); // 삭제=tap (shared-contract 트리거 표)
       return;
     }
   }

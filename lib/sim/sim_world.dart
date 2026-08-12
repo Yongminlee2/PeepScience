@@ -39,9 +39,15 @@ class SimWorld {
   // == true); a player-placed balloon/domino never contributes. press_button
   // latches once and never resets, matching `cleared`'s own latch semantics.
   int poppedPresetCount = 0;
+  // Task 18 (pop 효과음)용 - 출처를 안 가리고 풍선이 터질 때마다 센다.
+  // poppedPresetCount는 목표 판정 전용(위 주석)이라 플레이어가 놓은 풍선의
+  // 펑을 놓친다; 사운드는 "터졌다" 자체가 트리거라 별도로 둔다.
+  int poppedCount = 0;
+  // Task 18 (boing 효과음)용 - 동적 물체가 트램펄린에 닿을 때마다 센다.
+  int bounceCount = 0;
   int _presetBalloonTotal = 0;
   int _presetDominoTotal = 0;
-  bool _buttonPressed = false;
+  bool buttonPressed = false;
 
   void _build() {
     world.setContactListener(_GoalContactListener(this));
@@ -282,7 +288,7 @@ class SimWorld {
 
   void _checkGoal() {
     if (cleared) return;
-    if (stage.goal.type == GoalType.pressButton && _buttonPressed) {
+    if (stage.goal.type == GoalType.pressButton && buttonPressed) {
       cleared = true;
     } else if (stage.goal.type == GoalType.popBalloons &&
         _presetBalloonTotal > 0 &&
@@ -311,6 +317,7 @@ class SimWorld {
   void _popBalloon(Body b) {
     if (_destroyQueue.contains(b)) return;
     _destroyQueue.add(b);
+    poppedCount++;
     if ((b.userData as PartTag?)?.fromPreset == true) {
       poppedPresetCount++;
     }
@@ -382,6 +389,7 @@ class _GoalContactListener extends ContactListener {
     }
     _maybePopBalloon(a, b);
     _maybePressButton(a, b);
+    _maybeBounce(a, b);
   }
 
   bool _ballEnteredBasket(Fixture a, Fixture b) {
@@ -411,12 +419,26 @@ class _GoalContactListener extends ContactListener {
 
   void _maybePressButton(Fixture a, Fixture b) {
     if (a.userData == _buttonSensorTag && _isDynamicSolid(b)) {
-      _sim._buttonPressed = true;
+      _sim.buttonPressed = true;
     } else if (b.userData == _buttonSensorTag && _isDynamicSolid(a)) {
-      _sim._buttonPressed = true;
+      _sim.buttonPressed = true;
     }
   }
 
   bool _isDynamicSolid(Fixture f) =>
       !f.isSensor && f.body.bodyType == BodyType.dynamic;
+
+  // Task 18 (boing 효과음) 트리거 - 트램펄린(정적, 센서 아님)에 동적 고체가
+  // 닿을 때마다. 되튀는 물리 자체는 트램펄린의 restitution(1.1)이 이미
+  // 하고 있으므로 여기선 "닿았다"만 센다.
+  void _maybeBounce(Fixture a, Fixture b) {
+    if (_isTrampoline(a) && _isDynamicSolid(b)) {
+      _sim.bounceCount++;
+    } else if (_isTrampoline(b) && _isDynamicSolid(a)) {
+      _sim.bounceCount++;
+    }
+  }
+
+  bool _isTrampoline(Fixture f) =>
+      (f.body.userData as PartTag?)?.part == PartType.trampoline;
 }

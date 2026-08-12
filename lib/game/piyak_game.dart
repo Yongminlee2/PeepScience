@@ -6,6 +6,7 @@ import 'package:flame/events.dart';
 import 'package:flame/game.dart';
 import 'package:forge2d/forge2d.dart' hide World;
 
+import '../services/sound.dart';
 import '../sim/catalog.dart';
 import '../sim/sim_world.dart';
 import '../sim/stage_data.dart';
@@ -84,6 +85,18 @@ class PiyakGame extends FlameGame with TapCallbacks, DragCallbacks {
   final List<PartView> _views = [];
   double _acc = 0;
 
+  // Task 18: 사운드 트리거 배선 - sim_world.dart는 순수 Dart로 남기고,
+  // 여기서 매 프레임 관찰 가능한 상태(카운터/래치)를 이전 값과 비교해
+  // 변화(=사건)를 감지한다(브리핑의 "sim에 이벤트 훅이 없으면 game
+  // 레이어에서 상태를 폴링" 지침). 전부 startRun()에서 새 sim에 맞춰
+  // 리셋된다.
+  int _lastPopped = 0;
+  int _lastBounce = 0;
+  bool _lastButtonPressed = false;
+  double _gearTickAccum = 0;
+  bool _hasMotorGear = false;
+  static const double _gearTickInterval = 0.5;
+
   @override
   Future<void> onLoad() async {
     // Default viewfinder centers world (0,0) in the viewport; our world's
@@ -119,6 +132,17 @@ class PiyakGame extends FlameGame with TapCallbacks, DragCallbacks {
     // Run mode has no selection/edit affordances (shared-contract Task 8).
     selectedIndex = null;
     rotatingIndex = null;
+    // Fresh sim -> fresh sound-trigger bookkeeping (see the fields' own doc
+    // comment above). motorGear presence can't change mid-run (the part is
+    // pinned in place by its own revolute joint - see sim_world.dart's
+    // _buildCatalogBody - so it can never trigger the off-screen destroy
+    // queue), so this is safe to compute once here instead of every frame.
+    _lastPopped = 0;
+    _lastBounce = 0;
+    _lastButtonPressed = false;
+    _gearTickAccum = 0;
+    _hasMotorGear = sim!.world.bodies
+        .any((b) => (b.userData as PartTag?)?.part == PartType.motorGear);
     _rebuildViews();
   }
 
@@ -237,8 +261,45 @@ class PiyakGame extends FlameGame with TapCallbacks, DragCallbacks {
           break;
         }
       }
+      // Once per Flame frame (not per physics step) is enough: a "did this
+      // counter move at all since last frame" check still catches every
+      // event even when the loop above ran several steps to catch up, and
+      // playing at most one pop/boing/buttonClick per frame avoids a burst
+      // of overlapping sounds on a hitch.
+      _pollSimSounds(s);
+      _tickGearSound(dt);
     }
     super.update(dt); // cascades into PartView.update -> body sync
+  }
+
+  // 풍선 펑/트램펄린 반발/버튼 눌림 - sim_world.dart의 순수 카운터·래치를
+  // 이전 프레임 값과 비교해 변화를 감지한다(sim 쪽에 콜백을 두지 않고 game
+  // 레이어에서 폴링 - 브리핑 지침). 델타 값만큼이 아니라 "움직였으면 1번"만
+  // 재생해 한 프레임에 여러 개가 겹쳐 몰리는 걸 피한다.
+  void _pollSimSounds(SimWorld s) {
+    if (s.poppedCount > _lastPopped) Sound.play(Sfx.pop);
+    _lastPopped = s.poppedCount;
+    if (s.bounceCount > _lastBounce) Sound.play(Sfx.boing);
+    _lastBounce = s.bounceCount;
+    if (s.buttonPressed && !_lastButtonPressed) Sound.play(Sfx.buttonClick);
+    _lastButtonPressed = s.buttonPressed;
+  }
+
+  // 톱니 회전 중 주기적 gearTick - 모터 톱니가 있는 동안 0.5초마다 한 번
+  // (스팸 방지). 모터 톱니 유무는 startRun()에서 한 번만 계산해 둔
+  // _hasMotorGear를 쓴다(런 중에는 안 바뀜 - 그 필드 자신의 doc comment
+  // 참고).
+  void _tickGearSound(double dt) {
+    if (!_hasMotorGear) return;
+    // Same clamp idea as _acc above: without it, a huge dt spike (app
+    // backgrounded/resumed) would bank a large backlog and then fire a
+    // rapid-fire burst of catch-up ticks across the next several frames
+    // instead of just one.
+    _gearTickAccum = min(_gearTickAccum + dt, _gearTickInterval);
+    if (_gearTickAccum >= _gearTickInterval) {
+      _gearTickAccum = 0;
+      Sound.play(Sfx.gearTick);
+    }
   }
 
   // Called exactly once per run: `s.cleared` starts false and latches
@@ -248,6 +309,7 @@ class PiyakGame extends FlameGame with TapCallbacks, DragCallbacks {
   // ever running again for the same `sim`. So the false->true transition
   // this reacts to can only be observed, and thus only fire this, once.
   void _onCleared() {
+    Sound.play(Sfx.win);
     onCleared?.call(stage.id);
     camera.viewport.add(WinOverlay(this));
   }

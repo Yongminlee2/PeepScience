@@ -18,6 +18,7 @@ import 'package:flutter/widgets.dart'
         TextStyle,
         VoidCallback;
 
+import '../services/sound.dart';
 import '../sim/catalog.dart';
 import '../sim/stage_data.dart';
 import '../ui/strings.dart';
@@ -215,6 +216,7 @@ class _TraySlot extends PositionComponent with DragCallbacks {
       game.addPlacement(
         Placement(type: entry.type, x: result.pos.x, y: result.pos.y, angleDeg: 0),
       );
+      Sound.play(Sfx.place);
     }
   }
 

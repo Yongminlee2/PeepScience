@@ -1,12 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../services/sound.dart';
 import 'strings.dart';
 import 'theme.dart';
 
-/// SharedPreferences key for the sound on/off toggle. Value-only for now
-/// (Task 18 wires actual playback and will read this same key to decide
-/// whether to call Sound.play at all).
+/// SharedPreferences key for the sound on/off toggle. main.dart reads this
+/// same key at boot (non-blocking) to call [Sound.setEnabled]; this screen's
+/// own [_SettingsScreenState._setSound] also calls it live so toggling here
+/// takes effect immediately, without waiting for a restart.
 const String soundEnabledPrefKey = 'sound_enabled';
 
 /// Sound on/off switch (persists a bool only) + 3-way language choice
@@ -45,6 +47,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   Future<void> _setSound(bool v) async {
     setState(() => _soundOn = v);
+    Sound.setEnabled(v); // 즉시 반영 - 재시작 없이도 바로 무음/재개된다.
     try {
       final prefs = await SharedPreferences.getInstance();
       await prefs.setBool(soundEnabledPrefKey, v);
