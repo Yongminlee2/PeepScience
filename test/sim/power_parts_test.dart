@@ -5,7 +5,7 @@ import 'package:piyak_science/sim/sim_world.dart';
 import 'helpers.dart';
 
 void main() {
-  test('모터 톱니가 맞닿은 톱니를 마찰로 돌린다', () {
+  test('모터 톱니가 맞닿은 톱니를 GearJoint로 돌린다', () {
     final s = stage(
       '{"type":"motor_gear","x":5,"y":4,"angle":0},'
       '{"type":"gear","x":5.97,"y":4,"angle":0}',

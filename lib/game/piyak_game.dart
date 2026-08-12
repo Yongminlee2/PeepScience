@@ -132,6 +132,11 @@ class PiyakGame extends FlameGame with TapCallbacks, DragCallbacks {
     // Run mode has no selection/edit affordances (shared-contract Task 8).
     selectedIndex = null;
     rotatingIndex = null;
+    // Fresh sim -> fresh step accumulator too: leftover _acc from the run
+    // just discarded (e.g. capped at 0.25 the frame it cleared) would
+    // otherwise fast-forward this new sim several steps on its very first
+    // update() - visible as a stutter/skip right after tapping 다시.
+    _acc = 0;
     // Fresh sim -> fresh sound-trigger bookkeeping (see the fields' own doc
     // comment above). motorGear presence can't change mid-run (the part is
     // pinned in place by its own revolute joint - see sim_world.dart's
