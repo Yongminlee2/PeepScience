@@ -49,6 +49,16 @@ class PiyakGame extends FlameGame with TapCallbacks, DragCallbacks {
   GameMode mode = GameMode.edit;
   SimWorld? sim;
 
+  /// Fired once per run, the frame `sim!.cleared` first becomes true (see
+  /// `update`'s accumulator loop / `_onCleared`) - passed [stage]'s own id.
+  /// Task 11 wires this to progress-tracking/navigation; here it's just
+  /// invoked.
+  void Function(String stageId)? onCleared;
+
+  /// Fired when [WinOverlay]'s 다음(next) button is tapped. Task 11 wires
+  /// this to advancing to the next stage; here it's just invoked.
+  VoidCallback? onNextRequested;
+
   /// Index into [placements] currently selected in edit mode (draws a
   /// selection ring + delete-X, and a rotate handle when the type is
   /// rotatable - see input.dart's SelectionOverlay), or null if nothing is
@@ -92,12 +102,18 @@ class PiyakGame extends FlameGame with TapCallbacks, DragCallbacks {
     // Screen-space HUD (viewport, not world) - see hud.dart's own doc
     // comment for why it has to be mounted there.
     camera.viewport.add(TrayBar(this));
+    camera.viewport.add(GoalBadge(this));
+    camera.viewport.add(RunToggleButton(this));
   }
 
   @override
   Color backgroundColor() => const Color(0xFFBEE7F5);
 
   void startRun() {
+    // Stale overlay/confetti from a previous run, if any (normally already
+    // gone via the 다시/다음 buttons - see _removeWinOverlay's own doc
+    // comment for why this call is here defensively too).
+    _removeWinOverlay();
     sim = SimWorld(stage, placements);
     mode = GameMode.run;
     // Run mode has no selection/edit affordances (shared-contract Task 8).
@@ -107,9 +123,21 @@ class PiyakGame extends FlameGame with TapCallbacks, DragCallbacks {
   }
 
   void resetToEdit() {
+    _removeWinOverlay();
     sim = null;
     mode = GameMode.edit;
     _rebuildViews();
+  }
+
+  /// Removes any [WinOverlay] mounted under the viewport - a no-op when
+  /// none is showing. The single choke point for tearing the overlay (and,
+  /// cascading, its confetti/text/button children - see WinOverlay's own
+  /// doc comment) down; both mode-transition entry points above call it
+  /// unconditionally so it can never linger into edit mode or a fresh run
+  /// regardless of which one a caller (today: RunToggleButton's 다시 tap;
+  /// later, Task 11's navigation) takes.
+  void _removeWinOverlay() {
+    camera.viewport.removeWhere((c) => c is WinOverlay);
   }
 
   /// Adds a player-placed part and immediately refreshes the render layer -
@@ -190,15 +218,38 @@ class PiyakGame extends FlameGame with TapCallbacks, DragCallbacks {
   @override
   void update(double dt) {
     final s = sim;
-    if (mode == GameMode.run && s != null) {
+    // !s.cleared here is what makes the freeze permanent: once cleared
+    // flips true (inside the loop below), this whole branch is skipped on
+    // every later frame for the rest of this sim's lifetime - cleared only
+    // ever resets by a fresh startRun() replacing `sim` entirely.
+    if (mode == GameMode.run && s != null && !s.cleared) {
       _acc += dt;
       _acc = min(_acc, 0.25);
       while (_acc >= SimWorld.dt) {
         s.step();
         _acc -= SimWorld.dt;
+        if (s.cleared) {
+          // Stop stepping THIS frame too, not just future ones - a stage
+          // that clears on e.g. the 3rd of up to 15 steps queued in one
+          // frame (the 0.25s accumulator cap / SimWorld.dt =~ 15) must not
+          // silently run the other 12 anyway before anyone finds out.
+          _onCleared();
+          break;
+        }
       }
     }
     super.update(dt); // cascades into PartView.update -> body sync
+  }
+
+  // Called exactly once per run: `s.cleared` starts false and latches
+  // permanently true (SimWorld's own contract), and this is the only call
+  // site, reached only from the `if (s.cleared)` transition-check above -
+  // which update()'s own `!s.cleared` guard (see its comment) stops from
+  // ever running again for the same `sim`. So the false->true transition
+  // this reacts to can only be observed, and thus only fire this, once.
+  void _onCleared() {
+    onCleared?.call(stage.id);
+    camera.viewport.add(WinOverlay(this));
   }
 
   /// Test helper: first ball's world-space y in meters (run mode only).
