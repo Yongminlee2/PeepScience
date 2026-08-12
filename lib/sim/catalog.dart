@@ -30,6 +30,9 @@ class PartSpec {
   final double? motorTorque; // for motorGear
   final double? windForce; // for fan (N), applied along local +x
   final double? jointLimit; // for seesaw: +-rad pivot limit
+  // ARGB int (not dart:ui Color - lib/sim/ stays pure Dart). Game layer
+  // converts via Color(spec.color).
+  final int color;
 
   const PartSpec({
     this.radius,
@@ -45,6 +48,7 @@ class PartSpec {
     this.motorTorque,
     this.windForce,
     this.jointLimit,
+    required this.color,
   });
 }
 
@@ -60,6 +64,7 @@ class Catalog {
           restitution: 0.1,
           rotatable: true,
           gravityScale: 1.0,
+          color: 0xFFD7A86E, // pastel wood tan
         ),
       PartType.rubberBall => const PartSpec(
           radius: 0.3,
@@ -68,6 +73,7 @@ class Catalog {
           restitution: 0.75,
           rotatable: false,
           gravityScale: 1.0,
+          color: 0xFFFF8A80, // pastel coral
         ),
       PartType.metalBall => const PartSpec(
           radius: 0.3,
@@ -76,6 +82,7 @@ class Catalog {
           restitution: 0.05,
           rotatable: false,
           gravityScale: 1.0,
+          color: 0xFFB0BEC5, // pastel steel gray
         ),
       PartType.balloon => const PartSpec(
           radius: 0.4,
@@ -85,6 +92,7 @@ class Catalog {
           rotatable: false,
           gravityScale: -0.5,
           linearDamping: 1.5,
+          color: 0xFFF48FB1, // pastel pink
         ),
       PartType.domino => const PartSpec(
           w: 0.24,
@@ -94,6 +102,7 @@ class Catalog {
           restitution: 0.05,
           rotatable: false,
           gravityScale: 1.0,
+          color: 0xFFFFCC80, // pastel orange
         ),
       PartType.seesaw => const PartSpec(
           w: 2.6,
@@ -104,6 +113,7 @@ class Catalog {
           rotatable: false,
           gravityScale: 1.0,
           jointLimit: 0.6,
+          color: 0xFFCE93D8, // pastel purple
         ),
       PartType.motorGear => const PartSpec(
           radius: 0.5,
@@ -114,6 +124,7 @@ class Catalog {
           gravityScale: 1.0,
           motorSpeed: 2.5,
           motorTorque: 50,
+          color: 0xFFFFE082, // pastel gold (motorized accent)
         ),
       PartType.gear => const PartSpec(
           radius: 0.5,
@@ -122,6 +133,7 @@ class Catalog {
           restitution: 0.0,
           rotatable: false,
           gravityScale: 1.0,
+          color: 0xFF90CAF9, // pastel sky blue
         ),
       PartType.paddleGear => const PartSpec(
           radius: 0.5,
@@ -132,6 +144,7 @@ class Catalog {
           restitution: 0.1,
           rotatable: false,
           gravityScale: 1.0,
+          color: 0xFF80CBC4, // pastel teal
         ),
       PartType.fan => const PartSpec(
           w: 0.5,
@@ -142,6 +155,7 @@ class Catalog {
           rotatable: true,
           gravityScale: 1.0,
           windForce: 1.5,
+          color: 0xFFA5D6A7, // pastel green
         ),
       PartType.trampoline => const PartSpec(
           w: 1.2,
@@ -151,6 +165,7 @@ class Catalog {
           restitution: 1.1,
           rotatable: false,
           gravityScale: 1.0,
+          color: 0xFFFFAB91, // pastel salmon
         ),
       PartType.tack => const PartSpec(
           radius: 0.12,
@@ -159,6 +174,7 @@ class Catalog {
           restitution: 0.0,
           rotatable: false,
           gravityScale: 1.0,
+          color: 0xFFBCAAA4, // pastel brown-gray
         ),
     };
   }
