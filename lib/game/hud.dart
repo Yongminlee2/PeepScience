@@ -20,6 +20,7 @@ import 'package:flutter/widgets.dart'
 
 import '../sim/catalog.dart';
 import '../sim/stage_data.dart';
+import '../ui/strings.dart';
 import 'input.dart';
 import 'part_view.dart';
 import 'piyak_game.dart';
@@ -458,8 +459,7 @@ class WinOverlay extends PositionComponent {
     add(_confettiBurst(Vector2(800, 200)));
     add(_confettiBurst(Vector2(1180, 260)));
     add(TextComponent(
-      // TODO(T11): S.t('clear')
-      text: 'CLEAR!',
+      text: S.t('clear'),
       position: Vector2(800, 380),
       anchor: Anchor.center,
       textRenderer: TextPaint(

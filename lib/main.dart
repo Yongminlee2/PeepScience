@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import 'ui/home_screen.dart';
+
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await SystemChrome.setPreferredOrientations(
@@ -11,8 +13,10 @@ Future<void> main() async {
 
 class PiyakScienceApp extends StatelessWidget {
   const PiyakScienceApp({super.key});
+
   @override
   Widget build(BuildContext context) => const MaterialApp(
-      debugShowCheckedModeBanner: false,
-      home: Scaffold(body: Center(child: Text('Peep Science'))));
+        debugShowCheckedModeBanner: false,
+        home: HomeScreen(),
+      );
 }
