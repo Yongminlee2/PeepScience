@@ -41,4 +41,24 @@ void main() {
     expect(s.ok, isFalse);
     expect(s.failReason, contains('id'));
   });
+
+  group('rule (e): 정답 배치가 게임 자신의 canPlaceAt 규칙으로도 실제 배치 가능해야 한다', () {
+    final report = validateAllStages('test/fixtures/stages_placement_illegal');
+
+    test('경계 밖(x=0.0 < 0.3) solution은 물리 시뮬레이션 없이 즉시 실패한다', () {
+      final s = report.stages.firstWhere((s) => s.id == 'w1_s01');
+      expect(s.ok, isFalse);
+      expect(s.failReason, contains('out of bounds'));
+      // 물리를 아예 돌리지 않았다는 근거 - 배치 불가한 정답을 1800스텝 굴릴
+      // 이유가 없다(더 근본적인 문제부터 보고).
+      expect(s.stepsToClear, isNull);
+      expect(s.jitterStepsToClear, isEmpty);
+    });
+
+    test('트레이 개수보다 solution이 더 많이 쓰면 실패한다', () {
+      final s = report.stages.firstWhere((s) => s.id == 'w1_s02');
+      expect(s.ok, isFalse);
+      expect(s.failReason, contains('tray'));
+    });
+  });
 }

@@ -1,6 +1,8 @@
 import 'dart:convert';
 import 'dart:io';
 
+import 'catalog.dart';
+import 'placement_rules.dart';
 import 'registry.dart';
 import 'sim_world.dart';
 import 'stage_data.dart';
@@ -61,8 +63,14 @@ class ValidationReport {
 /// Validates every stage in [dir] against [stageOrder]: (a) the file set
 /// must match exactly (both directions), (b) every file must parse as
 /// [StageData], (c) each stage's solution must clear within [maxSteps] both
-/// as authored and under all [jitterVariants], and (d) the stage must NOT
-/// clear with an empty placement list (a self-solving stage isn't a puzzle).
+/// as authored and under all [jitterVariants], (d) the stage must NOT clear
+/// with an empty placement list (a self-solving stage isn't a puzzle), and
+/// (e) the solution must be PLACEABLE under the game's own canPlaceAt rules
+/// (see [solutionPlacementIssue]) and fit inside the stage's own tray counts
+/// - a solution that only clears because the JSON put a part somewhere a
+/// player could never actually drop it isn't a real solution. (e) is
+/// checked before any physics runs (cheapest check, and the most
+/// fundamental - an unplaceable solution isn't worth 1800 simulated steps).
 ValidationReport validateAllStages(String dir, {int maxSteps = 1800}) {
   final directory = Directory(dir);
   final fileIds = directory.existsSync()
@@ -123,6 +131,17 @@ StageValidation _validateOne(String dir, String id, int maxSteps) {
     );
   }
 
+  final placementIssue = _placementIssue(data);
+  if (placementIssue != null) {
+    return StageValidation(
+      id: id,
+      ok: false,
+      failReason: placementIssue,
+      stepsToClear: null,
+      jitterStepsToClear: const [],
+    );
+  }
+
   final stepsToClear = _runToClear(data, data.solution, maxSteps);
   final jitterSteps = [
     for (final (dx, dAngle) in jitterVariants)
@@ -158,6 +177,30 @@ StageValidation _validateOne(String dir, String id, int maxSteps) {
     stepsToClear: stepsToClear,
     jitterStepsToClear: jitterSteps,
   );
+}
+
+/// Rule (e) - null if [data]'s solution is fine, else the first problem
+/// found: either it uses more of some part type than [StageData.tray]
+/// provides, or [solutionPlacementIssue] rejects it (out of bounds,
+/// overlaps a preset/earlier solution part, or a gear-family part isn't
+/// authored at its snapped position).
+String? _placementIssue(StageData data) {
+  final trayCounts = <PartType, int>{};
+  for (final t in data.tray) {
+    trayCounts[t.type] = t.count;
+  }
+  final used = <PartType, int>{};
+  for (final p in data.solution) {
+    used[p.type] = (used[p.type] ?? 0) + 1;
+  }
+  for (final entry in used.entries) {
+    final allowed = trayCounts[entry.key] ?? 0;
+    if (entry.value > allowed) {
+      return 'solution uses ${entry.value}x ${jsonIdOf(entry.key)} but tray '
+          'only has $allowed';
+    }
+  }
+  return solutionPlacementIssue(data.preset, data.solution);
 }
 
 List<Placement> _jitter(List<Placement> solution, double dx, double dAngle) => [

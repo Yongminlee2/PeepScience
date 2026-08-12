@@ -50,6 +50,31 @@ void main() {
 
       expect(() => state.exportJson(), throwsFormatException);
     });
+
+    test('throws instead of exporting a solution placement the game would '
+        'refuse (out of bounds)', () {
+      final state = EditorState()
+        ..preset.add(PresetObject(type: 'basket', x: 1, y: 1, angleDeg: 0))
+        ..tray.add(TrayEntry(type: PartType.plank, count: 1))
+        // x=0.0 is outside the field (kFieldMinX=0.3) - canPlaceAt would
+        // reject a live drop here.
+        ..solution
+            .add(Placement(type: PartType.plank, x: 0.0, y: 5.0, angleDeg: 0));
+
+      expect(() => state.exportJson(), throwsFormatException);
+    });
+
+    test('throws instead of exporting a solution that overlaps a preset',
+        () {
+      final state = EditorState()
+        ..preset.add(PresetObject(type: 'basket', x: 5, y: 5, angleDeg: 0))
+        ..tray.add(TrayEntry(type: PartType.plank, count: 1))
+        // Plank centered right on top of the basket preset.
+        ..solution
+            .add(Placement(type: PartType.plank, x: 5, y: 5, angleDeg: 0));
+
+      expect(() => state.exportJson(), throwsFormatException);
+    });
   });
 
   group('EditorState.importJson', () {

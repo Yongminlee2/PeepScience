@@ -9,5 +9,5 @@
     { "type": "rubber_ball", "x": 2.47, "y": 0.47, "angle": 0 }
   ],
   "tray": [ { "type": "plank", "count": 1 } ],
-  "solution": [ { "type": "plank", "x": 2.08, "y": 2.60, "angle": 87 } ]
+  "solution": [ { "type": "plank", "x": 8.0, "y": 4.0, "angle": 0 } ]
 }

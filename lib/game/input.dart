@@ -7,35 +7,13 @@ import 'package:flutter/widgets.dart'
 
 import '../services/sound.dart';
 import '../sim/catalog.dart';
+import '../sim/placement_rules.dart' as rules;
 import '../sim/stage_data.dart';
 import 'part_view.dart' show kPpm;
 import 'piyak_game.dart';
 
-/// Placement field bounds, in world meters (the part's own CENTER must land
-/// inside). Shared contract: x 0.3-15.7, y 0.3-7.3 - the tray HUD occupies
-/// the screen strip below y=7.3 (world is 9m tall).
-const double kFieldMinX = 0.3;
-const double kFieldMaxX = 15.7;
-const double kFieldMinY = 0.3;
-const double kFieldMaxY = 7.3;
-
-/// Minimum gap (meters) required between a candidate's AABB and any existing
-/// preset/placement AABB - except gear-family pairs, which are allowed to
-/// overlap because they mesh instead (see [snapGearPosition]).
-const double kOverlapMargin = 0.02;
-
-/// Gear-family center-distance snap target: r1+r2 minus this slack, so the
-/// teeth visually interlock and the result sits safely inside SimWorld's
-/// r1+r2+0.05 meshing-detection radius (shared-contract.md).
-const double kGearSnapSlack = 0.03;
-
-/// How close a drop has to land (beyond the two gears' own radii combined)
-/// before it triggers the snap at all - a generous "magnet" range for a
-/// sloppy drop.
-const double kGearSnapCatchRange = 0.15;
-
-bool _isGearFamily(PartType t) =>
-    t == PartType.motorGear || t == PartType.gear || t == PartType.paddleGear;
+export '../sim/placement_rules.dart'
+    show kFieldMinX, kFieldMaxX, kFieldMinY, kFieldMaxY;
 
 /// World-pixel position (matches `PartView`/`Placement` coordinates, i.e.
 /// meters * `kPpm`) for a point given in the game canvas's coordinate space
@@ -55,10 +33,13 @@ Vector2 canvasToWorldPx(PiyakGame game, Vector2 canvasPoint) =>
     game.camera.globalToLocal(canvasPoint);
 
 /// True if [type] at [worldPos] (its own center) can be placed there:
-/// inside the field, and not overlapping (within [kOverlapMargin]) any
-/// existing stage.preset or game.placements footprint - except gear-family
-/// vs. gear-family pairs, which are allowed to overlap so they can mesh.
-/// [angleDeg] only matters for the two rotatable types (plank, fan).
+/// inside the field, and not overlapping (within [rules.kOverlapMargin])
+/// any existing stage.preset or game.placements footprint - except
+/// gear-family vs. gear-family pairs, which are allowed to overlap so they
+/// can mesh. [angleDeg] only matters for the two rotatable types (plank,
+/// fan). Thin adapter over the pure math in sim/placement_rules.dart (also
+/// the validator's and the editor's rule (e) - one source of truth for what
+/// "legal" means).
 ///
 /// [excludeIndex], when set, skips `game.placements[excludeIndex]` itself -
 /// Task 8's rotate handle uses this to validate a placement's NEW angle
@@ -70,47 +51,18 @@ Vector2 canvasToWorldPx(PiyakGame game, Vector2 canvasPoint) =>
 bool canPlaceAt(
     PiyakGame game, PartType type, Vector2 worldPos, double angleDeg,
     {int? excludeIndex}) {
-  if (worldPos.x < kFieldMinX ||
-      worldPos.x > kFieldMaxX ||
-      worldPos.y < kFieldMinY ||
-      worldPos.y > kFieldMaxY) {
-    return false;
-  }
-  final candidate = _boxForPart(type, worldPos, angleDeg);
-  for (final other in _existingBoxes(game, excludeIndex: excludeIndex)) {
-    if (candidate.isGearFamily && other.isGearFamily) continue;
-    if (_aabbOverlaps(candidate, other, kOverlapMargin)) return false;
-  }
-  return true;
+  return rules.canPlaceAt(_existingBoxes(game, excludeIndex: excludeIndex),
+      type, worldPos.x, worldPos.y, angleDeg);
 }
 
 /// If [type] is gear-family and a same-family preset/placement neighbor
-/// exists within r1+r2+[kGearSnapCatchRange] of [rawWorldPos], returns the
-/// point at exactly r1+r2-[kGearSnapSlack] from that neighbor's center,
-/// along the neighbor->rawWorldPos direction. Otherwise (including for
-/// non-gear types, or no neighbor in range) returns [rawWorldPos] unchanged.
+/// exists within catch range of [rawWorldPos], returns the snapped landing
+/// point; otherwise returns [rawWorldPos] unchanged. See
+/// sim/placement_rules.dart's `snapGearPosition` for the actual math.
 Vector2 snapGearPosition(PiyakGame game, PartType type, Vector2 rawWorldPos) {
-  if (!_isGearFamily(type)) return rawWorldPos;
-  final r1 = Catalog.of(type).radius!;
-  _Box? nearest;
-  var nearestDist = double.infinity;
-  for (final other in _existingBoxes(game)) {
-    if (!other.isGearFamily) continue;
-    final d = (other.center - rawWorldPos).length;
-    if (d < nearestDist) {
-      nearestDist = d;
-      nearest = other;
-    }
-  }
-  if (nearest == null ||
-      nearestDist > r1 + nearest.gearRadius! + kGearSnapCatchRange) {
-    return rawWorldPos;
-  }
-  final targetDist = r1 + nearest.gearRadius! - kGearSnapSlack;
-  final dir = nearestDist < 1e-6
-      ? Vector2(1, 0)
-      : (rawWorldPos - nearest.center) / nearestDist;
-  return nearest.center + dir * targetDist;
+  final (x, y) = rules.snapGearPosition(
+      _existingBoxes(game), type, rawWorldPos.x, rawWorldPos.y);
+  return Vector2(x, y);
 }
 
 /// Resolves a raw drop point into the actual landing position (snap-adjusted
@@ -124,82 +76,31 @@ Vector2 snapGearPosition(PiyakGame game, PartType type, Vector2 rawWorldPos) {
   return (pos: pos, valid: canPlaceAt(game, type, pos, 0));
 }
 
-/// A conservative axis-aligned footprint for overlap checks: [center] +
-/// [half]-extents in meters. [gearRadius] is the catalog gear radius (not
-/// the AABB half-extent) for gear-family members, used by the snap-distance
-/// math in [snapGearPosition]; null for everything else.
-class _Box {
-  _Box(this.center, this.half, {this.gearRadius});
-  final Vector2 center;
-  final Vector2 half;
-  final double? gearRadius;
-  bool get isGearFamily => gearRadius != null;
-}
-
-Iterable<_Box> _existingBoxes(PiyakGame game, {int? excludeIndex}) sync* {
+/// Every existing footprint (stage presets, then live placements in order)
+/// as the pure [rules.PlacementBox] type - the one place this file bridges
+/// PiyakGame's Flutter/Flame-flavored state into sim/placement_rules.dart's
+/// plain-Dart inputs.
+Iterable<rules.PlacementBox> _existingBoxes(PiyakGame game,
+    {int? excludeIndex}) sync* {
   for (final p in game.stage.preset) {
-    yield _boxForPreset(p);
+    yield rules.boxForPreset(p);
   }
   for (var i = 0; i < game.placements.length; i++) {
     if (i == excludeIndex) continue;
     final pl = game.placements[i];
-    yield _boxForPart(pl.type, Vector2(pl.x, pl.y), pl.angleDeg);
+    yield rules.boxForPart(pl.type, pl.x, pl.y, pl.angleDeg);
   }
-}
-
-_Box _boxForPreset(PresetObject p) {
-  final center = Vector2(p.x, p.y);
-  switch (p.type) {
-    case 'platform':
-      return _Box(
-          center, _rotatedHalfExtents(p.w! / 2, 0.2, p.angleDeg * pi / 180));
-    case 'basket':
-      // Matches PartView's basket footprint (floor + two walls envelope).
-      return _Box(center, Vector2(0.5, 0.36));
-    case 'button':
-      return _Box(center, Vector2(0.4, 0.11));
-    default:
-      return _boxForPart(partTypeFromJson(p.type), center, p.angleDeg);
-  }
-}
-
-_Box _boxForPart(PartType type, Vector2 center, double angleDeg) {
-  final s = Catalog.of(type);
-  final angleRad = angleDeg * pi / 180;
-  final Vector2 half;
-  if (s.radius != null && s.w != null) {
-    // paddleGear: union of the circular gear body and its paddle bar.
-    final boxHalf = _rotatedHalfExtents(s.w! / 2, s.h! / 2, angleRad);
-    half = Vector2(max(s.radius!, boxHalf.x), max(s.radius!, boxHalf.y));
-  } else if (s.radius != null) {
-    half = Vector2.all(s.radius!);
-  } else {
-    half = _rotatedHalfExtents(s.w! / 2, s.h! / 2, angleRad);
-  }
-  return _Box(center, half, gearRadius: _isGearFamily(type) ? s.radius : null);
-}
-
-Vector2 _rotatedHalfExtents(double hw, double hh, double angleRad) {
-  final c = cos(angleRad).abs();
-  final sn = sin(angleRad).abs();
-  return Vector2(hw * c + hh * sn, hw * sn + hh * c);
-}
-
-bool _aabbOverlaps(_Box a, _Box b, double margin) {
-  final dx = (a.center.x - b.center.x).abs();
-  final dy = (a.center.y - b.center.y).abs();
-  return dx < a.half.x + b.half.x + margin && dy < a.half.y + b.half.y + margin;
 }
 
 // -----------------------------------------------------------------------
 // Task 8: select / rotate / delete an already-placed part.
 //
-// All hit-testing below is manual (world-space math reusing the same _Box
-// helpers canPlaceAt uses) rather than giving the ring/handle/X their own
-// TapCallbacks/DragCallbacks components. PiyakGame itself mixes in
-// TapCallbacks/DragCallbacks (see piyak_game.dart) and, being the root
-// component, is the LAST candidate flame's dispatcher checks for any given
-// pointer (every descendant is matched first - see flame's
+// All hit-testing below is manual (world-space math reusing the same
+// sim/placement_rules.dart boxes canPlaceAt uses) rather than giving the
+// ring/handle/X their own TapCallbacks/DragCallbacks components. PiyakGame
+// itself mixes in TapCallbacks/DragCallbacks (see piyak_game.dart) and,
+// being the root component, is the LAST candidate flame's dispatcher checks
+// for any given pointer (every descendant is matched first - see flame's
 // Component.componentsAtLocation) - so this never steals events from
 // hud.dart's per-slot tray drags. TapUpEvent.canvasPosition and
 // DragStartEvent.canvasPosition are computed once per event independent of
@@ -246,8 +147,9 @@ double selectionRingRadiusM(PartType type) {
 /// World-space position of [p]'s rotate-handle knob: on the selection
 /// ring's edge, in the direction of the part's own current
 /// [Placement.angleDeg] (0 deg = straight along +x - the same rotation
-/// convention PartView's `angle` and this file's `_boxForPart`'s `angleRad`
-/// already use, so the handle visibly orbits in sync as the part turns).
+/// convention PartView's `angle` and placement_rules.dart's `boxForPart`'s
+/// `angleRad` already use, so the handle visibly orbits in sync as the part
+/// turns).
 /// Exposed for test/game/edit_test.dart to locate the drag-start point.
 Vector2 rotateHandleWorldPos(Placement p) {
   final r = selectionRingRadiusM(p.type);
@@ -267,16 +169,17 @@ Vector2 deleteButtonWorldPos(Placement p) =>
     Vector2(p.x, max(p.y - kDeleteButtonOffsetM, kDeleteHitRadiusM));
 
 /// Index of the topmost `game.placements` entry whose AABB (the same
-/// conservative box canPlaceAt/_boxForPart use) contains [worldPos], or
-/// null. Iterates back-to-front so the most-recently-placed part wins on
-/// overlap. Only [PiyakGame.placements] is selectable - never
+/// conservative box canPlaceAt/placement_rules.dart's `boxForPart` use)
+/// contains [worldPos], or null. Iterates back-to-front so the
+/// most-recently-placed part wins on overlap. Only [PiyakGame.placements]
+/// is selectable - never
 /// `game.stage.preset` (level terrain/goal objects aren't player-editable).
 int? _placementIndexAt(PiyakGame game, Vector2 worldPos) {
   for (var i = game.placements.length - 1; i >= 0; i--) {
     final p = game.placements[i];
-    final box = _boxForPart(p.type, Vector2(p.x, p.y), p.angleDeg);
-    if ((worldPos.x - box.center.x).abs() <= box.half.x &&
-        (worldPos.y - box.center.y).abs() <= box.half.y) {
+    final box = rules.boxForPart(p.type, p.x, p.y, p.angleDeg);
+    if ((worldPos.x - box.cx).abs() <= box.halfX &&
+        (worldPos.y - box.cy).abs() <= box.halfY) {
       return i;
     }
   }

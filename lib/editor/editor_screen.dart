@@ -8,6 +8,7 @@ import '../game/input.dart'
     show kFieldMinX, kFieldMaxX, kFieldMinY, kFieldMaxY;
 import '../game/piyak_game.dart';
 import '../sim/catalog.dart';
+import '../sim/placement_rules.dart' show solutionPlacementIssue;
 import '../sim/stage_data.dart';
 
 /// All editor-authored stage data, minus id (derived from [world]/[index] -
@@ -65,9 +66,20 @@ class EditorState {
   /// "solution cannot be empty") instead of ever handing back JSON that
   /// would fail that same validation later. Callers (the Export button)
   /// catch this and warn instead of copying broken JSON to the clipboard.
+  ///
+  /// Also refuses (same exception type) a solution the game's own
+  /// canPlaceAt rules would reject - see [solutionPlacementIssue]. Recording
+  /// the solution via the live preview game (parts mode's drag/drop) can
+  /// never produce one of these (every placement there already went through
+  /// canPlaceAt); this guards hand-edited/imported JSON and copy-paste
+  /// mistakes between stages instead.
   String exportJson() {
-    final str =
-        const JsonEncoder.withIndent('  ').convert(_toStageData().toJson());
+    final data = _toStageData();
+    final placementIssue = solutionPlacementIssue(data.preset, data.solution);
+    if (placementIssue != null) {
+      throw FormatException(placementIssue);
+    }
+    final str = const JsonEncoder.withIndent('  ').convert(data.toJson());
     StageData.fromJson(jsonDecode(str) as Map<String, dynamic>); // validate
     return str;
   }
