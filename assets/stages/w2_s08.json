@@ -1,0 +1,17 @@
+{
+  "id": "w2_s08",
+  "world": 2,
+  "index": 8,
+  "goal": { "type": "pop_balloons" },
+  "preset": [
+    { "type": "balloon", "x": 3.0, "y": 8.0, "angle": 0 },
+    { "type": "balloon", "x": 7.0, "y": 8.0, "angle": 0 },
+    { "type": "balloon", "x": 11.0, "y": 8.0, "angle": 0 }
+  ],
+  "tray": [ { "type": "tack", "count": 3 } ],
+  "solution": [
+    { "type": "tack", "x": 3.0, "y": 3.0, "angle": 0 },
+    { "type": "tack", "x": 7.0, "y": 3.0, "angle": 0 },
+    { "type": "tack", "x": 11.0, "y": 3.0, "angle": 0 }
+  ]
+}
