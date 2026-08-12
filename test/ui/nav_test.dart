@@ -229,6 +229,13 @@ void main() {
     ));
     await t.pumpAndSettle();
 
+    // 4 world cards don't all fit in the 1600-wide viewport this test needs
+    // for the later fixed-resolution game tap math (_runButtonCenter) - drag
+    // the horizontal world-card row so the last world's cell is on screen
+    // before tapping it.
+    await t.drag(find.byType(ListView), const Offset(-2000, 0));
+    await t.pump();
+
     await t.tap(find.byKey(ValueKey('cell_$lastId')));
     await _pumpBounded(t);
     expect(find.byType(GameScreen), findsOneWidget);

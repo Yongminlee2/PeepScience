@@ -1,0 +1,13 @@
+{
+  "id": "w4_s01",
+  "world": 4,
+  "index": 1,
+  "goal": { "type": "press_button" },
+  "preset": [
+    { "type": "platform", "x": 5.25, "y": 7.0, "angle": 0, "w": 3.5 },
+    { "type": "rubber_ball", "x": 4.5, "y": 6.5, "angle": 0 },
+    { "type": "button", "x": 8.6, "y": 7.7, "angle": 0 }
+  ],
+  "tray": [ { "type": "fan", "count": 1 } ],
+  "solution": [ { "type": "fan", "x": 3.0, "y": 6.8, "angle": 0 } ]
+}

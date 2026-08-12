@@ -1,0 +1,15 @@
+{
+  "id": "w4_s06",
+  "world": 4,
+  "index": 6,
+  "goal": { "type": "ball_in_basket" },
+  "preset": [
+    { "type": "motor_gear", "x": 4.0, "y": 5.0, "angle": 0 },
+    { "type": "platform", "x": 4.97, "y": 6.35, "angle": 0, "w": 1.0 },
+    { "type": "rubber_ball", "x": 4.97, "y": 5.85, "angle": 0 },
+    { "type": "fan", "x": 6.0, "y": 7.0, "angle": 0 },
+    { "type": "basket", "x": 7.0, "y": 6.75, "angle": 0 }
+  ],
+  "tray": [ { "type": "paddle_gear", "count": 1 } ],
+  "solution": [ { "type": "paddle_gear", "x": 4.97, "y": 5.0, "angle": 0 } ]
+}

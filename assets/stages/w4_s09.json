@@ -1,0 +1,18 @@
+{
+  "id": "w4_s09",
+  "world": 4,
+  "index": 9,
+  "goal": { "type": "topple_dominoes" },
+  "preset": [
+    { "type": "platform", "x": 6.8, "y": 7.0, "angle": 0, "w": 6.0 },
+    { "type": "domino", "x": 5.0, "y": 6.35, "angle": 0 },
+    { "type": "domino", "x": 5.6, "y": 6.35, "angle": 0 },
+    { "type": "domino", "x": 6.2, "y": 6.35, "angle": 0 },
+    { "type": "domino", "x": 6.8, "y": 6.35, "angle": 0 },
+    { "type": "domino", "x": 7.4, "y": 6.35, "angle": 0 },
+    { "type": "domino", "x": 8.0, "y": 6.35, "angle": 0 },
+    { "type": "domino", "x": 8.6, "y": 6.35, "angle": 0 }
+  ],
+  "tray": [ { "type": "fan", "count": 1 } ],
+  "solution": [ { "type": "fan", "x": 3.70, "y": 7.10, "angle": -30 } ]
+}

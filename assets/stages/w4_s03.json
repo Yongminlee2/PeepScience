@@ -1,0 +1,12 @@
+{
+  "id": "w4_s03",
+  "world": 4,
+  "index": 3,
+  "goal": { "type": "pop_balloons" },
+  "preset": [
+    { "type": "balloon", "x": 4.0, "y": 8.5, "angle": 0 },
+    { "type": "tack", "x": 8.1, "y": -0.5, "angle": 0 }
+  ],
+  "tray": [ { "type": "fan", "count": 1 } ],
+  "solution": [ { "type": "fan", "x": 2.94, "y": 8.06, "angle": -45 } ]
+}
