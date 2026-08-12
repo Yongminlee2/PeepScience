@@ -1,5 +1,7 @@
+import 'package:flutter/foundation.dart' show kDebugMode;
 import 'package:flutter/material.dart';
 
+import '../editor/editor_screen.dart';
 import '../services/progress.dart';
 import '../services/stage_loader.dart';
 import '../sim/stage_data.dart';
@@ -98,6 +100,18 @@ class _HomeScreenState extends State<HomeScreen> {
         appBar: AppBar(
           title: Text(S.t('appTitle')),
           actions: [
+            // Debug-only stage editor entry - kDebugMode is a compile-time
+            // constant, so this whole branch (and EditorScreen along with
+            // it) is dead-code-eliminated from release builds, matching the
+            // brief's "릴리스 빌드에는 라우트 자체가 없음" requirement.
+            if (kDebugMode)
+              IconButton(
+                icon: const Icon(Icons.build),
+                tooltip: 'Stage Editor',
+                onPressed: () => Navigator.of(context).push(MaterialPageRoute(
+                  builder: (_) => const EditorScreen(),
+                )),
+              ),
             IconButton(
               icon: const Icon(Icons.settings),
               onPressed: () => Navigator.of(context).push(MaterialPageRoute(
