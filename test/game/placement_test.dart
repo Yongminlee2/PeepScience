@@ -54,6 +54,19 @@ Future<PiyakGame> _pumpGame(WidgetTester t, StageData s) async {
   return game;
 }
 
+/// Drags from [from] by [delta], then pumps 350ms (> flame's
+/// TapConfig.longTapDelay, default 300ms). Task 8 gave PiyakGame its own
+/// TapCallbacks, and flame's MultiTapGestureRecognizer starts a long-tap
+/// timer on EVERY pointer-down game-wide - drag or tap alike, not just
+/// taps - so a drag gesture now also needs to pump past it, or
+/// flutter_test's FakeAsync-based binding fails teardown on a still-pending
+/// Timer (see edit_test.dart's identical _drag helper for Task 8's own
+/// drags).
+Future<void> _drag(WidgetTester t, Offset from, Offset delta) async {
+  await t.dragFrom(from, delta, touchSlopX: 0, touchSlopY: 0);
+  await t.pump(const Duration(milliseconds: 350));
+}
+
 void main() {
   testWidgets('트레이에서 끌어다 놓으면 배치되고 개수가 준다', (t) async {
     final s = stage(
@@ -64,8 +77,7 @@ void main() {
     final game = await _pumpGame(t, s);
 
     final drop = _worldPx(8, 4);
-    await t.dragFrom(_slot0Center, drop - _slot0Center, touchSlopX: 0, touchSlopY: 0);
-    await t.pump();
+    await _drag(t, _slot0Center, drop - _slot0Center);
 
     expect(game.placements.length, 1);
     expect(game.placements.single.type, PartType.plank);
@@ -82,14 +94,12 @@ void main() {
     final game = await _pumpGame(t, s);
     final drop = _worldPx(8, 4);
 
-    await t.dragFrom(_slot0Center, drop - _slot0Center, touchSlopX: 0, touchSlopY: 0);
-    await t.pump();
+    await _drag(t, _slot0Center, drop - _slot0Center);
     expect(game.placements.length, 1);
 
     // Same spot again: remaining count is still 1 so the drag can start,
     // but the drop should be rejected for overlapping the part just placed.
-    await t.dragFrom(_slot0Center, drop - _slot0Center, touchSlopX: 0, touchSlopY: 0);
-    await t.pump();
+    await _drag(t, _slot0Center, drop - _slot0Center);
     expect(game.placements.length, 1);
   });
 
@@ -104,8 +114,7 @@ void main() {
     // 0.8m from the preset motorGear - inside the r1+r2+0.15 = 1.15m catch
     // range, so this should snap rather than land raw.
     final drop = _worldPx(8.8, 4);
-    await t.dragFrom(_slot0Center, drop - _slot0Center, touchSlopX: 0, touchSlopY: 0);
-    await t.pump();
+    await _drag(t, _slot0Center, drop - _slot0Center);
 
     expect(game.placements.length, 1);
     final p = game.placements.single;

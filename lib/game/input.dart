@@ -1,9 +1,13 @@
 import 'dart:math';
 
 import 'package:flame/components.dart';
+import 'package:flame/events.dart';
+import 'package:flutter/widgets.dart'
+    show Canvas, Color, Offset, Paint, PaintingStyle;
 
 import '../sim/catalog.dart';
 import '../sim/stage_data.dart';
+import 'part_view.dart' show kPpm;
 import 'piyak_game.dart';
 
 /// Placement field bounds, in world meters (the part's own CENTER must land
@@ -34,7 +38,11 @@ bool _isGearFamily(PartType t) =>
 
 /// World-pixel position (matches `PartView`/`Placement` coordinates, i.e.
 /// meters * `kPpm`) for a point given in the game canvas's coordinate space
-/// (e.g. `DragStartEvent.canvasPosition` / `DragUpdateEvent.canvasEndPosition`).
+/// (e.g. `TapDownEvent.canvasPosition`, `DragStartEvent.canvasPosition`, or
+/// a canvas position a caller has otherwise reconstructed - see
+/// hud.dart's and this file's own onDragUpdate doc comments for why a raw
+/// `DragUpdateEvent.canvasStartPosition`/`canvasEndPosition` isn't always
+/// one of those).
 ///
 /// Goes through both the viewport (letterbox/scale) and viewfinder (pan/
 /// zoom) transforms via `CameraComponent.globalToLocal`, rather than
@@ -51,10 +59,16 @@ Vector2 canvasToWorldPx(PiyakGame game, Vector2 canvasPoint) =>
 /// vs. gear-family pairs, which are allowed to overlap so they can mesh.
 /// [angleDeg] only matters for the two rotatable types (plank, fan).
 ///
+/// [excludeIndex], when set, skips `game.placements[excludeIndex]` itself -
+/// Task 8's rotate handle uses this to validate a placement's NEW angle
+/// against every OTHER part, without it always colliding with its own old
+/// footprint.
+///
 /// Reusable: Task 8 (moving an existing part) and Task 12 (stage editor)
 /// call this too.
 bool canPlaceAt(
-    PiyakGame game, PartType type, Vector2 worldPos, double angleDeg) {
+    PiyakGame game, PartType type, Vector2 worldPos, double angleDeg,
+    {int? excludeIndex}) {
   if (worldPos.x < kFieldMinX ||
       worldPos.x > kFieldMaxX ||
       worldPos.y < kFieldMinY ||
@@ -62,7 +76,7 @@ bool canPlaceAt(
     return false;
   }
   final candidate = _boxForPart(type, worldPos, angleDeg);
-  for (final other in _existingBoxes(game)) {
+  for (final other in _existingBoxes(game, excludeIndex: excludeIndex)) {
     if (candidate.isGearFamily && other.isGearFamily) continue;
     if (_aabbOverlaps(candidate, other, kOverlapMargin)) return false;
   }
@@ -121,11 +135,13 @@ class _Box {
   bool get isGearFamily => gearRadius != null;
 }
 
-Iterable<_Box> _existingBoxes(PiyakGame game) sync* {
+Iterable<_Box> _existingBoxes(PiyakGame game, {int? excludeIndex}) sync* {
   for (final p in game.stage.preset) {
     yield _boxForPreset(p);
   }
-  for (final pl in game.placements) {
+  for (var i = 0; i < game.placements.length; i++) {
+    if (i == excludeIndex) continue;
+    final pl = game.placements[i];
     yield _boxForPart(pl.type, Vector2(pl.x, pl.y), pl.angleDeg);
   }
 }
@@ -172,4 +188,283 @@ bool _aabbOverlaps(_Box a, _Box b, double margin) {
   final dx = (a.center.x - b.center.x).abs();
   final dy = (a.center.y - b.center.y).abs();
   return dx < a.half.x + b.half.x + margin && dy < a.half.y + b.half.y + margin;
+}
+
+// -----------------------------------------------------------------------
+// Task 8: select / rotate / delete an already-placed part.
+//
+// All hit-testing below is manual (world-space math reusing the same _Box
+// helpers canPlaceAt uses) rather than giving the ring/handle/X their own
+// TapCallbacks/DragCallbacks components. PiyakGame itself mixes in
+// TapCallbacks/DragCallbacks (see piyak_game.dart) and, being the root
+// component, is the LAST candidate flame's dispatcher checks for any given
+// pointer (every descendant is matched first - see flame's
+// Component.componentsAtLocation) - so this never steals events from
+// hud.dart's per-slot tray drags. TapUpEvent.canvasPosition and
+// DragStartEvent.canvasPosition are computed once per event independent of
+// which component ends up receiving it (flame's
+// PositionEvent/DisplacementEvent), so reading them here is exactly as
+// correct as hud.dart's own identical usage; DragUpdateEvent needs the
+// canvasDelta-accumulation dance documented on handleEditDragUpdate below
+// instead, for the same reason hud.dart's onDragUpdate now does too.
+//
+// Selection/deletion react to onTapUp, not onTapDown - see
+// handleEditTapUp's own doc comment for why (short version: onTapDown fires
+// speculatively for every touch, tap or drag alike).
+
+/// Extra visual margin (meters) added to a placed part's own footprint to
+/// get its selection ring radius.
+const double kSelectionRingPadding = 0.18;
+
+/// Fixed world-space offset (meters, straight up i.e. smaller y) from a
+/// placement's center to its delete-X button center. Shared contract:
+/// "삭제 X는 부품 위 0.6m" - unlike the rotate handle, this does NOT turn
+/// with the part's own angle.
+const double kDeleteButtonOffsetM = 0.6;
+
+/// Hit-test radius (meters) for the delete-X button.
+const double kDeleteHitRadiusM = 0.28;
+
+/// Hit-test radius (meters) for the rotate-handle knob.
+const double kHandleHitRadiusM = 0.24;
+
+/// Radius (meters) of the selection ring drawn around a placed part: the
+/// smallest circle centered on the part that encloses its footprint at ANY
+/// rotation (so the ring itself never has to rotate), plus
+/// [kSelectionRingPadding]. Exposed for test/game/edit_test.dart and
+/// [SelectionOverlay].
+double selectionRingRadiusM(PartType type) {
+  final s = Catalog.of(type);
+  var footprint = s.radius ?? 0.0;
+  if (s.w != null) {
+    footprint = max(footprint, sqrt(pow(s.w! / 2, 2) + pow(s.h! / 2, 2)));
+  }
+  return footprint + kSelectionRingPadding;
+}
+
+/// World-space position of [p]'s rotate-handle knob: on the selection
+/// ring's edge, in the direction of the part's own current
+/// [Placement.angleDeg] (0 deg = straight along +x - the same rotation
+/// convention PartView's `angle` and this file's `_boxForPart`'s `angleRad`
+/// already use, so the handle visibly orbits in sync as the part turns).
+/// Exposed for test/game/edit_test.dart to locate the drag-start point.
+Vector2 rotateHandleWorldPos(Placement p) {
+  final r = selectionRingRadiusM(p.type);
+  final rad = p.angleDeg * pi / 180;
+  return Vector2(p.x + cos(rad) * r, p.y + sin(rad) * r);
+}
+
+/// Index of the topmost `game.placements` entry whose AABB (the same
+/// conservative box canPlaceAt/_boxForPart use) contains [worldPos], or
+/// null. Iterates back-to-front so the most-recently-placed part wins on
+/// overlap. Only [PiyakGame.placements] is selectable - never
+/// `game.stage.preset` (level terrain/goal objects aren't player-editable).
+int? _placementIndexAt(PiyakGame game, Vector2 worldPos) {
+  for (var i = game.placements.length - 1; i >= 0; i--) {
+    final p = game.placements[i];
+    final box = _boxForPart(p.type, Vector2(p.x, p.y), p.angleDeg);
+    if ((worldPos.x - box.center.x).abs() <= box.half.x &&
+        (worldPos.y - box.center.y).abs() <= box.half.y) {
+      return i;
+    }
+  }
+  return null;
+}
+
+/// PiyakGame.onTapUp delegates here - NOT onTapDown, deliberately: flame's
+/// MultiTapGestureRecognizer fires onTapDown speculatively for EVERY
+/// pointer-down (tap or drag alike, same as Flutter's stock tap recognizers
+/// firing their own "down" callback optimistically to support instant
+/// pressed-states) and only later either confirms it (onTapUp, if this
+/// pointer resolves as a genuine tap) or retracts it (onTapCancel, if a
+/// competing recognizer - here, PiyakGame's own DragCallbacks - wins the
+/// gesture-arena instead). Acting on onTapDown would select/deselect BEFORE
+/// a rotate-handle drag on the very same pointer got a chance to claim
+/// itself in handleEditDragStart, wrongly clearing the selection out from
+/// under it (confirmed empirically while building this - the drag's own
+/// onDragStart always saw selectedIndex already wiped to null by then).
+///
+/// Priority order once a tap is confirmed: delete-X (only if something's
+/// already selected) > tap-a-part (select/switch) > tap-empty-field (clear
+/// selection) - matches the brief's "탭하여 다른 부품 선택 시 전환/해제".
+void handleEditTapUp(PiyakGame game, TapUpEvent event) {
+  if (game.mode != GameMode.edit) return;
+  final worldPos = canvasToWorldPx(game, event.canvasPosition) / kPpm;
+  final idx = game.selectedIndex;
+  if (idx != null && idx < game.placements.length) {
+    final p = game.placements[idx];
+    final deleteCenter = Vector2(p.x, p.y - kDeleteButtonOffsetM);
+    if ((worldPos - deleteCenter).length <= kDeleteHitRadiusM) {
+      game.removePlacement(idx);
+      game.selectedIndex = null;
+      return;
+    }
+  }
+  game.selectedIndex = _placementIndexAt(game, worldPos);
+}
+
+/// PiyakGame.onDragStart delegates here. Only claims the drag (sets
+/// [PiyakGame.rotatingIndex]) when a rotatable part is selected AND the
+/// drag starts on its handle knob - otherwise a no-op, so any other
+/// world-space drag passes through untouched (there is none today besides
+/// the tray, which lives under camera.viewport and - being a descendant -
+/// is always matched before PiyakGame itself ever sees the event).
+void handleEditDragStart(PiyakGame game, DragStartEvent event) {
+  if (game.mode != GameMode.edit) return;
+  final idx = game.selectedIndex;
+  if (idx == null || idx >= game.placements.length) return;
+  final p = game.placements[idx];
+  if (!Catalog.of(p.type).rotatable) return;
+  final worldPos = canvasToWorldPx(game, event.canvasPosition) / kPpm;
+  if ((worldPos - rotateHandleWorldPos(p)).length > kHandleHitRadiusM) return;
+  game.rotatingIndex = idx;
+  game.rotateFallbackAngleDeg = p.angleDeg;
+  game.rotateDragCanvasPos = event.canvasPosition;
+}
+
+/// PiyakGame.onDragUpdate delegates here. Live-commits the snapped angle on
+/// every tick - even one that would overlap something - so the player sees
+/// the part actually follow their finger; canPlaceAt is only consulted for
+/// the ring's valid/invalid tint ([SelectionOverlay]) and the
+/// revert-on-release check ([handleEditDragEnd]). This is the "clamp on
+/// release" choice called out in task-8-brief.md (see task-8-report.md).
+///
+/// Tracks the pointer via [PiyakGame.rotateDragCanvasPos] + event.canvasDelta
+/// rather than event.canvasStartPosition/canvasEndPosition directly - see
+/// hud.dart's onDragUpdate doc comment (same fix, same root cause: PiyakGame's
+/// own TapCallbacks now competes in the gesture arena for every pointer in
+/// the game, which flips which of flame's two DragUpdateDetails-construction
+/// paths fires for a given update).
+void handleEditDragUpdate(PiyakGame game, DragUpdateEvent event) {
+  final idx = game.rotatingIndex;
+  final lastCanvasPos = game.rotateDragCanvasPos;
+  if (idx == null || idx >= game.placements.length || lastCanvasPos == null) {
+    return;
+  }
+  final p = game.placements[idx];
+  final canvasPos = lastCanvasPos + event.canvasDelta;
+  game.rotateDragCanvasPos = canvasPos;
+  final worldPos = canvasToWorldPx(game, canvasPos) / kPpm;
+  final rawDeg = atan2(worldPos.y - p.y, worldPos.x - p.x) * 180 / pi;
+  final snapped = (rawDeg / 5).round() * 5.0;
+  if (snapped != p.angleDeg) {
+    game.setPlacementAngle(idx, snapped);
+  }
+}
+
+/// PiyakGame.onDragEnd delegates here (a cancelled drag arrives here too,
+/// via DragCallbacks' default onDragCancel -> onDragEnd forwarding):
+/// reverts to [PiyakGame.rotateFallbackAngleDeg] if the drag's final angle
+/// overlaps something, per canPlaceAt with the rotating part itself
+/// excluded.
+void handleEditDragEnd(PiyakGame game, DragEndEvent event) {
+  final idx = game.rotatingIndex;
+  game.rotatingIndex = null;
+  game.rotateDragCanvasPos = null;
+  if (idx == null || idx >= game.placements.length) return;
+  final p = game.placements[idx];
+  final valid = canPlaceAt(game, p.type, Vector2(p.x, p.y), p.angleDeg,
+      excludeIndex: idx);
+  if (!valid) {
+    game.setPlacementAngle(idx, game.rotateFallbackAngleDeg);
+  }
+}
+
+/// Edit-mode-only visual for [PiyakGame.selectedIndex]: a ring around the
+/// selected placement, a delete-X 0.6m above it, and (only when the type is
+/// rotatable - plank, fan) a rotate-handle knob on the ring's edge, tinted
+/// red while a rotate drag is at an invalid angle. Purely a renderer - all
+/// hit-testing lives in this section's handleEdit*() functions above, which
+/// read/write PiyakGame's selection fields directly (see this section's own
+/// header comment for why). Added once in PiyakGame.onLoad with a high
+/// priority so it always draws on top of every PartView.
+class SelectionOverlay extends Component {
+  SelectionOverlay(this.game) : super(priority: 1000);
+
+  final PiyakGame game;
+
+  bool _visible = false;
+  bool _showHandle = false;
+  bool _invalid = false;
+  late Offset _center;
+  late double _ringRadiusPx;
+  late Offset _handlePos;
+  late Offset _deleteCenter;
+
+  @override
+  void update(double dt) {
+    final idx = game.selectedIndex;
+    if (game.mode != GameMode.edit ||
+        idx == null ||
+        idx >= game.placements.length) {
+      _visible = false;
+      return;
+    }
+    _visible = true;
+    final p = game.placements[idx];
+    _center = _px(p.x, p.y);
+    _ringRadiusPx = selectionRingRadiusM(p.type) * kPpm;
+    _showHandle = Catalog.of(p.type).rotatable;
+    if (_showHandle) {
+      final h = rotateHandleWorldPos(p);
+      _handlePos = _px(h.x, h.y);
+    }
+    _deleteCenter = _px(p.x, p.y - kDeleteButtonOffsetM);
+    _invalid = game.rotatingIndex == idx &&
+        !canPlaceAt(game, p.type, Vector2(p.x, p.y), p.angleDeg,
+            excludeIndex: idx);
+  }
+
+  static Offset _px(double xM, double yM) => Offset(xM * kPpm, yM * kPpm);
+
+  @override
+  void render(Canvas canvas) {
+    if (!_visible) return;
+    final ringColor =
+        _invalid ? const Color(0xFFE53935) : const Color(0xFF2979FF);
+    canvas.drawCircle(
+      _center,
+      _ringRadiusPx,
+      Paint()
+        ..color = ringColor
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 4,
+    );
+    if (_showHandle) {
+      canvas.drawLine(
+        _center,
+        _handlePos,
+        Paint()
+          ..color = ringColor
+          ..strokeWidth = 3,
+      );
+      canvas.drawCircle(
+          _handlePos, 14, Paint()..color = const Color(0xFFFFC107));
+      canvas.drawCircle(
+        _handlePos,
+        14,
+        Paint()
+          ..color = const Color(0xFF263238)
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = 2,
+      );
+    }
+    canvas.drawCircle(
+        _deleteCenter, 16, Paint()..color = const Color(0xFFFFFFFF));
+    canvas.drawCircle(
+      _deleteCenter,
+      16,
+      Paint()
+        ..color = const Color(0xFFE53935)
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 2.5,
+    );
+    final xPaint = Paint()
+      ..color = const Color(0xFFE53935)
+      ..strokeWidth = 3;
+    canvas.drawLine(_deleteCenter.translate(-7, -7),
+        _deleteCenter.translate(7, 7), xPaint);
+    canvas.drawLine(_deleteCenter.translate(-7, 7),
+        _deleteCenter.translate(7, -7), xPaint);
+  }
 }

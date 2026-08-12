@@ -2,6 +2,7 @@ import 'dart:math';
 import 'dart:ui';
 
 import 'package:flame/components.dart';
+import 'package:flame/events.dart';
 import 'package:flame/game.dart';
 import 'package:forge2d/forge2d.dart' hide World;
 
@@ -9,6 +10,7 @@ import '../sim/catalog.dart';
 import '../sim/sim_world.dart';
 import '../sim/stage_data.dart';
 import 'hud.dart';
+import 'input.dart';
 import 'part_view.dart';
 
 enum GameMode { edit, run }
@@ -25,7 +27,7 @@ enum GameMode { edit, run }
 /// World is 16x9 meters, y-down, origin top-left - same directions as the
 /// screen - so meters -> pixels is a straight `* ppm`, never a flip (see
 /// PartView, which does the actual per-frame copy).
-class PiyakGame extends FlameGame {
+class PiyakGame extends FlameGame with TapCallbacks, DragCallbacks {
   PiyakGame(this.stage)
       : super(
           camera: CameraComponent.withFixedResolution(
@@ -47,6 +49,28 @@ class PiyakGame extends FlameGame {
   GameMode mode = GameMode.edit;
   SimWorld? sim;
 
+  /// Index into [placements] currently selected in edit mode (draws a
+  /// selection ring + delete-X, and a rotate handle when the type is
+  /// rotatable - see input.dart's SelectionOverlay), or null if nothing is
+  /// selected. Tap/drag handling lives in input.dart's handleEdit*()
+  /// functions; cleared whenever [startRun] is called.
+  int? selectedIndex;
+
+  /// Index into [placements] whose rotate handle is mid-drag, or null.
+  /// Owned by input.dart's handleEditDrag*() functions.
+  int? rotatingIndex;
+
+  /// Angle (degrees) to fall back to if a rotate drag ends on an invalid
+  /// (overlapping) angle - see input.dart's handleEditDragEnd. Meaningless
+  /// while [rotatingIndex] is null.
+  double rotateFallbackAngleDeg = 0;
+
+  /// Running canvas-space pointer position for the rotate drag in progress,
+  /// or null. Owned by input.dart's handleEditDrag*() functions - see
+  /// handleEditDragUpdate's doc comment for why this is tracked
+  /// incrementally instead of read straight off each DragUpdateEvent.
+  Vector2? rotateDragCanvasPos;
+
   final List<PartView> _views = [];
   double _acc = 0;
 
@@ -61,6 +85,10 @@ class PiyakGame extends FlameGame {
     // _rebuildViews() (background never changes across edit/run/placements).
     world.add(_BackgroundView(stage.world));
     _rebuildViews();
+    // Edit-mode-only selection ring/handle/delete-X for the currently
+    // selected placement (input.dart) - high priority keeps it drawn on top
+    // of every PartView regardless of _rebuildViews()'s add/remove churn.
+    world.add(SelectionOverlay(this));
     // Screen-space HUD (viewport, not world) - see hud.dart's own doc
     // comment for why it has to be mounted there.
     camera.viewport.add(TrayBar(this));
@@ -72,6 +100,9 @@ class PiyakGame extends FlameGame {
   void startRun() {
     sim = SimWorld(stage, placements);
     mode = GameMode.run;
+    // Run mode has no selection/edit affordances (shared-contract Task 8).
+    selectedIndex = null;
+    rotatingIndex = null;
     _rebuildViews();
   }
 
@@ -90,6 +121,53 @@ class PiyakGame extends FlameGame {
   void addPlacement(Placement p) {
     placements.add(p);
     _rebuildViews();
+  }
+
+  /// Removes the placement at [index] and refreshes the render layer -
+  /// mirrors [addPlacement]. Task 8's delete-X button is the only caller
+  /// today.
+  void removePlacement(int index) {
+    assert(index >= 0 && index < placements.length);
+    placements.removeAt(index);
+    _rebuildViews();
+  }
+
+  /// Replaces the placement at [index] with the same type/position but a
+  /// new [angleDeg] - mirrors [addPlacement]. [Placement] has final fields,
+  /// so this replaces the list entry rather than mutating it in place.
+  /// Task 8's rotate handle is the only caller today.
+  void setPlacementAngle(int index, double angleDeg) {
+    assert(index >= 0 && index < placements.length);
+    final p = placements[index];
+    placements[index] =
+        Placement(type: p.type, x: p.x, y: p.y, angleDeg: angleDeg);
+    _rebuildViews();
+  }
+
+  // Edit-mode select/rotate/delete input. TapCallbacks/DragCallbacks must be
+  // mixed onto this class itself to receive events (FlameGame _is_ a
+  // Component - see flame's TapCallbacks doc comment) - but all the actual
+  // hit-testing/geometry lives in input.dart's handleEdit*() functions,
+  // consistent with how canPlaceAt/resolveDrop already take a PiyakGame
+  // rather than living as methods on it.
+  @override
+  void onTapUp(TapUpEvent event) => handleEditTapUp(this, event);
+
+  @override
+  void onDragStart(DragStartEvent event) {
+    super.onDragStart(event);
+    handleEditDragStart(this, event);
+  }
+
+  @override
+  void onDragUpdate(DragUpdateEvent event) {
+    handleEditDragUpdate(this, event);
+  }
+
+  @override
+  void onDragEnd(DragEndEvent event) {
+    super.onDragEnd(event);
+    handleEditDragEnd(this, event);
   }
 
   @override

@@ -95,6 +95,10 @@ class _TraySlot extends PositionComponent with DragCallbacks {
   PartView? _ghost;
   bool? _ghostValid;
   ({Vector2 pos, bool valid})? _lastResult;
+  // Running canvas-space pointer position for the drag in progress - see
+  // onDragUpdate's doc comment for why this is tracked incrementally
+  // instead of read straight off each event.
+  Vector2? _lastCanvasPos;
 
   int get _remaining =>
       entry.count - game.placements.where((p) => p.type == entry.type).length;
@@ -132,21 +136,46 @@ class _TraySlot extends PositionComponent with DragCallbacks {
   void onDragStart(DragStartEvent event) {
     super.onDragStart(event);
     if (game.mode != GameMode.edit || _remaining <= 0) return;
+    _lastCanvasPos = event.canvasPosition;
     _track(event.canvasPosition);
   }
 
-  // Uses canvasStartPosition, not canvasEndPosition: verified empirically
-  // (and by reading flame 1.38.0's source) that MultiDragScaleGestureRecognizer
-  // populates DragUpdateDetails.globalPosition with the CURRENT pointer
-  // position, while DisplacementEvent.deviceEndPosition computes
-  // `globalPosition + delta` - i.e. it assumes globalPosition is the
-  // PRE-delta position, which double-counts the move and overshoots.
-  // deviceStartPosition (= canvasStartPosition, no +delta applied) is the
-  // one that actually lands on the true current position.
+  // Accumulates event.canvasDelta onto our own running _lastCanvasPos,
+  // rather than reading canvasStartPosition/canvasEndPosition straight off
+  // the event - neither is reliably "the true current pointer position" by
+  // itself. flame's MultiDragScaleGestureRecognizer builds
+  // DragUpdateDetails two different ways depending on exactly when in the
+  // gesture-arena competition this drag got accepted:
+  //  - accepted BEFORE any movement (true when this recognizer is the ONLY
+  //    one competing for the pointer): globalPosition is already the true
+  //    current position on every update, so canvasStartPosition
+  //    (= deviceStartPosition = raw globalPosition, no +delta) is correct
+  //    and canvasEndPosition (= globalPosition+delta) double-counts and
+  //    overshoots. This was the whole story when this comment was first
+  //    written (Task 7) - but Task 8 gave PiyakGame its own TapCallbacks,
+  //    which is now ALSO in the arena for every pointer in the game (tap
+  //    and drag recognizers are registered game-wide, not per-component -
+  //    see input.dart's Task 8 section header comment), which enables the
+  //    second case below for tray drags too.
+  //  - accepted BY the first movement itself (true whenever something
+  //    else - e.g. that TapCallbacks - is also competing): the FIRST
+  //    onDragUpdate instead carries globalPosition = the gesture's
+  //    original down-point with delta = the FULL move accumulated before
+  //    acceptance, so canvasStartPosition is stale (still the down-point)
+  //    while canvasEndPosition (= start+delta) is the one that's actually
+  //    correct for THAT event - then flips back to overshooting for every
+  //    later update in the same gesture, per the first bullet.
+  // event.canvasDelta (= canvasEndPosition - canvasStartPosition) is
+  // reliably correct either way - it always represents "how far did the
+  // pointer move to produce this specific event" - so accumulating it onto
+  // a position seeded from the unambiguous DragStartEvent.canvasPosition
+  // sidesteps the whole ambiguity.
   @override
   void onDragUpdate(DragUpdateEvent event) {
-    if (_ghost == null) return;
-    _track(event.canvasStartPosition);
+    final last = _lastCanvasPos;
+    if (_ghost == null || last == null) return;
+    _lastCanvasPos = last + event.canvasDelta;
+    _track(_lastCanvasPos!);
   }
 
   @override
@@ -157,6 +186,7 @@ class _TraySlot extends PositionComponent with DragCallbacks {
     _ghost = null;
     _ghostValid = null;
     _lastResult = null;
+    _lastCanvasPos = null;
     ghost?.removeFromParent();
     if (result != null && result.valid) {
       game.addPlacement(
