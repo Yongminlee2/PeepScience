@@ -56,6 +56,10 @@ class PiyakGame extends FlameGame {
     // origin is top-left, so pin the anchor there instead (position stays
     // (0,0) - the default).
     camera.viewfinder.anchor = Anchor.topLeft;
+    // Added once, before any PartView - priority keeps it behind every part
+    // regardless of insertion order, and it's never touched by
+    // _rebuildViews() (background never changes across edit/run/placements).
+    world.add(_BackgroundView(stage.world));
     _rebuildViews();
     // Screen-space HUD (viewport, not world) - see hud.dart's own doc
     // comment for why it has to be mounted there.
@@ -202,4 +206,40 @@ class _SceneEntry {
   final String preset;
   final double xM, yM, angleDeg;
   final double platformWidthM;
+}
+
+/// World-themed backdrop, cover-fit behind every [PartView]. If
+/// `assets/images/bg/world<N>.png` isn't in the asset bundle (true for every
+/// world today - no art exists yet), renders nothing and [backgroundColor]'s
+/// flat color shows through unchanged, so the game looks exactly as before.
+class _BackgroundView extends PositionComponent {
+  _BackgroundView(this.worldNum)
+      : super(priority: -1000, size: Vector2(1600, 900));
+
+  final int worldNum;
+  Sprite? _sprite;
+
+  @override
+  Future<void> onLoad() async {
+    final relPath = 'bg/world$worldNum.png';
+    final manifest = await loadAssetManifestPaths();
+    if (!manifest.contains('assets/images/$relPath')) return;
+    _sprite = await Sprite.load(relPath);
+  }
+
+  @override
+  void render(Canvas canvas) {
+    final sprite = _sprite;
+    if (sprite == null) return;
+    // Cover-fit: scale so the image fills 1600x900 with no gap, cropping
+    // whichever axis overflows (matches CSS background-size: cover).
+    final src = sprite.originalSize;
+    final scale = max(1600 / src.x, 900 / src.y);
+    final rect = Rect.fromCenter(
+      center: const Offset(800, 450),
+      width: src.x * scale,
+      height: src.y * scale,
+    );
+    sprite.renderRect(canvas, rect);
+  }
 }

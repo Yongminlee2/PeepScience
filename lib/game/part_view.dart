@@ -2,6 +2,7 @@ import 'dart:math';
 import 'dart:ui';
 
 import 'package:flame/components.dart';
+import 'package:flutter/services.dart' show AssetManifest, rootBundle;
 import 'package:forge2d/forge2d.dart' hide World;
 
 import '../sim/catalog.dart';
@@ -9,6 +10,29 @@ import '../sim/catalog.dart';
 /// Meters -> pixels. Fixed resolution 1600x900 = 16x9 world meters * 100.
 /// Single source of truth; [PiyakGame.ppm] aliases this same constant.
 const double kPpm = 100.0;
+
+/// Bundled asset paths (pubspec-declared, full path e.g.
+/// "assets/images/parts/plank.png"), loaded once per process and memoized -
+/// every [PartView]/background `onLoad` awaits this same [Future] instead of
+/// each re-parsing `AssetManifest.bin` on its own (there can be dozens of
+/// PartViews rebuilt per mode switch, see `PiyakGame._rebuildViews`).
+Future<Set<String>>? _manifestFuture;
+Future<Set<String>> loadAssetManifestPaths() {
+  return _manifestFuture ??= AssetManifest.loadFromAssetBundle(rootBundle)
+      .then((m) => m.listAssets().toSet());
+}
+
+/// Sprite path (relative to Flame's default `assets/images/` prefix) for a
+/// part/preset's art, or null if this shape has no sprite slot in the art
+/// contract - only 'platform' (structural terrain) has none; see
+/// docs/art-request.md for the full 14-file list.
+String? _spriteRelPath(PartType? part, String preset) {
+  if (preset == 'platform') return null;
+  if (preset == 'basket') return 'parts/basket.png';
+  if (preset == 'button') return 'parts/button.png';
+  if (part == null) return null;
+  return 'parts/${jsonIdOf(part)}.png';
+}
 
 /// Placeholder physics-footprint painter for one part.
 ///
@@ -56,6 +80,23 @@ class PartView extends PositionComponent {
   late final PartSpec? spec = part == null ? null : Catalog.of(part!);
   late final _Shape _shape = _shapeFor(part, preset);
 
+  Sprite? _sprite;
+
+  /// True once a bundled sprite has been resolved for this part/preset -
+  /// false forever if the shape has no sprite slot (platform) or the art
+  /// file isn't in the asset bundle yet. Exposed for
+  /// test/game/sprite_fallback_test.dart.
+  bool get hasSprite => _sprite != null;
+
+  @override
+  Future<void> onLoad() async {
+    final relPath = _spriteRelPath(part, preset);
+    if (relPath == null) return;
+    final manifest = await loadAssetManifestPaths();
+    if (!manifest.contains('assets/images/$relPath')) return;
+    _sprite = await Sprite.load(relPath);
+  }
+
   late final Paint _fill = Paint()..color = ghostColor ?? _colorFrom(_colorArgb);
   late final Paint _stroke = Paint()
     ..color = ghostColor?.withAlpha(220) ?? const Color(0x66263238)
@@ -96,8 +137,29 @@ class PartView extends PositionComponent {
     }
   }
 
+  // Non-null only when ghostColor is set AND a sprite loaded - collapses the
+  // sprite to a flat silhouette in ghostColor, the sprite equivalent of how
+  // every vector _render* method already swaps its Paint's color for
+  // ghostColor (see class doc comment on ghostColor).
+  late final Paint? _spriteGhostPaint = ghostColor == null
+      ? null
+      : (Paint()..colorFilter = ColorFilter.mode(ghostColor!, BlendMode.srcIn));
+
   @override
   void render(Canvas canvas) {
+    final sprite = _sprite;
+    if (sprite != null) {
+      // 1.05x the physics footprint (this component's own `size`, unchanged
+      // by sprite presence) - slightly larger so the art's own outline hides
+      // the physics silhouette instead of visibly clipping inside it.
+      final rect = Rect.fromCenter(
+        center: Offset(size.x / 2, size.y / 2),
+        width: size.x * 1.05,
+        height: size.y * 1.05,
+      );
+      sprite.renderRect(canvas, rect, overridePaint: _spriteGhostPaint);
+      return;
+    }
     switch (_shape) {
       case _Shape.ball:
         _renderBall(canvas);
