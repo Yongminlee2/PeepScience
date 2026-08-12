@@ -254,6 +254,17 @@ Vector2 rotateHandleWorldPos(Placement p) {
   return Vector2(p.x + cos(rad) * r, p.y + sin(rad) * r);
 }
 
+/// World-space center of [p]'s delete-X button: [kDeleteButtonOffsetM]
+/// above the part, clamped so its hit circle never crosses the top of the
+/// visible field (world y=0). A straight `p.y - offset` would push the
+/// WHOLE hit circle off-canvas - and therefore permanently untappable -
+/// for any part placed near the top edge: y=[kFieldMinY] (0.3) is a legal
+/// placement, and 0.3-0.6=-0.3 is not on screen at all. The single shared
+/// spot both [handleEditTapUp]'s hit-test and [SelectionOverlay]'s render
+/// call, so the tappable and visible positions can never drift apart.
+Vector2 deleteButtonWorldPos(Placement p) =>
+    Vector2(p.x, max(p.y - kDeleteButtonOffsetM, kDeleteHitRadiusM));
+
 /// Index of the topmost `game.placements` entry whose AABB (the same
 /// conservative box canPlaceAt/_boxForPart use) contains [worldPos], or
 /// null. Iterates back-to-front so the most-recently-placed part wins on
@@ -293,10 +304,10 @@ void handleEditTapUp(PiyakGame game, TapUpEvent event) {
   final idx = game.selectedIndex;
   if (idx != null && idx < game.placements.length) {
     final p = game.placements[idx];
-    final deleteCenter = Vector2(p.x, p.y - kDeleteButtonOffsetM);
-    if ((worldPos - deleteCenter).length <= kDeleteHitRadiusM) {
+    if ((worldPos - deleteButtonWorldPos(p)).length <= kDeleteHitRadiusM) {
+      // removePlacement itself nulls/adjusts selectedIndex - single choke
+      // point, see its own doc comment (piyak_game.dart).
       game.removePlacement(idx);
-      game.selectedIndex = null;
       return;
     }
   }
@@ -409,7 +420,8 @@ class SelectionOverlay extends Component {
       final h = rotateHandleWorldPos(p);
       _handlePos = _px(h.x, h.y);
     }
-    _deleteCenter = _px(p.x, p.y - kDeleteButtonOffsetM);
+    final del = deleteButtonWorldPos(p);
+    _deleteCenter = _px(del.x, del.y);
     _invalid = game.rotatingIndex == idx &&
         !canPlaceAt(game, p.type, Vector2(p.x, p.y), p.angleDeg,
             excludeIndex: idx);

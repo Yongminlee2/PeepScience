@@ -88,7 +88,8 @@ void main() {
     await _tap(t, _worldPx(8, 4));
     expect(game.selectedIndex, 0);
 
-    await _tap(t, _worldPx(8, 4 - kDeleteButtonOffsetM));
+    final del = deleteButtonWorldPos(game.placements[0]);
+    await _tap(t, _worldPx(del.x, del.y));
 
     expect(game.placements, isEmpty);
     expect(game.selectedIndex, isNull);
@@ -119,7 +120,57 @@ void main() {
     expect(game.placements[0].angleDeg, 0);
     expect(game.rotatingIndex, isNull);
 
-    await _tap(t, _worldPx(8, 4 - kDeleteButtonOffsetM));
+    final del = deleteButtonWorldPos(game.placements[0]);
+    await _tap(t, _worldPx(del.x, del.y));
     expect(game.placements, isEmpty);
+  });
+
+  testWidgets('위쪽 경계(y=0.3)에 놓인 부품도 삭제 X를 탭할 수 있다', (t) async {
+    final s = stage('', '', '{"type":"plank","x":0,"y":0,"angle":0}');
+    final game = await _pumpGame(t, s);
+    // kFieldMinY(0.3)는 합법 배치 위치 - 이 y에서도 삭제 X 히트서클 전체가
+    // 화면 밖(y<0)으로 밀려나면 안 된다 (리뷰 finding 1).
+    game.addPlacement(Placement(type: PartType.plank, x: 8, y: 0.3, angleDeg: 0));
+    await t.pump();
+
+    await _tap(t, _worldPx(8, 0.3));
+    expect(game.selectedIndex, 0);
+
+    // 실제 렌더된 위치에서 그대로 탭 - deleteButtonWorldPos가 클램프를
+    // 반영하지 않으면 이 좌표 자체가 화면 밖(음수 y)이 되어 앱이라면 애초에
+    // 탭할 수 없는 좌표가 된다는 것이 finding의 핵심.
+    final del = deleteButtonWorldPos(game.placements[0]);
+    expect(del.y, greaterThanOrEqualTo(0));
+    await _tap(t, _worldPx(del.x, del.y));
+
+    expect(game.placements, isEmpty);
+    expect(game.selectedIndex, isNull);
+  });
+
+  testWidgets(
+      'removePlacement은 낮은 인덱스 제거 시 selectedIndex/rotatingIndex를 당기고, 같은 인덱스면 해제한다',
+      (t) async {
+    final s = stage('', '', '{"type":"plank","x":0,"y":0,"angle":0}');
+    final game = await _pumpGame(t, s);
+    game.addPlacement(Placement(type: PartType.plank, x: 1, y: 1, angleDeg: 0));
+    game.addPlacement(Placement(type: PartType.plank, x: 2, y: 2, angleDeg: 0));
+    game.addPlacement(Placement(type: PartType.plank, x: 3, y: 3, angleDeg: 0));
+    await t.pump();
+
+    // 회전 드래그 중(rotatingIndex=2)인 부품을, 다른 손가락이 앞쪽 인덱스를
+    // 삭제해 밀어내는 멀티터치 시나리오를 재현 - 두 필드 모두 같은 부품(원래
+    // index 2)을 계속 가리켜야 한다.
+    game.selectedIndex = 2;
+    game.rotatingIndex = 2;
+
+    game.removePlacement(0);
+    expect(game.selectedIndex, 1);
+    expect(game.rotatingIndex, 1);
+
+    // 이제 index 1이 바로 그 부품 - 이걸 지우면 두 필드 다 null이어야 한다
+    // (다른 부품으로 잘못 넘어가면 안 됨).
+    game.removePlacement(1);
+    expect(game.selectedIndex, isNull);
+    expect(game.rotatingIndex, isNull);
   });
 }

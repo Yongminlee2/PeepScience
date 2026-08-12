@@ -126,10 +126,27 @@ class PiyakGame extends FlameGame with TapCallbacks, DragCallbacks {
   /// Removes the placement at [index] and refreshes the render layer -
   /// mirrors [addPlacement]. Task 8's delete-X button is the only caller
   /// today.
+  ///
+  /// Also adjusts [selectedIndex]/[rotatingIndex] for the shift this causes
+  /// in every later index: null them out if either pointed at the removed
+  /// placement itself, decrement if either pointed past it - this is the
+  /// single choke point for that bookkeeping (callers don't also need to
+  /// touch these fields). Matters even outside multi-touch: without it, a
+  /// second finger deleting a different-from-rotating placement while the
+  /// first finger is still mid-rotate-drag leaves [rotatingIndex] pointing
+  /// at whatever placement happens to have shifted into its old slot, and
+  /// the next onDragUpdate silently rewrites THAT placement's angle.
   void removePlacement(int index) {
     assert(index >= 0 && index < placements.length);
     placements.removeAt(index);
+    selectedIndex = _shiftIndexAfterRemoval(selectedIndex, index);
+    rotatingIndex = _shiftIndexAfterRemoval(rotatingIndex, index);
     _rebuildViews();
+  }
+
+  static int? _shiftIndexAfterRemoval(int? idx, int removedIndex) {
+    if (idx == null || idx == removedIndex) return null;
+    return idx > removedIndex ? idx - 1 : idx;
   }
 
   /// Replaces the placement at [index] with the same type/position but a
