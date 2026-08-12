@@ -25,4 +25,11 @@ void main() {
     final report = validateAllStages('test/fixtures/stages_missing');
     expect(report.missingFiles, contains('w1_s03'));
   });
+
+  test('빈 배치로도 클리어되는(self-solving) 스테이지는 실패한다', () {
+    final report = validateAllStages('test/fixtures/stages_self_solving');
+    final s = report.stages.single;
+    expect(s.ok, isFalse);
+    expect(s.failReason, contains('self-solving'));
+  });
 }

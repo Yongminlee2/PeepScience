@@ -58,10 +58,11 @@ class ValidationReport {
       missingFiles.isEmpty && extraFiles.isEmpty && stages.every((s) => s.ok);
 }
 
-/// Validates every stage in [dir] against [stageOrder]: the file set must
-/// match exactly (both directions), every file must parse as [StageData],
-/// and each stage's solution must clear within [maxSteps] both as authored
-/// and under all [jitterVariants].
+/// Validates every stage in [dir] against [stageOrder]: (a) the file set
+/// must match exactly (both directions), (b) every file must parse as
+/// [StageData], (c) each stage's solution must clear within [maxSteps] both
+/// as authored and under all [jitterVariants], and (d) the stage must NOT
+/// clear with an empty placement list (a self-solving stage isn't a puzzle).
 ValidationReport validateAllStages(String dir, {int maxSteps = 1800}) {
   final directory = Directory(dir);
   final fileIds = directory.existsSync()
@@ -116,6 +117,11 @@ StageValidation _validateOne(String dir, String id, int maxSteps) {
     for (final (dx, dAngle) in jitterVariants)
       _runToClear(data, _jitter(data.solution, dx, dAngle), maxSteps)
   ];
+  // Rule (d): a stage that clears with nothing placed isn't a puzzle. Only
+  // worth checking once the real solution already clears - otherwise the
+  // solution failure above is already the reason to report.
+  final selfSolving = stepsToClear != null &&
+      SimWorld.verify(data, const [], maxSteps: maxSteps);
 
   String? failReason;
   if (stepsToClear == null) {
@@ -126,12 +132,17 @@ StageValidation _validateOne(String dir, String id, int maxSteps) {
       final (dx, dAngle) = jitterVariants[failedIdx];
       failReason = 'jitter (dx=$dx, dAngle=$dAngle) did not clear within '
           '$maxSteps steps';
+    } else if (selfSolving) {
+      failReason = 'self-solving: clears with no placements at all - not '
+          'a puzzle';
     }
   }
 
   return StageValidation(
     id: id,
-    ok: stepsToClear != null && jitterSteps.every((s) => s != null),
+    ok: stepsToClear != null &&
+        jitterSteps.every((s) => s != null) &&
+        !selfSolving,
     failReason: failReason,
     stepsToClear: stepsToClear,
     jitterStepsToClear: jitterSteps,

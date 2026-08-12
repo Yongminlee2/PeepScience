@@ -1,0 +1,13 @@
+{
+  "id": "w1_s01",
+  "world": 1,
+  "index": 1,
+  "goal": { "type": "ball_in_basket" },
+  "preset": [
+    { "type": "platform", "x": 2.0, "y": 1.0, "angle": 87, "w": 2.0 },
+    { "type": "basket", "x": 2.71, "y": 6.50, "angle": 0 },
+    { "type": "rubber_ball", "x": 2.47, "y": 0.47, "angle": 0 }
+  ],
+  "tray": [ { "type": "plank", "count": 1 } ],
+  "solution": [ { "type": "plank", "x": 2.08, "y": 2.60, "angle": 87 } ]
+}
