@@ -1,0 +1,13 @@
+{
+  "id": "w1_s03",
+  "world": 1,
+  "index": 3,
+  "goal": { "type": "press_button" },
+  "preset": [
+    { "type": "platform", "x": 12.0, "y": 1.0, "angle": -87, "w": 2.0 },
+    { "type": "button", "x": 11.29, "y": 6.50, "angle": 0 },
+    { "type": "rubber_ball", "x": 11.53, "y": 0.47, "angle": 0 }
+  ],
+  "tray": [ { "type": "plank", "count": 1 } ],
+  "solution": [ { "type": "plank", "x": 11.92, "y": 2.60, "angle": -87 } ]
+}
