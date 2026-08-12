@@ -105,10 +105,7 @@ class SimWorld {
   // below (seesaw's center pivot, tack's sensor flag). Covers
   // plank/rubberBall/metalBall/balloon/domino/trampoline/seesaw fully, and is
   // a reasonable physical stand-in for the remaining joint/compound parts
-  // (gear family, paddleGear, fan).
-  // ponytail: gear revolute+motor joints, paddleGear's paddle box, and fan's
-  // local wind force aren't built yet - single-fixture body only. Upgrade in
-  // T5 when those behaviors are actually needed.
+  // (gear family, paddleGear, fan) — 관절·바람 등 타입별 추가 배선은 아래에서.
   Body _buildCatalogBody(PartType type, double x, double y, double angleDeg,
       {required bool fromPreset}) {
     final spec = Catalog.of(type);
@@ -172,8 +169,8 @@ class SimWorld {
       // Free-spinning revolute pin at the gear's own center - no angle
       // limit (unlike the seesaw), so a meshed pair's GearJoint can spin it
       // continuously.
-      // ponytail: GearJoint 전달(마찰 방식은 핀 고정 원끼리 수직항력 0이라
-      // 불가 판명 - task-5-report 참고)
+      // 톱니 전달은 GearJoint 방식. 마찰 전달은 핀 고정 원끼리 수직항력이
+      // 0이라 물리적으로 불가 — docs/개발일지.md 2차 참고.
       final pin = world.createBody(BodyDef(
         type: BodyType.static,
         position: Vector2(x, y),

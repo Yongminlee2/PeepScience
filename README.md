@@ -1,17 +1,126 @@
-# piyak_science
+# 삐약과학 / Peep Science
 
-A new Flutter project.
+부품(판자·공·톱니·시소…)을 끌어다 놓아 기계장치를 만들고, ▶를 눌러 물리로 굴려서
+목표를 달성하는 **2D 물리 조립 퍼즐**. 아트는 유아 그림책 감성, 퍼즐은 전연령이
+머리 쓰는 난이도를 지향한다.
 
-## Getting Started
+| | |
+|---|---|
+| 패키지 | `com.peep.science` |
+| 앱 이름 | 한국어 **삐약과학**, 그 외 **Peep Science** |
+| 상태 | 코어 완성(물리·조작·화면·에디터), **스테이지 콘텐츠 제작 중** |
+| 스택 | Flutter 3.44 · Flame 1.38(렌더·입력) · forge2d 0.14(순수 Dart 물리) |
+| 플랫폼 | Android 우선 출시 예정, iOS는 코드 호환 유지(가로 고정 설정 완료) |
 
-This project is a starting point for a Flutter application.
+"삐약" 가족 앱(삐약푸쉬·삐약영어·삐약수학)의 병아리 세계관을 잇는 네 번째 앱이다.
 
-A few resources to get you started if this is your first Flutter project:
+---
 
-- [Learn Flutter](https://docs.flutter.dev/get-started/learn-flutter)
-- [Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Flutter learning resources](https://docs.flutter.dev/reference/learning-resources)
+## 개발 취지와 목표
 
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+어릴 적 과학 교구 상자로 톱니와 축을 조립해 뭔가가 "실제로 움직일 때"의 재미를
+모바일로 옮기는 것이 출발점이다. 정답 화면을 맞추는 퍼즐이 아니라, **내가 놓은
+부품들이 물리 법칙대로 굴러가서** 목표가 달성되는 것 — 같은 스테이지도 사람마다
+다른 장치로 풀 수 있는 것 — 이 이 장르의 핵심 재미라고 봤다.
+
+그래서 처음부터 지킨 원칙:
+
+1. **물리는 진짜로.** 스크립트된 연출이 아니라 강체 시뮬레이션(Box2D 계열) 위에서
+   공이 구르고 시소가 기울고 톱니가 맞물린다. 같은 배치는 항상 같은 결과가 나오도록
+   고정 타임스텝(1/60초)으로 돌린다.
+2. **모든 스테이지는 기계가 풀 수 있음을 증명한다.** 스테이지마다 저자 정답 배치를
+   데이터로 저장하고, 화면 없이 물리만 돌려 실제로 클리어되는지 자동 검증한다.
+   "만들다 보니 못 깨는 판"을 구조적으로 차단하기 위해서다.
+3. **가볍고 깨끗하게.** 권한 0개, 네트워크 0, 데이터 수집 0. 글자 의존을 최소화해
+   언어와 무관하게 그림으로 이해되는 UI.
+
+v1 목표: 4개 테마 월드 × 10판 = **40스테이지**, 부품 11종, 목표 4유형.
+
+## 게임 규칙
+
+1. 스테이지에 들어가면 목표가 아이콘으로 표시된다 (공을 바구니에 / 버튼 누르기 /
+   풍선 모두 터뜨리기 / 도미노 모두 쓰러뜨리기)
+2. 하단 트레이의 부품(종류·개수 제한)을 드래그해 배치한다. 배치한 부품은 탭해서
+   회전(판자·선풍기, 5° 스냅)하거나 삭제할 수 있다
+3. ▶를 누르면 물리 시뮬레이션 시작. 실패하면 ■로 리셋 — **배치는 그대로 남아**
+   조금씩 고치며 재도전한다
+4. 목표 달성 → 폭죽과 함께 클리어, 다음 스테이지 해금 (순차 해금)
+
+### 부품 11종
+
+| 부품 | 특성 |
+|---|---|
+| 널빤지 | 회전 가능한 정적 판자. 다리·경사로 |
+| 고무공 / 쇠공 | 잘 튀는 가벼운 공 / 무겁고 안 튀는 공 — 무게 차이가 퍼즐 재료 |
+| 풍선 | 위로 떠오름. 압정에 닿으면 펑 |
+| 도미노 | 연쇄로 쓰러지는 타일 |
+| 시소 | 중심 핀으로 기울어짐. 무거운 것을 떨어뜨려 반대편을 발사 |
+| 모터 톱니 | 스스로 회전. 맞닿은 톱니에 회전을 전달 |
+| 일반 톱니 / 노 톱니 | 전달받아 도는 톱니 / 노가 달려 공을 쳐내는 톱니 |
+| 선풍기 | 앞쪽 영역에 바람. 가벼운 것만 밀린다(쇠공은 꿈쩍 안 함) |
+| 트램펄린 | 강하게 튕겨 올림 |
+| 압정 | 풍선 터뜨리기용 고정 핀 |
+
+## 프로젝트 구조
+
+```
+lib/
+  sim/        순수 Dart 물리 코어 (Flutter import 금지)
+              catalog(부품 상수의 유일 출처) · stage_data(JSON 모델)
+              sim_world(월드 조립·고정스텝·목표 판정) · registry(스테이지 순서)
+  game/       Flame 렌더·입력 계층
+              piyak_game(카메라 1600×900·모드 전환·누적기)
+              part_view(그림 있으면 스프라이트, 없으면 도형 폴백)
+              input(배치 검사·톱니 스냅·선택/회전/삭제) · hud(트레이·실행·승리)
+  ui/         홈(월드→스테이지 그리드) · 게임 · 설정 · 문자열(en/ko) · 테마
+  services/   진행 저장(해금) · 스테이지 로더(파손 파일 격리)
+  editor/     디버그 빌드 전용 스테이지 에디터 (배치→솔루션 기록→JSON 내보내기)
+assets/
+  stages/     스테이지 JSON (제작 중)
+  images/     parts/ bg/ — 그림 파일을 넣으면 자동 적용, 없으면 코드 도형
+test/         57개 (물리 행동·배치 규칙·화면 흐름·에디터 왕복)
+docs/         개발일지 · 이어서-작업하기 · 이미지-발주서
+```
+
+설계의 축은 **물리 계층의 순수 Dart 분리**다. `lib/sim/`은 Flutter를 모르는 코드라
+화면 없이 시뮬레이션을 돌릴 수 있고, 이 성질이 "전 스테이지 자동 검증"과 빠른
+행동 테스트(공이 정말 튀는가, 쇠공은 정말 바람에 안 밀리는가)를 가능하게 한다.
+
+## 빌드
+
+이 개발 기계는 사용자명이 한글이라 **모든 경로를 ASCII로 강제**해야 한다. 매 셸 세션:
+
+```powershell
+$env:Path = "C:\flutter\bin;$env:Path"
+$env:PUB_CACHE = "C:\flutter\.pub-cache"
+$env:GRADLE_USER_HOME = "C:\workAndroid\gradle-home-ascii"
+$env:TEMP = "C:\workAndroid\tmp-ascii"; $env:TMP = "C:\workAndroid\tmp-ascii"
+```
+
+```powershell
+flutter test --concurrency=1     # 전체 테스트 (동시성 1: 이 기계는 기본값에서 OOM)
+flutter analyze                  # 경고 0 유지
+flutter build apk --release
+```
+
+- `flutter test`가 "Connection closed before test suite loaded"로 죽으면
+  환경변수 4줄을 안 넣은 것이다 (한글 TEMP 경로에서 flutter_tester가 즉사한다)
+- `GRADLE_USER_HOME`은 반드시 `gradle-home-ascii` — 비슷한 이름의
+  `gradle-user-ascii`는 한글 홈으로 가는 정션이라 무효다
+
+## 품질 현황
+
+- 테스트 **57개 전부 통과**, 정적 분석 경고 0
+- 물리 행동은 상수 절대값이 아니라 **행동 대비**로 검증한다
+  (예: "쇠공은 바람에 안 밀린다" = 속도 < 0.15 m/s) — 물리 상수는
+  `lib/sim/catalog.dart` 한 곳에서만 튜닝한다
+- 실기기(갤럭시 A16)에서 렌더 좌표가 물리 좌표와 일치함을 스크린샷으로 확인
+- 스테이지 전수 자동 검증 도구는 다음 단계(아래 문서 참고)
+
+## 더 읽을 것
+
+| 문서 | 내용 |
+|---|---|
+| [docs/개발일지.md](docs/개발일지.md) | 차수별 개발 기록 — 뭘 만들다 뭘 밟았고 어떻게 고쳤는지 |
+| [docs/이어서-작업하기.md](docs/이어서-작업하기.md) | **다음 작업자용** — 남은 로드맵, 스테이지 제작법, 이 저장소의 함정 전부 |
+| [docs/이미지-발주서.md](docs/이미지-발주서.md) | 그림 에셋 사양(파일명·픽셀 크기·스타일 수치) |
