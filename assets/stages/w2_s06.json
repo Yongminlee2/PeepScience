@@ -5,11 +5,12 @@
   "goal": { "type": "ball_in_basket" },
   "preset": [
     { "type": "rubber_ball", "x": 3.0, "y": 1.0, "angle": 0 },
-    { "type": "basket", "x": 3.0, "y": 0.3, "angle": 180 }
+    { "type": "platform", "x": 3.0, "y": 1.6, "angle": 25, "w": 3.0 },
+    { "type": "basket", "x": 7.7, "y": 0.5, "angle": 180 }
   ],
   "tray": [ { "type": "trampoline", "count": 2 } ],
   "solution": [
-    { "type": "trampoline", "x": 3.0, "y": 5.5, "angle": 0 },
-    { "type": "trampoline", "x": 3.0, "y": 2.5, "angle": 0 }
+    { "type": "trampoline", "x": 4.8, "y": 1.9, "angle": 0 },
+    { "type": "trampoline", "x": 6.8, "y": 4.8, "angle": 0 }
   ]
 }

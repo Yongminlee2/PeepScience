@@ -4,10 +4,10 @@
   "index": 9,
   "goal": { "type": "ball_in_basket" },
   "preset": [
-    { "type": "seesaw", "x": 11.0, "y": 6.0, "angle": 0 },
-    { "type": "rubber_ball", "x": 12.2, "y": 5.6, "angle": 0 },
-    { "type": "basket", "x": 13.13, "y": 7.53, "angle": 0 }
+    { "type": "seesaw", "x": 11.0, "y": 5.0, "angle": 0 },
+    { "type": "rubber_ball", "x": 9.9, "y": 4.6, "angle": 0 },
+    { "type": "basket", "x": 9.15, "y": 6.3, "angle": 0 }
   ],
   "tray": [ { "type": "metal_ball", "count": 1 }, { "type": "rubber_ball", "count": 1 } ],
-  "solution": [ { "type": "metal_ball", "x": 9.80, "y": 4.80, "angle": 0 } ]
+  "solution": [ { "type": "metal_ball", "x": 12.30, "y": 3.80, "angle": 0 } ]
 }
