@@ -576,7 +576,7 @@ class SelectionOverlay extends Component {
       Paint()
         ..color = ringColor
         ..style = PaintingStyle.stroke
-        ..strokeWidth = 4,
+        ..strokeWidth = 6, // 스킨 패스: 살짝 두껍게(4 -> 6, hud.dart와 통일감)
     );
     if (_showHandle) {
       canvas.drawLine(
@@ -592,9 +592,12 @@ class SelectionOverlay extends Component {
         _handlePos,
         14,
         Paint()
-          ..color = const Color(0xFF263238)
+          // 초콜릿 톤 손잡이 외곽선 - hud.dart 스킨 패스와 팔레트를 맞춘다
+          // (같은 값이지만 이 파일은 hud.dart의 private 상수를 가져올 수
+          // 없어 그대로 다시 적음).
+          ..color = const Color(0xFF4E342E)
           ..style = PaintingStyle.stroke
-          ..strokeWidth = 2,
+          ..strokeWidth = 3,
       );
     }
     canvas.drawCircle(

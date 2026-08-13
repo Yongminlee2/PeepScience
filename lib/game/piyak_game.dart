@@ -161,6 +161,10 @@ class PiyakGame extends FlameGame with DragCallbacks {
     camera.viewport.add(TrayBar(this));
     camera.viewport.add(GoalBadge(this));
     camera.viewport.add(RunToggleButton(this));
+    // 목표물 강조 펄스(스킨 패스: 목표 배지가 뭘 가리키는지 안 읽힌다는
+    // 오너 피드백) - 최초 진입 1회. resetToEdit()도 같은 호출을 하므로
+    // 다시/■/막힌 런 자동복귀 중 어디로 돌아와도 매번 다시 보여준다.
+    triggerGoalPulse();
   }
 
   @override
@@ -202,6 +206,50 @@ class PiyakGame extends FlameGame with DragCallbacks {
     sim = null;
     mode = GameMode.edit;
     _rebuildViews();
+    triggerGoalPulse();
+  }
+
+  /// Replays the goal-object affordance pulse (see [PartView.pulse]'s own
+  /// doc comment for the animation) on every PartView backing this stage's
+  /// goal object(s) ([_goalTargetViews]). Edit-mode only - a run's
+  /// SimWorld-backed PartViews are position/angle-synced from live bodies
+  /// every frame regardless (PartView.update), and there is nothing to
+  /// place mid-run anyway. Called once from [onLoad] (initial edit-mode
+  /// entry), once from [resetToEdit] (다시/■/dead-run-auto-revert all funnel
+  /// through that one choke point - see its own doc comment), and replayed
+  /// on demand by a [GoalBadge] tap ([_dispatchTap]).
+  void triggerGoalPulse() {
+    if (mode != GameMode.edit) return;
+    for (final v in _goalTargetViews()) {
+      v.pulse();
+    }
+  }
+
+  /// The PartView(s) backing this stage's goal object(s): the basket/button
+  /// preset, or every PRESET balloon/domino (shared-contract.md: only
+  /// fromPreset entries count toward popBalloons/toppleDominoes, so a
+  /// tray-placed balloon/domino is never a pulse target either).
+  /// `_views[i]` mirrors `stage.preset[i]` 1:1 for `i < stage.preset.length`
+  /// - see [_sceneEntries]'s own doc comment for why.
+  Iterable<PartView> _goalTargetViews() sync* {
+    for (var i = 0; i < stage.preset.length; i++) {
+      final p = stage.preset[i];
+      final isTarget = switch (stage.goal.type) {
+        GoalType.ballInBasket => p.type == 'basket',
+        GoalType.pressButton => p.type == 'button',
+        GoalType.popBalloons => p.type == 'balloon',
+        GoalType.toppleDominoes => p.type == 'domino',
+      };
+      if (isTarget) yield _views[i];
+    }
+  }
+
+  /// Test helper: the scale factor of the first goal-target PartView (see
+  /// [_goalTargetViews]), or null if this stage's goal has no matching
+  /// preset object yet mounted. Mirrors [ballY]'s role.
+  double? goalPulseScale() {
+    final views = _goalTargetViews().toList();
+    return views.isEmpty ? null : views.first.scale.x;
   }
 
   /// Removes any [WinOverlay] mounted under the viewport - a no-op when
@@ -396,9 +444,9 @@ class PiyakGame extends FlameGame with DragCallbacks {
 
   /// Resolves a confirmed tap at [canvasPos] to exactly one action, in the
   /// same priority order flame's TapCallbacks z-order used to give for free
-  /// (win-overlay buttons on top, then the run toggle, then in-field
-  /// select/delete/deselect) - see this class's "Real-finger tap synthesis"
-  /// comment above for the full mechanism.
+  /// (win-overlay buttons on top, then the run toggle, then the goal badge,
+  /// then in-field select/delete/deselect) - see this class's "Real-finger
+  /// tap synthesis" comment above for the full mechanism.
   ///
   /// Uses componentsAtPoint (walking the real component tree top-down,
   /// applying each ancestor's actual transform: camera -> viewport -> ...)
@@ -409,7 +457,9 @@ class PiyakGame extends FlameGame with DragCallbacks {
   /// are exactly that, so every HUD component here would be affected.
   /// componentsAtPoint already yields topmost-first, so WinOverlayButton
   /// (priority 100, via WinOverlay) naturally comes before RunToggleButton
-  /// (priority 0) without any hand-coded z-order.
+  /// and GoalBadge (both priority 0, and spatially disjoint - bottom-right
+  /// vs. top-left - so their relative order never matters) without any
+  /// hand-coded z-order.
   void _dispatchTap(Vector2 canvasPos) {
     for (final c in componentsAtPoint(canvasPos)) {
       if (c is WinOverlayButton) {
@@ -417,6 +467,10 @@ class PiyakGame extends FlameGame with DragCallbacks {
         return;
       }
       if (c is RunToggleButton) {
+        c.activate();
+        return;
+      }
+      if (c is GoalBadge) {
         c.activate();
         return;
       }

@@ -135,6 +135,20 @@ class PartView extends PositionComponent {
       position = b.position * kPpm;
       angle = b.angle;
     }
+    final t = _pulseElapsedS;
+    if (t != null) {
+      const total = kPulseCycleSeconds * kPulseCycles;
+      final next = t + dt;
+      if (next >= total) {
+        _pulseElapsedS = null;
+        scale = Vector2.all(1);
+      } else {
+        _pulseElapsedS = next;
+        final bump =
+            kPulseScaleBump * sin(pi * next / kPulseCycleSeconds).abs();
+        scale = Vector2.all(1 + bump);
+      }
+    }
   }
 
   // Non-null only when ghostColor is set AND a sprite loaded - collapses the
@@ -144,6 +158,22 @@ class PartView extends PositionComponent {
   late final Paint? _spriteGhostPaint = ghostColor == null
       ? null
       : (Paint()..colorFilter = ColorFilter.mode(ghostColor!, BlendMode.srcIn));
+
+  // 목표물 강조 펄스(piyak_game.dart의 PiyakGame.triggerGoalPulse가 목표
+  // 오브젝트의 PartView에만 호출) - 초/재시작 시각적 신호로 스케일을
+  // 1.0<->1.0+kPulseScaleBump 사이에서 두 번 오간다. null이면 펄스 중이
+  // 아님(목표물이 아닌 PartView는 pulse()가 아예 호출되지 않으므로 평생
+  // null). 컴포넌트 자체의 transform(scale)만 건드리므로 위 body-sync
+  // 분기의 position/angle과 절대 충돌하지 않는다 - 펄스는 항상 에딧 모드
+  // 진입 순간에만 트리거되고(triggerGoalPulse의 mode 가드), 그 순간의
+  // PartView는 body가 없는 정적 에딧 뷰이기 때문.
+  double? _pulseElapsedS;
+  static const double kPulseCycleSeconds = 0.4;
+  static const int kPulseCycles = 2;
+  static const double kPulseScaleBump = 0.15;
+
+  /// 펄스를 (재)시작한다 - [PiyakGame.triggerGoalPulse]만 호출.
+  void pulse() => _pulseElapsedS = 0;
 
   @override
   void render(Canvas canvas) {
