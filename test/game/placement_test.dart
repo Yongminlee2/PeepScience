@@ -121,4 +121,46 @@ void main() {
     final dist = sqrt(pow(p.x - 8, 2) + pow(p.y - 4, 2));
     expect(dist, closeTo(0.97, 0.01)); // r1+r2-0.03 = 0.5+0.5-0.03
   });
+
+  // UX 개편 A: 트레이 드롭 자동 선택.
+  testWidgets('트레이에서 끌어다 놓으면 새로 배치된 부품이 자동으로 선택된다', (t) async {
+    final s = stage(
+      '',
+      '{"type":"plank","count":1}',
+      '{"type":"plank","x":8,"y":4,"angle":0}',
+    );
+    final game = await _pumpGame(t, s);
+
+    final drop = _worldPx(8, 4);
+    await _drag(t, _slot0Center, drop - _slot0Center);
+
+    expect(game.placements.length, 1);
+    expect(game.selectedIndex, 0);
+  });
+
+  // UX 개편 B: 배치된 톱니 이동도 트레이 드롭과 같은 스냅을 탄다.
+  testWidgets('배치된 톱니를 옮겨 이웃 톱니 옆에 놓으면 반지름 합만큼 스냅된다', (t) async {
+    final s = stage(
+      '{"type":"motor_gear","x":8,"y":4,"angle":0}',
+      '',
+      '{"type":"gear","x":3,"y":4,"angle":0}',
+    );
+    final game = await _pumpGame(t, s);
+    // 트레이가 아니라 이미 배치된 부품을 직접 잡아 옮기는 시나리오라
+    // addPlacement로 미리 놓아 둔다(edit_test.dart와 동일한 관례).
+    game.addPlacement(Placement(type: PartType.gear, x: 3, y: 4, angleDeg: 0));
+    await t.pump();
+
+    // 톱니 중심을 그대로 잡고, 프리셋 motorGear에서 0.8m 거리(스냅 캐치
+    // 범위 1.15m 안쪽)까지 끌고 간다 - 위 트레이 스냅 테스트와 같은 기하.
+    final grab = _worldPx(3, 4);
+    final dropNear = _worldPx(8.8, 4);
+    await _drag(t, grab, dropNear - grab);
+
+    expect(game.placements.length, 1);
+    final p = game.placements.single;
+    expect(p.type, PartType.gear);
+    final dist = sqrt(pow(p.x - 8, 2) + pow(p.y - 4, 2));
+    expect(dist, closeTo(0.97, 0.01)); // r1+r2-0.03 = 0.5+0.5-0.03
+  });
 }

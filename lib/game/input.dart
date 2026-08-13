@@ -59,9 +59,17 @@ bool canPlaceAt(
 /// exists within catch range of [rawWorldPos], returns the snapped landing
 /// point; otherwise returns [rawWorldPos] unchanged. See
 /// sim/placement_rules.dart's `snapGearPosition` for the actual math.
-Vector2 snapGearPosition(PiyakGame game, PartType type, Vector2 rawWorldPos) {
+///
+/// [excludeIndex] mirrors [canPlaceAt]'s own param: pass the part's own
+/// index while moving an ALREADY-placed gear ([handleEditMoveDragEnd]) so it
+/// never treats its own (live, mid-drag) box as the neighbor to snap
+/// against - a fresh tray drop (hud.dart) has no such self to exclude,
+/// hence the default null.
+Vector2 snapGearPosition(PiyakGame game, PartType type, Vector2 rawWorldPos,
+    {int? excludeIndex}) {
   final (x, y) = rules.snapGearPosition(
-      _existingBoxes(game), type, rawWorldPos.x, rawWorldPos.y);
+      _existingBoxes(game, excludeIndex: excludeIndex), type, rawWorldPos.x,
+      rawWorldPos.y);
   return Vector2(x, y);
 }
 
@@ -116,8 +124,35 @@ Iterable<rules.PlacementBox> _existingBoxes(PiyakGame game,
 // onTapUp never fires). It's called with a plain canvas position instead,
 // synthesized from a short/fast drag's START point once that drag ends -
 // which is also why it fires on drag END, never on drag START: claiming a
-// rotate-handle drag has to win the race against a same-pointer deselect,
-// same as it always had to against onTapDown.
+// rotate-handle/ring-band or a placement move-grab has to win the race
+// against a same-pointer deselect, same as it always had to against
+// onTapDown.
+//
+// UX overhaul (owner-approved manipulation rework) - drag-START priority
+// ladder, walked in this exact order every time PiyakGame.onDragStart fires
+// (piyak_game.dart), each stage only getting a turn if the one before it
+// declined:
+//   1. the SELECTED part's rotate handle/ring band (handleEditDragStart) -
+//      the knob's own hit-circle OR the ring-BAND annulus around it, see
+//      kHandleHitRadiusM/kRingBandHalfWidthM.
+//   2. any placement's footprint, i.e. grabbing it to move it
+//      (handleEditMoveDragStart) - also selects it, so a bare grab (no
+//      separate tap-to-select first) works.
+//   3. a tray slot (hud.dart's _TraySlot) - already resolved BEFORE this
+//      component ever sees the pointer, per the componentsAtLocation
+//      ordering above; listed here only to keep the ladder in one place.
+//   4. nothing - falls through as a tap candidate (_dispatchTap).
+// Steps 1 and 2 are geometrically almost disjoint by construction (the ring
+// band sits OUTSIDE the footprint - selectionRingRadiusM already adds
+// kSelectionRingPadding on top of the enclosing radius) but for an
+// elongated part (plank) the band's inner edge can still dip slightly inside
+// the part's own AABB near its flat ends - the ladder's ORDER, not the
+// geometry alone, is what makes step 1 win there, matching "rotate before
+// move" for a part that's already selected. Both steps also defer to the
+// delete-X button first (see _onDeleteButton below) - without that, a
+// selected fan's small ring (band range ~0.35-0.95m) permanently brackets
+// its own delete-X (fixed 0.6m above center) at every rotation angle, which
+// would make that button unreachable by tap.
 
 /// Extra visual margin (meters) added to a placed part's own footprint to
 /// get its selection ring radius.
@@ -132,8 +167,19 @@ const double kDeleteButtonOffsetM = 0.6;
 /// Hit-test radius (meters) for the delete-X button.
 const double kDeleteHitRadiusM = 0.28;
 
-/// Hit-test radius (meters) for the rotate-handle knob.
-const double kHandleHitRadiusM = 0.24;
+/// Hit-test radius (meters) for the rotate-handle knob. Generous-rotation
+/// improvement bumped this from the original 0.24 - the knob is no longer
+/// the ONLY way to grab a rotate either, see [kRingBandHalfWidthM].
+const double kHandleHitRadiusM = 0.36;
+
+/// Half-width (meters) of the selection ring's grabbable BAND, centered on
+/// [selectionRingRadiusM]: a drag starting anywhere in this annulus - any
+/// angle around the ring, not just on the knob - also claims a rotate (see
+/// [handleEditDragStart]). The knob stays as the sole visual affordance
+/// (SelectionOverlay still draws only the one dot); this just makes the
+/// whole ring behave as one big handle, generous enough that a player
+/// doesn't have to aim for a small dot to start rotating.
+const double kRingBandHalfWidthM = 0.3;
 
 /// Radius (meters) of the selection ring drawn around a placed part: the
 /// smallest circle centered on the part that encloses its footprint at ANY
@@ -227,12 +273,28 @@ void handleEditTapUp(PiyakGame game, Vector2 canvasPos) {
   game.selectedIndex = _placementIndexAt(game, worldPos);
 }
 
-/// PiyakGame.onDragStart delegates here. Only claims the drag (sets
-/// [PiyakGame.rotatingIndex]) when a rotatable part is selected AND the
-/// drag starts on its handle knob - otherwise a no-op, so any other
-/// world-space drag passes through untouched (there is none today besides
-/// the tray, which lives under camera.viewport and - being a descendant -
-/// is always matched before PiyakGame itself ever sees the event).
+/// True if [worldPos] is inside [game]'s currently-selected placement's
+/// delete-X hit circle, if any (false if nothing is selected). Consulted
+/// FIRST by both [handleEditDragStart] and [handleEditMoveDragStart] - see
+/// this section's header comment ("UX overhaul") for why the delete-X
+/// button has to win any same-point ambiguity against either of them.
+bool _onDeleteButton(PiyakGame game, Vector2 worldPos) {
+  final idx = game.selectedIndex;
+  if (idx == null || idx >= game.placements.length) return false;
+  final del = deleteButtonWorldPos(game.placements[idx]);
+  return (worldPos - del).length <= kDeleteHitRadiusM;
+}
+
+/// PiyakGame.onDragStart delegates here FIRST, per the drag-start priority
+/// ladder (this section's header comment). Only claims the drag (sets
+/// [PiyakGame.rotatingIndex]) when a rotatable part is selected AND the drag
+/// starts either on its handle knob ([kHandleHitRadiusM]) or anywhere on its
+/// selection ring's grabbable band ([kRingBandHalfWidthM]) - and not on its
+/// delete-X ([_onDeleteButton], checked first). Otherwise a no-op, so the
+/// drag falls through to [handleEditMoveDragStart] next (world-space drags
+/// other than these and the tray - which lives under camera.viewport and,
+/// being a descendant, is always matched before PiyakGame itself ever sees
+/// the event - end up there).
 void handleEditDragStart(PiyakGame game, DragStartEvent event) {
   if (game.mode != GameMode.edit) return;
   final idx = game.selectedIndex;
@@ -240,7 +302,14 @@ void handleEditDragStart(PiyakGame game, DragStartEvent event) {
   final p = game.placements[idx];
   if (!Catalog.of(p.type).rotatable) return;
   final worldPos = canvasToWorldPx(game, event.canvasPosition) / kPpm;
-  if ((worldPos - rotateHandleWorldPos(p)).length > kHandleHitRadiusM) return;
+  if (_onDeleteButton(game, worldPos)) return;
+  final onKnob =
+      (worldPos - rotateHandleWorldPos(p)).length <= kHandleHitRadiusM;
+  final distFromCenter = (worldPos - Vector2(p.x, p.y)).length;
+  final onRingBand =
+      (distFromCenter - selectionRingRadiusM(p.type)).abs() <=
+          kRingBandHalfWidthM;
+  if (!onKnob && !onRingBand) return;
   game.rotatingIndex = idx;
   game.rotateFallbackAngleDeg = p.angleDeg;
   game.rotateDragCanvasPos = event.canvasPosition;
@@ -298,10 +367,101 @@ void handleEditDragEnd(PiyakGame game, DragEndEvent event) {
   }
 }
 
+/// PiyakGame.onDragStart delegates here SECOND, after [handleEditDragStart]
+/// has had its chance to claim a rotate (ladder step 2 - see this section's
+/// header comment) - the caller only invokes this when that call left
+/// [PiyakGame.rotatingIndex] untouched. Claims the drag (sets
+/// [PiyakGame.movingIndex]) when it starts inside any placement's footprint
+/// ([_placementIndexAt]) and isn't on the selected part's delete-X
+/// ([_onDeleteButton], same reason [handleEditDragStart] checks it first).
+/// Also selects the grabbed placement immediately (owner's playtested "grab
+/// it, no separate select tap needed" - Improvement B) and records the grab
+/// offset so [handleEditMoveDragUpdate] keeps the part under the same
+/// finger point it was grabbed at, instead of snapping its center to the
+/// pointer.
+void handleEditMoveDragStart(PiyakGame game, DragStartEvent event) {
+  if (game.mode != GameMode.edit || game.rotatingIndex != null) return;
+  final worldPos = canvasToWorldPx(game, event.canvasPosition) / kPpm;
+  if (_onDeleteButton(game, worldPos)) return;
+  final idx = _placementIndexAt(game, worldPos);
+  if (idx == null) return;
+  final p = game.placements[idx];
+  game.selectedIndex = idx;
+  game.movingIndex = idx;
+  game.moveGrabOffsetM = worldPos - Vector2(p.x, p.y);
+  game.movePreDragPosM = Vector2(p.x, p.y);
+  game.moveDragCanvasPos = event.canvasPosition;
+}
+
+/// PiyakGame.onDragUpdate delegates here. Live-commits the dragged center on
+/// every tick via [PiyakGame.setPlacementPosition] - same "clamp on
+/// release" choice [handleEditDragUpdate] makes for rotation, and for the
+/// same reason: the player needs to see the part actually follow their
+/// finger, even over a spot that would be rejected on release (canPlaceAt is
+/// only consulted for the live ring tint, [SelectionOverlay], and the
+/// revert check in [handleEditMoveDragEnd]). No gear-snap while dragging
+/// live (unlike the tray ghost's [resolveDrop]) - only the raw grabbed
+/// position; snapping only ever applies at the moment of commit, see
+/// [handleEditMoveDragEnd].
+///
+/// Cost note: unlike rotation's angle (gated behind a 5-degree snap, so
+/// setPlacementAngle/_rebuildViews only fire roughly a dozen times across a
+/// full sweep), position has no such natural quantization here, so this
+/// calls [PiyakGame.setPlacementPosition] - and therefore
+/// PiyakGame._rebuildViews(), a full remove+recreate of every PartView - on
+/// EVERY drag-update frame. Rebuilding a handful of PartViews (this game's
+/// scenes top out around a dozen parts) on every touch-move frame is cheap
+/// enough to be unmeasurable in practice; a scene with hundreds of parts
+/// would instead want to move the grabbed PartView's own position directly
+/// and only touch `placements`/_rebuildViews() once, on release.
+///
+/// Tracks the pointer via [PiyakGame.moveDragCanvasPos] + event.canvasDelta,
+/// not event.canvasStartPosition/canvasEndPosition - identical reasoning to
+/// [handleEditDragUpdate]'s own doc comment.
+void handleEditMoveDragUpdate(PiyakGame game, DragUpdateEvent event) {
+  final idx = game.movingIndex;
+  final lastCanvasPos = game.moveDragCanvasPos;
+  if (idx == null || idx >= game.placements.length || lastCanvasPos == null) {
+    return;
+  }
+  final canvasPos = lastCanvasPos + event.canvasDelta;
+  game.moveDragCanvasPos = canvasPos;
+  final worldPos = canvasToWorldPx(game, canvasPos) / kPpm;
+  final center = worldPos - game.moveGrabOffsetM;
+  game.setPlacementPosition(idx, center.x, center.y);
+}
+
+/// PiyakGame.onDragEnd delegates here (a cancelled drag arrives here too,
+/// via DragCallbacks' default onDragCancel -> onDragEnd forwarding, same as
+/// [handleEditDragEnd]): snaps gear-family parts the same way a tray drop
+/// does ([snapGearPosition], with the part itself excluded so it never
+/// snaps against its own live box), then reverts to
+/// [PiyakGame.movePreDragPosM] if the landing spot is still illegal after
+/// that snap. The part stays selected either way - only its position is
+/// ever in question here.
+void handleEditMoveDragEnd(PiyakGame game, DragEndEvent event) {
+  final idx = game.movingIndex;
+  game.movingIndex = null;
+  game.moveDragCanvasPos = null;
+  if (idx == null || idx >= game.placements.length) return;
+  final p = game.placements[idx];
+  final landing = snapGearPosition(game, p.type, Vector2(p.x, p.y),
+      excludeIndex: idx);
+  final valid =
+      canPlaceAt(game, p.type, landing, p.angleDeg, excludeIndex: idx);
+  if (valid) {
+    game.setPlacementPosition(idx, landing.x, landing.y);
+  } else {
+    game.setPlacementPosition(
+        idx, game.movePreDragPosM.x, game.movePreDragPosM.y);
+  }
+}
+
 /// Edit-mode-only visual for [PiyakGame.selectedIndex]: a ring around the
 /// selected placement, a delete-X 0.6m above it, and (only when the type is
 /// rotatable - plank, fan) a rotate-handle knob on the ring's edge, tinted
-/// red while a rotate drag is at an invalid angle. Purely a renderer - all
+/// red while a rotate OR a move drag ([PiyakGame.movingIndex]) is sitting at
+/// an invalid angle/position. Purely a renderer - all
 /// hit-testing lives in this section's handleEdit*() functions above, which
 /// read/write PiyakGame's selection fields directly (see this section's own
 /// header comment for why). Added once in PiyakGame.onLoad with a high
@@ -339,7 +499,7 @@ class SelectionOverlay extends Component {
     }
     final del = deleteButtonWorldPos(p);
     _deleteCenter = _px(del.x, del.y);
-    _invalid = game.rotatingIndex == idx &&
+    _invalid = (game.rotatingIndex == idx || game.movingIndex == idx) &&
         !canPlaceAt(game, p.type, Vector2(p.x, p.y), p.angleDeg,
             excludeIndex: idx);
   }

@@ -218,6 +218,11 @@ class _TraySlot extends PositionComponent with DragCallbacks {
       game.addPlacement(
         Placement(type: entry.type, x: result.pos.x, y: result.pos.y, angleDeg: 0),
       );
+      // Auto-select on drop (owner-approved UX overhaul, Improvement A) -
+      // addPlacement() only ever appends, so the new entry is always the
+      // last index. One less tap, and immediately shows the rotate handle
+      // for rotatable types.
+      game.selectedIndex = game.placements.length - 1;
       Sound.play(Sfx.place);
     }
   }

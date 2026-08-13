@@ -82,6 +82,29 @@ class PiyakGame extends FlameGame with DragCallbacks {
   /// incrementally instead of read straight off each DragUpdateEvent.
   Vector2? rotateDragCanvasPos;
 
+  /// Index into [placements] currently being drag-moved (grabbed by its own
+  /// footprint and following the finger), or null. Owned by input.dart's
+  /// handleEditMoveDrag*() functions - mirrors [rotatingIndex]'s role for
+  /// rotation.
+  int? movingIndex;
+
+  /// World-space offset (meters, grab point minus the placement's center) at
+  /// the moment [movingIndex] was grabbed - preserved through the drag so
+  /// the part follows the finger without its center jumping to the pointer.
+  /// Meaningless while [movingIndex] is null.
+  Vector2 moveGrabOffsetM = Vector2.zero();
+
+  /// Placement center (meters) to revert to if the move drag ends somewhere
+  /// illegal - captured once at grab time and never updated mid-drag, so a
+  /// revert always lands back where the part truly started no matter how
+  /// far it wandered live. Meaningless while [movingIndex] is null.
+  Vector2 movePreDragPosM = Vector2.zero();
+
+  /// Running canvas-space pointer position for the move drag in progress, or
+  /// null. Same canvasDelta-accumulation reasoning as [rotateDragCanvasPos]
+  /// (see input.dart's handleEditDragUpdate doc comment).
+  Vector2? moveDragCanvasPos;
+
   final List<PartView> _views = [];
   double _acc = 0;
 
@@ -142,6 +165,7 @@ class PiyakGame extends FlameGame with DragCallbacks {
     // Run mode has no selection/edit affordances (shared-contract Task 8).
     selectedIndex = null;
     rotatingIndex = null;
+    movingIndex = null;
     // Fresh sim -> fresh step accumulator too: leftover _acc from the run
     // just discarded (e.g. capped at 0.25 the frame it cleared) would
     // otherwise fast-forward this new sim several steps on its very first
@@ -209,6 +233,7 @@ class PiyakGame extends FlameGame with DragCallbacks {
     placements.removeAt(index);
     selectedIndex = _shiftIndexAfterRemoval(selectedIndex, index);
     rotatingIndex = _shiftIndexAfterRemoval(rotatingIndex, index);
+    movingIndex = _shiftIndexAfterRemoval(movingIndex, index);
     _rebuildViews();
   }
 
@@ -226,6 +251,17 @@ class PiyakGame extends FlameGame with DragCallbacks {
     final p = placements[index];
     placements[index] =
         Placement(type: p.type, x: p.x, y: p.y, angleDeg: angleDeg);
+    _rebuildViews();
+  }
+
+  /// Replaces the placement at [index] with the same type/angle but a new
+  /// (x,y) - mirrors [setPlacementAngle]. Drag-to-move (input.dart's
+  /// handleEditMoveDrag*()) is the only caller today.
+  void setPlacementPosition(int index, double x, double y) {
+    assert(index >= 0 && index < placements.length);
+    final p = placements[index];
+    placements[index] =
+        Placement(type: p.type, x: x, y: y, angleDeg: p.angleDeg);
     _rebuildViews();
   }
 
@@ -270,8 +306,9 @@ class PiyakGame extends FlameGame with DragCallbacks {
   // short/fast drag - and ONLY a drag not already claimed by a real
   // interaction (tray placement is a different component's gesture
   // entirely, see input.dart's Task 8 header comment for why that never
-  // reaches here; a rotate-handle grab is guarded via `consumed` below) -
-  // as a tap at its START position. This also covers the zero-movement
+  // reaches here; a rotate-handle/ring-band grab or a placement move-grab is
+  // guarded via `consumed` below) - as a tap at its START position. This
+  // also covers the zero-movement
   // case (existing tests, `adb shell input tap`): with no competing tap
   // recognizer left, flame's arena awards the drag recognizer that pointer
   // immediately (it's the only member), so onDragStart+onDragEnd still
@@ -292,18 +329,26 @@ class PiyakGame extends FlameGame with DragCallbacks {
     super.onDragStart(event);
     final rotatingBefore = rotatingIndex;
     handleEditDragStart(this, event);
+    // Ladder step 2 (move-grab) only gets a turn if step 1 (rotate) declined
+    // - see input.dart's drag-start priority ladder comment.
+    if (rotatingIndex == null) {
+      handleEditMoveDragStart(this, event);
+    }
     _tapCandidates[event.pointerId] = _TapCandidate(
       start: event.canvasPosition,
-      // This exact call just claimed the rotate handle (null -> non-null)?
-      // Then this pointer is a real interaction from frame one, never a
-      // tap, no matter how little it then moves.
-      consumed: rotatingBefore == null && rotatingIndex != null,
+      // This exact call just claimed the rotate handle OR a placement's
+      // footprint (null -> non-null, either field)? Then this pointer is a
+      // real interaction from frame one, never a tap, no matter how little
+      // it then moves.
+      consumed: (rotatingBefore == null && rotatingIndex != null) ||
+          movingIndex != null,
     );
   }
 
   @override
   void onDragUpdate(DragUpdateEvent event) {
     handleEditDragUpdate(this, event);
+    handleEditMoveDragUpdate(this, event);
     _tapCandidates[event.pointerId]?.traveled += event.canvasDelta.length;
   }
 
@@ -311,6 +356,7 @@ class PiyakGame extends FlameGame with DragCallbacks {
   void onDragEnd(DragEndEvent event) {
     super.onDragEnd(event);
     handleEditDragEnd(this, event);
+    handleEditMoveDragEnd(this, event);
     final tap = _tapCandidates.remove(event.pointerId);
     if (tap != null &&
         !tap.consumed &&
@@ -555,8 +601,9 @@ class _TapCandidate {
   final DateTime startTime;
 
   /// True if this pointer was claimed by a real interaction (today: the
-  /// rotate handle) the moment it started - if so, never a tap, regardless
-  /// of how little it then moves or how quickly it ends.
+  /// rotate handle/ring band, or a placement move-grab) the moment it
+  /// started - if so, never a tap, regardless of how little it then moves
+  /// or how quickly it ends.
   final bool consumed;
 
   /// Total path length (sum of |canvasDelta| across every onDragUpdate),

@@ -1,3 +1,4 @@
+import 'dart:math';
 import 'dart:ui';
 
 import 'package:flame/game.dart';
@@ -172,5 +173,96 @@ void main() {
     game.removePlacement(1);
     expect(game.selectedIndex, isNull);
     expect(game.rotatingIndex, isNull);
+  });
+
+  // UX 개편 B: 배치된 부품 드래그 이동 (owner pain point: "막대기를 한번
+  // 놓으면 드래그해서 이동도 못 해").
+  testWidgets(
+      '배치된 널빤지를 중심이 아닌 지점에서 잡고 드래그하면 잡은 오프셋을 유지한 채 이동하고 계속 선택된 상태다',
+      (t) async {
+    final s = stage('', '', '{"type":"plank","x":0,"y":0,"angle":0}');
+    final game = await _pumpGame(t, s);
+    game.addPlacement(Placement(type: PartType.plank, x: 8, y: 4, angleDeg: 0));
+    await t.pump();
+
+    // 중심(8,4)이 아니라 왼쪽으로 0.5m 치우친 지점을 잡는다 - 판 폭(2.0m)
+    // 절반(1.0m) 안쪽이라 여전히 발자국 내부. 사전 탭 없이 곧바로 드래그만
+    // 하는 것도 이 테스트의 일부 - "잡으면 바로 선택"(Improvement B).
+    final grab = _worldPx(7.5, 4);
+    const dragDeltaPx = Offset(40, 0); // 15px 탭 문턱보다 커서 이동으로 처리
+    await _drag(t, grab, dragDeltaPx);
+
+    expect(game.selectedIndex, 0);
+    final p = game.placements[0];
+    // 40px = 0.4m 이동, 잡은 오프셋(중심 기준 -0.5,0)은 그대로 유지된다 -
+    // 중심이 손가락 위치로 튀지 않는다.
+    expect(p.x, closeTo(8.4, 0.01));
+    expect(p.y, closeTo(4, 0.01));
+  });
+
+  testWidgets('배치된 부품을 다른 부품과 겹치는 자리로 옮기면 원래 위치로 되돌아간다', (t) async {
+    final s = stage('', '', '{"type":"plank","x":0,"y":0,"angle":0}');
+    final game = await _pumpGame(t, s);
+    game.addPlacement(Placement(type: PartType.plank, x: 4, y: 4, angleDeg: 0));
+    game.addPlacement(Placement(type: PartType.plank, x: 8, y: 4, angleDeg: 0));
+    await t.pump();
+
+    final grab = _worldPx(4, 4); // 첫 번째 판(index 0) 중심을 그대로 잡는다
+    final overlapTarget = _worldPx(8, 4); // 두 번째 판과 정확히 겹치는 자리
+    await _drag(t, grab, overlapTarget - grab);
+
+    final p = game.placements[0];
+    expect(p.x, closeTo(4, 0.01));
+    expect(p.y, closeTo(4, 0.01));
+    expect(game.selectedIndex, 0); // 되돌아가도 선택은 유지된다
+  });
+
+  // UX 개편 C: 손잡이가 아니라 고리 밴드 아무 곳이나 드래그해도 회전.
+  testWidgets('선택된 부품은 손잡이가 아니라 고리 밴드를 드래그해도 5도 배수로 회전한다', (t) async {
+    final s = stage('', '', '{"type":"plank","x":0,"y":0,"angle":0}');
+    final game = await _pumpGame(t, s);
+    game.addPlacement(Placement(type: PartType.plank, x: 8, y: 4, angleDeg: 0));
+    await t.pump();
+
+    await _tap(t, _worldPx(8, 4));
+    expect(game.selectedIndex, 0);
+
+    // 손잡이(각도 0 방향 - 중심에서 오른쪽)가 아니라 고리에서 45도 떨어진
+    // 밴드 위 지점에서 드래그를 시작한다 - 손잡이 히트반경(kHandleHitRadiusM)
+    // 밖임을 먼저 확인해, 밴드 로직 자체가 회전을 시작시켰다는 걸 보장한다.
+    final ringRadius = selectionRingRadiusM(PartType.plank);
+    final bandGrab = Vector2(
+        8 + ringRadius * cos(pi / 4), 4 + ringRadius * sin(pi / 4));
+    final handle = rotateHandleWorldPos(game.placements[0]);
+    expect((bandGrab - handle).length, greaterThan(kHandleHitRadiusM));
+
+    final bandGrabPx = _worldPx(bandGrab.x, bandGrab.y);
+    final target = _worldPx(8, 4 + ringRadius); // 90도 지점 - 5의 배수라 스냅이 뚜렷함
+    await _drag(t, bandGrabPx, target - bandGrabPx);
+
+    final angle = game.placements[0].angleDeg;
+    expect(angle % 5, closeTo(0, 0.0001));
+    expect(angle, isNot(closeTo(0, 0.0001)));
+    expect(game.rotatingIndex, isNull);
+  });
+
+  // 회귀 방지: 선풍기(fan)는 고리 반지름이 작아(선택 반지름 ~0.65m) 밴드
+  // 범위(반지름 ±0.3m)가 삭제 X의 고정 오프셋(0.6m)을 모든 회전각에서
+  // 항상 감싼다 - _onDeleteButton 가드가 없으면 선택된 선풍기의 삭제 X가
+  // 회전각과 무관하게 영원히 눌리지 않게 된다.
+  testWidgets('선풍기를 선택한 상태에서도 삭제 X는 고리 밴드에 가리지 않고 항상 눌린다', (t) async {
+    final s = stage('', '', '{"type":"plank","x":0,"y":0,"angle":0}');
+    final game = await _pumpGame(t, s);
+    game.addPlacement(Placement(type: PartType.fan, x: 8, y: 4, angleDeg: 0));
+    await t.pump();
+
+    await _tap(t, _worldPx(8, 4));
+    expect(game.selectedIndex, 0);
+
+    final del = deleteButtonWorldPos(game.placements[0]);
+    await _tap(t, _worldPx(del.x, del.y));
+
+    expect(game.placements, isEmpty);
+    expect(game.selectedIndex, isNull);
   });
 }
