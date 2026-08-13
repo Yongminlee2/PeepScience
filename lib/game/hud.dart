@@ -160,13 +160,15 @@ class _TraySlot extends PositionComponent with DragCallbacks {
   //    (= deviceStartPosition = raw globalPosition, no +delta) is correct
   //    and canvasEndPosition (= globalPosition+delta) double-counts and
   //    overshoots. This was the whole story when this comment was first
-  //    written (Task 7) - but Task 8 gave PiyakGame its own TapCallbacks,
-  //    which is now ALSO in the arena for every pointer in the game (tap
-  //    and drag recognizers are registered game-wide, not per-component -
-  //    see input.dart's Task 8 section header comment), which enables the
-  //    second case below for tray drags too.
+  //    written (Task 7) - Task 8 then gave PiyakGame its own TapCallbacks,
+  //    which was ALSO in the arena for every pointer in the game for a
+  //    while (tap and drag recognizers are registered game-wide, not
+  //    per-component), enabling the second case below for tray drags too;
+  //    the real-touch fix later removed TapCallbacks from this game
+  //    entirely (see piyak_game.dart's "Real-finger tap synthesis" comment)
+  //    but this accumulation is harmless either way, so it's left as-is.
   //  - accepted BY the first movement itself (true whenever something
-  //    else - e.g. that TapCallbacks - is also competing): the FIRST
+  //    else - e.g. a competing tap recognizer - is also competing): the FIRST
   //    onDragUpdate instead carries globalPosition = the gesture's
   //    original down-point with delta = the FULL move accumulated before
   //    acceptance, so canvasStartPosition is stale (still the down-point)
@@ -269,11 +271,17 @@ class _TraySlot extends PositionComponent with DragCallbacks {
 /// space with a stage's tray slots regardless of how many the stage has.
 /// Edit mode shows a play triangle and starts the run; run mode shows a
 /// stop square and returns to edit - except while [WinOverlay] is up
-/// (`game.sim!.cleared`), when the tap is ignored: the overlay's own
+/// (`game.sim!.cleared`), when [activate] is a no-op: the overlay's own
 /// buttons (다시/다음) are the only way out of a cleared run, and a stray
 /// tap on this now-covered button must not silently reset out from under
 /// it (see [WinOverlay]'s doc comment for the matching half of this).
-class RunToggleButton extends PositionComponent with TapCallbacks {
+///
+/// No TapCallbacks - [PiyakGame]'s tap-synthesis dispatch calls [activate]
+/// directly once it resolves a short drag as a tap on this button's screen
+/// rect (via componentsAtPoint - see piyak_game.dart's "Real-finger tap
+/// synthesis" comment for why a real onTapUp is unreachable on this button
+/// on a real device).
+class RunToggleButton extends PositionComponent {
   RunToggleButton(this.game)
       : super(
           position: Vector2(
@@ -288,8 +296,11 @@ class RunToggleButton extends PositionComponent with TapCallbacks {
 
   final PiyakGame game;
 
-  @override
-  void onTapUp(TapUpEvent event) {
+  /// Starts a run (edit mode) or returns to edit (run mode, unless
+  /// [WinOverlay] is up - see this class's own doc comment). The single
+  /// entry point for "this button was activated", called from
+  /// [PiyakGame]'s synthesized-tap dispatch.
+  void activate() {
     if (game.mode == GameMode.edit) {
       game.startRun();
     } else if (game.sim?.cleared != true) {
@@ -472,13 +483,13 @@ class WinOverlay extends PositionComponent {
         ),
       ),
     ));
-    add(_WinOverlayButton(
+    add(WinOverlayButton(
       center: retryButtonCenter,
       size: buttonSize,
       draw: _drawRetryIcon,
       onTap: game.resetToEdit,
     ));
-    add(_WinOverlayButton(
+    add(WinOverlayButton(
       center: nextButtonCenter,
       size: buttonSize,
       draw: _drawNextIcon,
@@ -498,8 +509,14 @@ class WinOverlay extends PositionComponent {
 /// One [WinOverlay] action button: filled rounded square with a
 /// caller-drawn icon, >=100px per side (shared-contract touch-target
 /// minimum for overlay buttons; [WinOverlay.buttonSize] is 140).
-class _WinOverlayButton extends PositionComponent with TapCallbacks {
-  _WinOverlayButton({
+///
+/// Public (not [WinOverlay]-private) and has no TapCallbacks: [PiyakGame]'s
+/// tap-synthesis dispatch needs to recognize this type via componentsAtPoint
+/// and invoke [onTap] directly - see piyak_game.dart's "Real-finger tap
+/// synthesis" comment for why a real onTapUp is unreachable on this button
+/// on a real device.
+class WinOverlayButton extends PositionComponent {
+  WinOverlayButton({
     required Offset center,
     required double size,
     required this.draw,
@@ -511,9 +528,6 @@ class _WinOverlayButton extends PositionComponent with TapCallbacks {
 
   final void Function(Canvas canvas, Offset center, double radius) draw;
   final VoidCallback onTap;
-
-  @override
-  void onTapUp(TapUpEvent event) => onTap();
 
   @override
   void render(Canvas canvas) {

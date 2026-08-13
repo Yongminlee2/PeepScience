@@ -28,7 +28,7 @@ enum GameMode { edit, run }
 /// World is 16x9 meters, y-down, origin top-left - same directions as the
 /// screen - so meters -> pixels is a straight `* ppm`, never a flip (see
 /// PartView, which does the actual per-frame copy).
-class PiyakGame extends FlameGame with TapCallbacks, DragCallbacks {
+class PiyakGame extends FlameGame with DragCallbacks {
   PiyakGame(this.stage)
       : super(
           camera: CameraComponent.withFixedResolution(
@@ -229,30 +229,125 @@ class PiyakGame extends FlameGame with TapCallbacks, DragCallbacks {
     _rebuildViews();
   }
 
-  // Edit-mode select/rotate/delete input. TapCallbacks/DragCallbacks must be
-  // mixed onto this class itself to receive events (FlameGame _is_ a
-  // Component - see flame's TapCallbacks doc comment) - but all the actual
-  // hit-testing/geometry lives in input.dart's handleEdit*() functions,
-  // consistent with how canPlaceAt/resolveDrop already take a PiyakGame
-  // rather than living as methods on it.
-  @override
-  void onTapUp(TapUpEvent event) => handleEditTapUp(this, event);
+  // Edit-mode select/rotate/delete input. DragCallbacks must be mixed onto
+  // this class itself to receive events (FlameGame _is_ a Component - see
+  // flame's DragCallbacks doc comment) - but all the actual hit-testing/
+  // geometry lives in input.dart's handleEdit*() functions, consistent with
+  // how canPlaceAt/resolveDrop already take a PiyakGame rather than living
+  // as methods on it.
+  //
+  // ---------------------------------------------------------------------
+  // Real-finger tap synthesis - DO NOT delete this as "redundant", and do
+  // not add TapCallbacks back anywhere in this game (here, or on
+  // RunToggleButton/WinOverlayButton in hud.dart).
+  //
+  // Root cause (device-verified): this game also needs real drags (tray
+  // placement, rotate handle), so flame always has a
+  // MultiDragScaleGestureRecognizer registered. Whenever ANY TapCallbacks
+  // exists anywhere in the game too, flame ALSO registers a
+  // MultiTapGestureRecognizer, and the two compete in one Flutter gesture
+  // arena per pointer - but this game never enables flame's scale gesture,
+  // so the drag recognizer resolves itself ACCEPTED on the very first
+  // PointerMoveEvent it sees, zero slop (verified against the installed
+  // flame 1.38.0 source: multi_drag_scale_recognizer.dart's
+  // _DragPointerState._move, the `!recognizer.hasScale` branch). Once it
+  // accepts, the arena rejects every other recognizer for that pointer, so
+  // a TapCallbacks component's onTapUp silently becomes onTapCancel
+  // instead - no exception, nothing to catch. A real finger essentially
+  // always drifts a few px between touch-down and lift-off, so on a real
+  // device this used to fire on EVERY tap, not just accidental swipes:
+  // confirmed with `adb shell input swipe x y x+6 y+3 80` (6px drift,
+  // 80ms) killing every tap, while `adb shell input tap` (zero movement) -
+  // and every widget-test tester.tapAt/dragFrom(..., touchSlopX: 0,
+  // touchSlopY: 0), also zero movement - looked fine. See
+  // test/game/real_touch_test.dart for gestures that actually drift, the
+  // way the other test files' zero-movement gestures never did.
+  //
+  // Fix: this game has no TapCallbacks at all anymore. Every tap (part
+  // select, delete-X, deselect, the run toggle, the win-overlay buttons) is
+  // instead synthesized below from the one gesture flame can still resolve
+  // reliably regardless of finger drift: a drag. onDragEnd treats a
+  // short/fast drag - and ONLY a drag not already claimed by a real
+  // interaction (tray placement is a different component's gesture
+  // entirely, see input.dart's Task 8 header comment for why that never
+  // reaches here; a rotate-handle grab is guarded via `consumed` below) -
+  // as a tap at its START position. This also covers the zero-movement
+  // case (existing tests, `adb shell input tap`): with no competing tap
+  // recognizer left, flame's arena awards the drag recognizer that pointer
+  // immediately (it's the only member), so onDragStart+onDragEnd still
+  // fire even for zero movement - just with `traveled` staying 0.
+  //
+  // _tapCandidates tracks the in-flight state per pointer id (multi-touch
+  // safe - see removePlacement's own doc comment for why this game already
+  // has to think in per-pointer terms elsewhere). _dispatchTap resolves a
+  // confirmed tap to exactly one action, in the same priority order
+  // flame's TapCallbacks z-order used to give for free.
+  static const double _kTapMaxTravelPx = 15;
+  static const Duration _kTapMaxDuration = Duration(milliseconds: 300);
+
+  final Map<int, _TapCandidate> _tapCandidates = {};
 
   @override
   void onDragStart(DragStartEvent event) {
     super.onDragStart(event);
+    final rotatingBefore = rotatingIndex;
     handleEditDragStart(this, event);
+    _tapCandidates[event.pointerId] = _TapCandidate(
+      start: event.canvasPosition,
+      // This exact call just claimed the rotate handle (null -> non-null)?
+      // Then this pointer is a real interaction from frame one, never a
+      // tap, no matter how little it then moves.
+      consumed: rotatingBefore == null && rotatingIndex != null,
+    );
   }
 
   @override
   void onDragUpdate(DragUpdateEvent event) {
     handleEditDragUpdate(this, event);
+    _tapCandidates[event.pointerId]?.traveled += event.canvasDelta.length;
   }
 
   @override
   void onDragEnd(DragEndEvent event) {
     super.onDragEnd(event);
     handleEditDragEnd(this, event);
+    final tap = _tapCandidates.remove(event.pointerId);
+    if (tap != null &&
+        !tap.consumed &&
+        tap.traveled < _kTapMaxTravelPx &&
+        DateTime.now().difference(tap.startTime) < _kTapMaxDuration) {
+      _dispatchTap(tap.start);
+    }
+  }
+
+  /// Resolves a confirmed tap at [canvasPos] to exactly one action, in the
+  /// same priority order flame's TapCallbacks z-order used to give for free
+  /// (win-overlay buttons on top, then the run toggle, then in-field
+  /// select/delete/deselect) - see this class's "Real-finger tap synthesis"
+  /// comment above for the full mechanism.
+  ///
+  /// Uses componentsAtPoint (walking the real component tree top-down,
+  /// applying each ancestor's actual transform: camera -> viewport -> ...)
+  /// rather than PositionComponent.containsPoint/absoluteToLocal on a
+  /// specific button - the latter climbs from the component UPWARD and
+  /// silently stops (wrong answer, not an error) at the first
+  /// non-PositionComponent ancestor, and both CameraComponent and Viewport
+  /// are exactly that, so every HUD component here would be affected.
+  /// componentsAtPoint already yields topmost-first, so WinOverlayButton
+  /// (priority 100, via WinOverlay) naturally comes before RunToggleButton
+  /// (priority 0) without any hand-coded z-order.
+  void _dispatchTap(Vector2 canvasPos) {
+    for (final c in componentsAtPoint(canvasPos)) {
+      if (c is WinOverlayButton) {
+        c.onTap();
+        return;
+      }
+      if (c is RunToggleButton) {
+        c.activate();
+        return;
+      }
+    }
+    handleEditTapUp(this, canvasPos);
   }
 
   @override
@@ -444,6 +539,30 @@ class PiyakGame extends FlameGame with TapCallbacks, DragCallbacks {
     }
     return list;
   }
+}
+
+/// One in-flight tap candidate for [PiyakGame._tapCandidates] - see that
+/// field's own doc comment ("Real-finger tap synthesis", above
+/// [PiyakGame.onDragStart]) for what this is for.
+class _TapCandidate {
+  _TapCandidate({required this.start, required this.consumed})
+      : startTime = DateTime.now();
+
+  /// Canvas position the drag started at - a confirmed tap fires here, not
+  /// wherever the pointer happened to drift to by release.
+  final Vector2 start;
+
+  final DateTime startTime;
+
+  /// True if this pointer was claimed by a real interaction (today: the
+  /// rotate handle) the moment it started - if so, never a tap, regardless
+  /// of how little it then moves or how quickly it ends.
+  final bool consumed;
+
+  /// Total path length (sum of |canvasDelta| across every onDragUpdate),
+  /// not net displacement - a wobble that returns near its start still
+  /// accumulates real travel here.
+  double traveled = 0;
 }
 
 class _SceneEntry {

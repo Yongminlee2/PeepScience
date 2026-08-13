@@ -17,9 +17,9 @@ export '../sim/placement_rules.dart'
 
 /// World-pixel position (matches `PartView`/`Placement` coordinates, i.e.
 /// meters * `kPpm`) for a point given in the game canvas's coordinate space
-/// (e.g. `TapDownEvent.canvasPosition`, `DragStartEvent.canvasPosition`, or
-/// a canvas position a caller has otherwise reconstructed - see
-/// hud.dart's and this file's own onDragUpdate doc comments for why a raw
+/// (e.g. `DragStartEvent.canvasPosition`, or a canvas position a caller has
+/// otherwise reconstructed - see hud.dart's and this file's own
+/// onDragUpdate doc comments for why a raw
 /// `DragUpdateEvent.canvasStartPosition`/`canvasEndPosition` isn't always
 /// one of those).
 ///
@@ -98,21 +98,26 @@ Iterable<rules.PlacementBox> _existingBoxes(PiyakGame game,
 // All hit-testing below is manual (world-space math reusing the same
 // sim/placement_rules.dart boxes canPlaceAt uses) rather than giving the
 // ring/handle/X their own TapCallbacks/DragCallbacks components. PiyakGame
-// itself mixes in TapCallbacks/DragCallbacks (see piyak_game.dart) and,
-// being the root component, is the LAST candidate flame's dispatcher checks
-// for any given pointer (every descendant is matched first - see flame's
+// mixes in DragCallbacks (see piyak_game.dart) and, being the root
+// component, is the LAST candidate flame's dispatcher checks for any given
+// pointer (every descendant is matched first - see flame's
 // Component.componentsAtLocation) - so this never steals events from
-// hud.dart's per-slot tray drags. TapUpEvent.canvasPosition and
-// DragStartEvent.canvasPosition are computed once per event independent of
-// which component ends up receiving it (flame's
-// PositionEvent/DisplacementEvent), so reading them here is exactly as
-// correct as hud.dart's own identical usage; DragUpdateEvent needs the
+// hud.dart's per-slot tray drags. DragStartEvent.canvasPosition is computed
+// once per event independent of which component ends up receiving it
+// (flame's PositionEvent/DisplacementEvent), so reading it here is exactly
+// as correct as hud.dart's own identical usage; DragUpdateEvent needs the
 // canvasDelta-accumulation dance documented on handleEditDragUpdate below
 // instead, for the same reason hud.dart's onDragUpdate now does too.
 //
-// Selection/deletion react to onTapUp, not onTapDown - see
-// handleEditTapUp's own doc comment for why (short version: onTapDown fires
-// speculatively for every touch, tap or drag alike).
+// handleEditTapUp no longer takes a real TapUpEvent - PiyakGame has no
+// TapCallbacks at all (see its own "Real-finger tap synthesis" doc comment
+// for why: on a real device ANY pointer movement, even a few px of finger
+// drift, hands the gesture arena to the drag recognizer instead, so a real
+// onTapUp never fires). It's called with a plain canvas position instead,
+// synthesized from a short/fast drag's START point once that drag ends -
+// which is also why it fires on drag END, never on drag START: claiming a
+// rotate-handle drag has to win the race against a same-pointer deselect,
+// same as it always had to against onTapDown.
 
 /// Extra visual margin (meters) added to a placed part's own footprint to
 /// get its selection ring radius.
@@ -186,25 +191,28 @@ int? _placementIndexAt(PiyakGame game, Vector2 worldPos) {
   return null;
 }
 
-/// PiyakGame.onTapUp delegates here - NOT onTapDown, deliberately: flame's
-/// MultiTapGestureRecognizer fires onTapDown speculatively for EVERY
-/// pointer-down (tap or drag alike, same as Flutter's stock tap recognizers
-/// firing their own "down" callback optimistically to support instant
-/// pressed-states) and only later either confirms it (onTapUp, if this
-/// pointer resolves as a genuine tap) or retracts it (onTapCancel, if a
-/// competing recognizer - here, PiyakGame's own DragCallbacks - wins the
-/// gesture-arena instead). Acting on onTapDown would select/deselect BEFORE
-/// a rotate-handle drag on the very same pointer got a chance to claim
-/// itself in handleEditDragStart, wrongly clearing the selection out from
-/// under it (confirmed empirically while building this - the drag's own
-/// onDragStart always saw selectedIndex already wiped to null by then).
+/// PiyakGame's synthesized-tap dispatch (piyak_game.dart's _dispatchTap)
+/// falls through to here for anything that isn't a win-overlay button or
+/// the run toggle - i.e. this is the in-field select/delete/deselect
+/// handler. Takes the tap's canvas position directly (not a TapUpEvent -
+/// there are no tap events in this game at all anymore, see piyak_game.dart)
+/// and only ever runs once a gesture is CONFIRMED as a tap, at its END -
+/// never at its START, deliberately: acting immediately on pointer-down
+/// would select/deselect BEFORE a rotate-handle drag on the very same
+/// pointer got a chance to claim itself in handleEditDragStart, wrongly
+/// clearing the selection out from under it (confirmed empirically while
+/// building this originally - the drag's own onDragStart always saw
+/// selectedIndex already wiped to null by then). _dispatchTap preserves
+/// this ordering: it only fires from onDragEnd, after handleEditDragStart
+/// (called from onDragStart, earlier in the same gesture) has already had
+/// its chance to claim the pointer for a rotate instead.
 ///
 /// Priority order once a tap is confirmed: delete-X (only if something's
 /// already selected) > tap-a-part (select/switch) > tap-empty-field (clear
 /// selection) - matches the brief's "탭하여 다른 부품 선택 시 전환/해제".
-void handleEditTapUp(PiyakGame game, TapUpEvent event) {
+void handleEditTapUp(PiyakGame game, Vector2 canvasPos) {
   if (game.mode != GameMode.edit) return;
-  final worldPos = canvasToWorldPx(game, event.canvasPosition) / kPpm;
+  final worldPos = canvasToWorldPx(game, canvasPos) / kPpm;
   final idx = game.selectedIndex;
   if (idx != null && idx < game.placements.length) {
     final p = game.placements[idx];
@@ -247,10 +255,14 @@ void handleEditDragStart(PiyakGame game, DragStartEvent event) {
 ///
 /// Tracks the pointer via [PiyakGame.rotateDragCanvasPos] + event.canvasDelta
 /// rather than event.canvasStartPosition/canvasEndPosition directly - see
-/// hud.dart's onDragUpdate doc comment (same fix, same root cause: PiyakGame's
-/// own TapCallbacks now competes in the gesture arena for every pointer in
-/// the game, which flips which of flame's two DragUpdateDetails-construction
-/// paths fires for a given update).
+/// hud.dart's onDragUpdate doc comment for the two ways flame's recognizer
+/// can construct a DragUpdateDetails (accepted-before-any-movement vs.
+/// accepted-by-the-first-movement) and why accumulating canvasDelta is
+/// correct either way. PiyakGame no longer has any competing TapCallbacks
+/// recognizer to trigger the second path (see this file's Task 8 header
+/// comment and piyak_game.dart's own "Real-finger tap synthesis" comment),
+/// but this accumulation is harmless - and still correct - regardless, so
+/// it's left in place rather than reverted.
 void handleEditDragUpdate(PiyakGame game, DragUpdateEvent event) {
   final idx = game.rotatingIndex;
   final lastCanvasPos = game.rotateDragCanvasPos;
