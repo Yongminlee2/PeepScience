@@ -60,6 +60,20 @@ Future<void> _pumpUntilCleared(
   }
 }
 
+/// Pumps until [game.mode] flips back to edit (the dead-run auto-reset) or
+/// [maxPumps] is hit - same 250ms-pump budget reasoning as
+/// [_pumpUntilCleared] (fall-to-destroy is ~1.4s, plus the ~1.2s grace
+/// timer, plus settle margin).
+Future<void> _pumpUntilEdit(
+  WidgetTester t,
+  PiyakGame game, {
+  int maxPumps = 30,
+}) async {
+  for (var i = 0; i < maxPumps && game.mode != GameMode.edit; i++) {
+    await t.pump(const Duration(milliseconds: 250));
+  }
+}
+
 // RunToggleButton's on-screen center, derived from its own layout constants
 // (not duplicated magic numbers) so this stays in sync with hud.dart - same
 // approach as placement_test.dart's _slot0Center for TrayBar.
@@ -79,6 +93,17 @@ StageData _trivialStage() => stage(
       '{"type":"basket","x":8,"y":6,"angle":0}',
       '{"type":"rubber_ball","count":1}',
       '{"type":"rubber_ball","x":8,"y":2,"angle":0}',
+    );
+
+/// Reproduces the first-playtest dead-run: a preset ball with nothing under
+/// it (no basket at all, so `cleared` can never latch) falls straight down
+/// and is swept by SimWorld.step's off-bounds destroy queue - the exact
+/// "press ▶ with nothing placed" scenario. tray/solution are dummy data
+/// (StageData requires a non-empty solution array) never placed by the test.
+StageData _deadRunStage() => stage(
+      '{"type":"rubber_ball","x":8,"y":1,"angle":0}',
+      '{"type":"plank","count":1}',
+      '{"type":"plank","x":10,"y":5,"angle":0}',
     );
 
 void main() {
@@ -115,6 +140,10 @@ void main() {
     await t.pump(const Duration(milliseconds: 250));
     await t.pump(const Duration(milliseconds: 250));
     expect(game.sim!.stepCount, frozenStepCount);
+    // 클리어된 런은 막힌-런 자동 복귀의 대상이 아니다 - 유예 시간(1.2s)을
+    // 넘겨서까지 pump해도 run 모드 그대로여야 한다.
+    await _pumpUntilEdit(t, game, maxPumps: 10);
+    expect(game.mode, GameMode.run);
   });
 
   testWidgets('■을 탭하면 run 도중에도 edit 모드로 복귀하고 배치는 그대로, 선택은 해제된 채로 남는다',
@@ -174,5 +203,29 @@ void main() {
     expect(game.camera.viewport.children.whereType<WinOverlay>(), isEmpty);
     expect(game.placements.length, 1);
     expect(game.placements.single.type, PartType.rubberBall);
+  });
+
+  testWidgets(
+      '목표를 못 채운 채 동적 물체가 전부 화면 밖으로 사라지면 유예 시간 후 자동으로 edit 모드로 '
+      '복귀하고 배치는 그대로 남는다 (첫 플레이테스트 재현: 아무것도 안 놓고 ▶만 누름)', (t) async {
+    final s = _deadRunStage();
+    final game = await _pumpGame(t, s);
+    // 정적 부품 하나를 미리 놓아 둔다 - "동적 물체 0개"와 "배치 목록이
+    // 원래부터 비어 있었다"를 구분해서, 되돌아온 뒤에도 배치가 실제로
+    // 보존됐는지 의미 있게 검증한다. plank는 static이라 이 부품 자체는
+    // 절대 destroy queue에 걸리지 않는다(sim_world.dart 카탈로그 참고).
+    game.addPlacement(s.solution.single);
+    await t.pump();
+
+    await _tap(t, _runButtonCenter);
+    expect(game.mode, GameMode.run);
+
+    await _pumpUntilEdit(t, game);
+
+    expect(game.mode, GameMode.edit,
+        reason: '이 pump 예산 안에 자동 복귀하지 않음 - 유예 타이머 확인');
+    expect(game.sim, isNull);
+    expect(game.placements.length, 1);
+    expect(game.placements.single.type, PartType.plank);
   });
 }

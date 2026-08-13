@@ -97,6 +97,16 @@ class PiyakGame extends FlameGame with TapCallbacks, DragCallbacks {
   bool _hasMotorGear = false;
   static const double _gearTickInterval = 0.5;
 
+  // 막힌 런 자동 복귀 - 첫 플레이테스트에서 실기기로 확인된 문제: 목표
+  // 미달성 상태로 동적 물체가 전부 destroy queue(sim_world.dart step()의
+  // 화면밖 소거)에 쓸려 나가면, update()의 !s.cleared 게이트는 계속 돌지만
+  // 화면엔 아무 변화가 없어 "고장났다"로 읽힌다(스테이지1에서 아무것도
+  // 안 놓고 ▶만 눌렀을 때 공이 1초 안에 사라지는 게 실제 1호 반응). 이
+  // 상태가 [_deadRunGrace]초 유지되면 자동으로 resetToEdit() - null이면
+  // 카운트 중이 아님, startRun()마다 리셋.
+  double? _deadRunTimer;
+  static const double _deadRunGrace = 1.2;
+
   @override
   Future<void> onLoad() async {
     // Default viewfinder centers world (0,0) in the viewport; our world's
@@ -146,6 +156,7 @@ class PiyakGame extends FlameGame with TapCallbacks, DragCallbacks {
     _lastBounce = 0;
     _lastButtonPressed = false;
     _gearTickAccum = 0;
+    _deadRunTimer = null;
     _hasMotorGear = sim!.world.bodies
         .any((b) => (b.userData as PartTag?)?.part == PartType.motorGear);
     _rebuildViews();
@@ -273,6 +284,7 @@ class PiyakGame extends FlameGame with TapCallbacks, DragCallbacks {
       // of overlapping sounds on a hitch.
       _pollSimSounds(s);
       _tickGearSound(dt);
+      _tickDeadRunTimer(s, dt);
     }
     super.update(dt); // cascades into PartView.update -> body sync
   }
@@ -305,6 +317,35 @@ class PiyakGame extends FlameGame with TapCallbacks, DragCallbacks {
       _gearTickAccum = 0;
       Sound.play(Sfx.gearTick);
     }
+  }
+
+  // 막힌 런 자동 복귀 타이머 - 동적 물체(BodyType.dynamic; platform/basket/
+  // button과 plank/fan/trampoline/tack 같은 정적 카탈로그 부품은 애초에
+  // dynamic이 아니라 여기 안 잡힘 - catalog.dart의 density==null이 static)
+  // 가 하나라도 world에 남아 있으면 즉시 카운트를 지운다: 아직 화면에 뭔가
+  // 보이고(예: 못 맞힌 공이 바닥에 멈춤) 원인을 읽을 수 있는 상태는 범위
+  // 밖 - 조용히 멈춘 화면만 고친다. cleared는 update()의 바깥 !s.cleared
+  // 게이트로 대부분 걸러지지만, 이 프레임의 스텝 루프 도중 막 cleared가
+  // 된 경우까지 한 번 더 방어.
+  void _tickDeadRunTimer(SimWorld s, double dt) {
+    final hasDynamicBody =
+        s.world.bodies.any((b) => b.bodyType == BodyType.dynamic);
+    if (s.cleared || hasDynamicBody) {
+      _deadRunTimer = null;
+      return;
+    }
+    final elapsed = (_deadRunTimer ?? 0) + dt;
+    if (elapsed < _deadRunGrace) {
+      _deadRunTimer = elapsed;
+      return;
+    }
+    _deadRunTimer = null;
+    // tap: 삭제(입력 취소)와 같은 소리 - "이번 시도 무효, 되돌림"이라는
+    // 결이 같다(input.dart의 삭제=tap과 동일 판단). boing은 이미
+    // 트램펄린 반발 전용 트리거라 여기서 재사용하면 트램펄린이 없는
+    // 스테이지에서 튀는 소리가 나 오해를 준다.
+    Sound.play(Sfx.tap);
+    resetToEdit();
   }
 
   // Called exactly once per run: `s.cleared` starts false and latches
