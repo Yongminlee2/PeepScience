@@ -105,6 +105,17 @@ class PiyakGame extends FlameGame with DragCallbacks {
   /// (see input.dart's handleEditDragUpdate doc comment).
   Vector2? moveDragCanvasPos;
 
+  /// Pointer id that grabbed [movingIndex], or null. Recorded at grab time
+  /// (handleEditMoveDragStart) so a SECOND pointer's own onDragUpdate/
+  /// onDragEnd - piyak_game.dart routes every pointer's events through the
+  /// same shared handleEditMoveDrag*() functions, there's no per-component
+  /// dispatch for this - can never be mistaken for the pointer actually
+  /// driving the move. The sibling half of this same problem is guarded at
+  /// grab time too: handleEditMoveDragStart refuses to claim
+  /// [movingIndex] while it's already non-null, so only ONE pointer can ever
+  /// own a move at a time in the first place.
+  int? movingPointerId;
+
   final List<PartView> _views = [];
   double _acc = 0;
 
@@ -319,7 +330,13 @@ class PiyakGame extends FlameGame with DragCallbacks {
   // has to think in per-pointer terms elsewhere). _dispatchTap resolves a
   // confirmed tap to exactly one action, in the same priority order
   // flame's TapCallbacks z-order used to give for free.
-  static const double _kTapMaxTravelPx = 15;
+  // Public (no leading underscore) - handleEditMoveDragEnd (input.dart)
+  // reuses this exact threshold to decide whether a footprint grab ever
+  // left "tap" territory before treating it as a real move (see that
+  // function's own doc comment for why: a zero/near-zero-movement grab must
+  // never re-snap a gear against a different neighbor than the one it was
+  // already meshed with).
+  static const double kTapMaxTravelPx = 15;
   static const Duration _kTapMaxDuration = Duration(milliseconds: 300);
 
   final Map<int, _TapCandidate> _tapCandidates = {};
@@ -331,6 +348,7 @@ class PiyakGame extends FlameGame with DragCallbacks {
     handleEditDragStart(this, event);
     // Ladder step 2 (move-grab) only gets a turn if step 1 (rotate) declined
     // - see input.dart's drag-start priority ladder comment.
+    final movingBefore = movingIndex;
     if (rotatingIndex == null) {
       handleEditMoveDragStart(this, event);
     }
@@ -339,9 +357,14 @@ class PiyakGame extends FlameGame with DragCallbacks {
       // This exact call just claimed the rotate handle OR a placement's
       // footprint (null -> non-null, either field)? Then this pointer is a
       // real interaction from frame one, never a tap, no matter how little
-      // it then moves.
+      // it then moves. Comparing against movingBefore (captured right
+      // before this call), not a bare `movingIndex != null` read, matters
+      // now that handleEditMoveDragStart can decline because ANOTHER
+      // pointer already owns movingIndex (a second pointer touching some
+      // OTHER part's footprint while a move is in flight) - a bare read
+      // would wrongly mark THIS pointer consumed for someone else's move.
       consumed: (rotatingBefore == null && rotatingIndex != null) ||
-          movingIndex != null,
+          (movingBefore == null && movingIndex != null),
     );
   }
 
@@ -356,11 +379,16 @@ class PiyakGame extends FlameGame with DragCallbacks {
   void onDragEnd(DragEndEvent event) {
     super.onDragEnd(event);
     handleEditDragEnd(this, event);
-    handleEditMoveDragEnd(this, event);
+    // Removed (not just read) before handleEditMoveDragEnd so its own
+    // release-time no-move short-circuit (input.dart) can see exactly how
+    // far THIS pointer travelled - the same number _dispatchTap's own tap
+    // check below uses, so "was this a tap" means the same thing in both
+    // places (Important 2/Minor 3 fix).
     final tap = _tapCandidates.remove(event.pointerId);
+    handleEditMoveDragEnd(this, event, traveled: tap?.traveled ?? 0);
     if (tap != null &&
         !tap.consumed &&
-        tap.traveled < _kTapMaxTravelPx &&
+        tap.traveled < kTapMaxTravelPx &&
         DateTime.now().difference(tap.startTime) < _kTapMaxDuration) {
       _dispatchTap(tap.start);
     }

@@ -371,16 +371,30 @@ void handleEditDragEnd(PiyakGame game, DragEndEvent event) {
 /// has had its chance to claim a rotate (ladder step 2 - see this section's
 /// header comment) - the caller only invokes this when that call left
 /// [PiyakGame.rotatingIndex] untouched. Claims the drag (sets
-/// [PiyakGame.movingIndex]) when it starts inside any placement's footprint
-/// ([_placementIndexAt]) and isn't on the selected part's delete-X
-/// ([_onDeleteButton], same reason [handleEditDragStart] checks it first).
+/// [PiyakGame.movingIndex] + [PiyakGame.movingPointerId]) when it starts
+/// inside any placement's footprint ([_placementIndexAt]) and isn't on the
+/// selected part's delete-X ([_onDeleteButton], same reason
+/// [handleEditDragStart] checks it first) - AND no other pointer already
+/// owns a move (`movingIndex != null` guard, checked first): without it, a
+/// second finger touching a different placement's footprint while the first
+/// is still mid-drag would silently overwrite movingIndex/moveGrabOffsetM/
+/// movePreDragPosM/selectedIndex out from under the first finger, which
+/// then live-commits its OWN pointer's future updates onto the wrong
+/// bookkeeping and, on release, never gets its own revert-if-illegal check
+/// (handleEditMoveDragEnd runs against whatever `movingIndex` points at NOW,
+/// not the part this pointer actually grabbed). A declined second pointer
+/// simply falls through the ladder as an ordinary tap candidate instead -
+/// still fully usable for e.g. tapping a different, unclaimed part.
+///
 /// Also selects the grabbed placement immediately (owner's playtested "grab
 /// it, no separate select tap needed" - Improvement B) and records the grab
 /// offset so [handleEditMoveDragUpdate] keeps the part under the same
 /// finger point it was grabbed at, instead of snapping its center to the
 /// pointer.
 void handleEditMoveDragStart(PiyakGame game, DragStartEvent event) {
-  if (game.mode != GameMode.edit || game.rotatingIndex != null) return;
+  if (game.mode != GameMode.edit) return;
+  if (game.movingIndex != null) return;
+  if (game.rotatingIndex != null) return;
   final worldPos = canvasToWorldPx(game, event.canvasPosition) / kPpm;
   if (_onDeleteButton(game, worldPos)) return;
   final idx = _placementIndexAt(game, worldPos);
@@ -388,6 +402,7 @@ void handleEditMoveDragStart(PiyakGame game, DragStartEvent event) {
   final p = game.placements[idx];
   game.selectedIndex = idx;
   game.movingIndex = idx;
+  game.movingPointerId = event.pointerId;
   game.moveGrabOffsetM = worldPos - Vector2(p.x, p.y);
   game.movePreDragPosM = Vector2(p.x, p.y);
   game.moveDragCanvasPos = event.canvasPosition;
@@ -418,10 +433,22 @@ void handleEditMoveDragStart(PiyakGame game, DragStartEvent event) {
 /// Tracks the pointer via [PiyakGame.moveDragCanvasPos] + event.canvasDelta,
 /// not event.canvasStartPosition/canvasEndPosition - identical reasoning to
 /// [handleEditDragUpdate]'s own doc comment.
+///
+/// Guarded by [PiyakGame.movingPointerId] (in addition to the usual
+/// [PiyakGame.movingIndex] null-check): PiyakGame.onDragUpdate calls this
+/// for EVERY pointer's update, not just the one that actually grabbed the
+/// part (there is no per-component dispatch here, see this file's "UX
+/// overhaul" header comment) - without this check, a second pointer's own
+/// finger-wobble would get added onto the FIRST pointer's
+/// moveDragCanvasPos/moveGrabOffsetM math, yanking the grabbed part around
+/// in response to a completely unrelated touch.
 void handleEditMoveDragUpdate(PiyakGame game, DragUpdateEvent event) {
   final idx = game.movingIndex;
   final lastCanvasPos = game.moveDragCanvasPos;
-  if (idx == null || idx >= game.placements.length || lastCanvasPos == null) {
+  if (idx == null ||
+      idx >= game.placements.length ||
+      lastCanvasPos == null ||
+      event.pointerId != game.movingPointerId) {
     return;
   }
   final canvasPos = lastCanvasPos + event.canvasDelta;
@@ -433,27 +460,59 @@ void handleEditMoveDragUpdate(PiyakGame game, DragUpdateEvent event) {
 
 /// PiyakGame.onDragEnd delegates here (a cancelled drag arrives here too,
 /// via DragCallbacks' default onDragCancel -> onDragEnd forwarding, same as
-/// [handleEditDragEnd]): snaps gear-family parts the same way a tray drop
-/// does ([snapGearPosition], with the part itself excluded so it never
-/// snaps against its own live box), then reverts to
-/// [PiyakGame.movePreDragPosM] if the landing spot is still illegal after
-/// that snap. The part stays selected either way - only its position is
-/// ever in question here.
-void handleEditMoveDragEnd(PiyakGame game, DragEndEvent event) {
+/// [handleEditDragEnd]) with [traveled] = this same pointer's total path
+/// length in canvas px (PiyakGame.onDragEnd's own tap-candidate bookkeeping
+/// - the same number that decides whether _dispatchTap treats the gesture
+/// as a tap).
+///
+/// Guarded by [PiyakGame.movingPointerId] first - see
+/// [handleEditMoveDragUpdate]'s doc comment for why PiyakGame routes every
+/// pointer's end event here, not just the owning one; a non-owning pointer's
+/// end must leave the still-in-flight move's state completely untouched.
+///
+/// Two outcomes for the OWNING pointer:
+/// - [traveled] never left tap territory (< [PiyakGame.kTapMaxTravelPx],
+///   same threshold _dispatchTap uses): NOT a move, no matter how long the
+///   finger sat there - reverts to [PiyakGame.movePreDragPosM] verbatim, no
+///   gear-snap, no canPlaceAt re-check. Without this, a plain tap-to-select
+///   on a gear that's already meshed with 3+ neighbors would run
+///   [snapGearPosition] on release like any other move and could silently
+///   re-snap it to a DIFFERENT nearest neighbor, changing which gears mesh
+///   with which - a connectivity change nobody asked for from what looked
+///   like a tap.
+/// - otherwise: a real move - snaps gear-family parts the same way a tray
+///   drop does ([snapGearPosition], with the part itself excluded so it
+///   never snaps against its own live box), then reverts to
+///   [PiyakGame.movePreDragPosM] if the landing spot is still illegal after
+///   that snap.
+///
+/// Either way, [PiyakGame.setPlacementPosition] (and the full
+/// remove+recreate `_rebuildViews()` it triggers) only runs if the target
+/// actually differs from the live position - a no-move tap or a legal
+/// no-snap landing both typically already ARE the target, so this skips a
+/// pointless extra rebuild on the most common releases. The part stays
+/// selected either way - only its position is ever in question here.
+void handleEditMoveDragEnd(PiyakGame game, DragEndEvent event,
+    {required double traveled}) {
   final idx = game.movingIndex;
+  if (idx == null || event.pointerId != game.movingPointerId) return;
   game.movingIndex = null;
+  game.movingPointerId = null;
   game.moveDragCanvasPos = null;
-  if (idx == null || idx >= game.placements.length) return;
+  if (idx >= game.placements.length) return;
   final p = game.placements[idx];
-  final landing = snapGearPosition(game, p.type, Vector2(p.x, p.y),
-      excludeIndex: idx);
-  final valid =
-      canPlaceAt(game, p.type, landing, p.angleDeg, excludeIndex: idx);
-  if (valid) {
-    game.setPlacementPosition(idx, landing.x, landing.y);
+  Vector2 target;
+  if (traveled < PiyakGame.kTapMaxTravelPx) {
+    target = game.movePreDragPosM;
   } else {
-    game.setPlacementPosition(
-        idx, game.movePreDragPosM.x, game.movePreDragPosM.y);
+    final landing = snapGearPosition(game, p.type, Vector2(p.x, p.y),
+        excludeIndex: idx);
+    final valid =
+        canPlaceAt(game, p.type, landing, p.angleDeg, excludeIndex: idx);
+    target = valid ? landing : game.movePreDragPosM;
+  }
+  if (p.x != target.x || p.y != target.y) {
+    game.setPlacementPosition(idx, target.x, target.y);
   }
 }
 

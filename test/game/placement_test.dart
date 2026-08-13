@@ -163,4 +163,40 @@ void main() {
     final dist = sqrt(pow(p.x - 8, 2) + pow(p.y - 4, 2));
     expect(dist, closeTo(0.97, 0.01)); // r1+r2-0.03 = 0.5+0.5-0.03
   });
+
+  // 리뷰 Important 2 / Minor 3 회귀 방지: 맞물린 톱니 3개 중 가운데를
+  // 탭(15px 문턱 안쪽)만 해도 release-시 snapGearPosition이 돌면 안 된다 -
+  // 돌면 "가장 가까운 이웃"이 지금과 다른 톱니로 잡혀 그냥 선택만 하려던
+  // 탭이 조용히 기구 연결을 바꿔 버린다.
+  testWidgets('맞물린 톱니 3개 중 가운데를 탭 수준으로만 건드려도 재스냅 없이 위치가 그대로다', (t) async {
+    final s = stage('', '', '{"type":"gear","x":0,"y":0,"angle":0}');
+    final game = await _pumpGame(t, s);
+    game.addPlacement(Placement(type: PartType.gear, x: 7, y: 4, angleDeg: 0)); // idx0
+    game.addPlacement(
+        Placement(type: PartType.gear, x: 7.97, y: 4, angleDeg: 0)); // idx1: 가운데
+    game.addPlacement(
+        Placement(type: PartType.gear, x: 8.94, y: 4, angleDeg: 0)); // idx2
+    await t.pump();
+
+    final before = [for (final p in game.placements) (p.x, p.y)];
+
+    // 15px 문턱 안쪽의 미세한 드리프트(실손가락 탭을 흉내냄, real_touch_test.dart의
+    // _driftTap과 같은 취지) - handleEditMoveDragUpdate가 최소 한 번은 돌아
+    // 라이브 위치가 실제로 바뀌었다가, 놓을 때 정확히 원위치로 복귀하는지까지
+    // 검증한다(zero-movement 탭보다 더 강한 증거).
+    final mid = _worldPx(7.97, 4);
+    await _drag(t, mid, const Offset(4, 3));
+
+    expect(game.selectedIndex, 1);
+    // closeTo, 다른 모든 위치 검증과 동일한 이유(placement_test.dart 위쪽
+    // 테스트들 참고) - Vector2(vector_math)는 내부적으로 float32라 grab 시점의
+    // Vector2(p.x,p.y) 캡처 한 번만으로도 7.97 같은 소수 리터럴이
+    // 7.96999979019165로 반올림된다. 검증하려는 것은 "재스냅이 안 일어났다"
+    // (스냅이 일어났다면 오차가 kGearSnapSlack 규모인 0.03m대로 훨씬 크다)
+    // 이지 비트 단위 동일성이 아니다.
+    for (var i = 0; i < 3; i++) {
+      expect(game.placements[i].x, closeTo(before[i].$1, 0.001));
+      expect(game.placements[i].y, closeTo(before[i].$2, 0.001));
+    }
+  });
 }

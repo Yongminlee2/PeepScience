@@ -265,4 +265,56 @@ void main() {
     expect(game.placements, isEmpty);
     expect(game.selectedIndex, isNull);
   });
+
+  // 리뷰 Critical 1 회귀 방지: 손가락 A가 부품을 불법 위치로 옮기는 도중
+  // 손가락 B가 다른 부품의 발자국을 건드려도 A의 이동 소유권을 가로채면
+  // 안 된다 - 가로채면 A가 옮기던 부품은 release-시 canPlaceAt 재검사/되돌림
+  // 없이 방치되고, 오히려 B가 놓을 때 엉뚱하게 그 검사를 대신 받게 된다.
+  testWidgets(
+      '한 손가락이 부품을 불법 위치로 옮기는 도중 다른 손가락이 별개 부품을 건드려도 이동 소유권을 가로채지 않는다',
+      (t) async {
+    final s = stage('', '', '{"type":"plank","x":0,"y":0,"angle":0}');
+    final game = await _pumpGame(t, s);
+    game.addPlacement(
+        Placement(type: PartType.plank, x: 2, y: 2, angleDeg: 0)); // idx0: A가 옮길 부품
+    game.addPlacement(
+        Placement(type: PartType.plank, x: 8, y: 4, angleDeg: 0)); // idx1: B가 건드릴 부품
+    game.addPlacement(
+        Placement(type: PartType.plank, x: 12, y: 4, angleDeg: 0)); // idx2: 겹칠 대상(블로커)
+    await t.pump();
+
+    // 손가락 A: idx0 중심을 잡는다.
+    final gestureA = await t.startGesture(_worldPx(2, 2));
+    await t.pump();
+    expect(game.movingIndex, 0);
+
+    // idx2와 정확히 겹치는 불법 위치로 이동 - 아직 놓지 않는다.
+    await gestureA.moveTo(_worldPx(12, 4));
+    await t.pump();
+    expect(game.placements[0].x, closeTo(12, 0.01));
+    expect(game.placements[0].y, closeTo(4, 0.01));
+
+    // 손가락 B: A가 여전히 진행 중인 동안 idx1의 발자국(자기 중심)을 짧게
+    // 건드린다 - 이 순간 movingIndex가 idx1로 가로채이면 안 된다(Critical 1).
+    final gestureB = await t.startGesture(_worldPx(8, 4));
+    await t.pump();
+    expect(game.movingIndex, 0); // 여전히 A(idx0) 소유 - 가로채기 없음
+    expect(game.placements[1].x, closeTo(8, 0.01));
+    expect(game.placements[1].y, closeTo(4, 0.01));
+    await gestureB.up();
+    await t.pump(const Duration(milliseconds: 350));
+
+    // B를 놓은 뒤에도 idx1은 전혀 움직이지 않았어야 한다.
+    expect(game.placements[1].x, closeTo(8, 0.01));
+    expect(game.placements[1].y, closeTo(4, 0.01));
+
+    // A를 놓는다 - idx2와 겹치는 불법 위치였으므로 잡기 전 위치(2,2)로
+    // 되돌아가야 한다(가로채기가 있었다면 이 되돌림 자체가 안 일어났을 것).
+    await gestureA.up();
+    await t.pump(const Duration(milliseconds: 350));
+
+    expect(game.placements[0].x, closeTo(2, 0.01));
+    expect(game.placements[0].y, closeTo(2, 0.01));
+    expect(game.movingIndex, isNull);
+  });
 }
