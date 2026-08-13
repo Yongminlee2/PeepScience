@@ -64,13 +64,16 @@ class ValidationReport {
 /// must match exactly (both directions), (b) every file must parse as
 /// [StageData], (c) each stage's solution must clear within [maxSteps] both
 /// as authored and under all [jitterVariants], (d) the stage must NOT clear
-/// with an empty placement list (a self-solving stage isn't a puzzle), and
-/// (e) the solution must be PLACEABLE under the game's own canPlaceAt rules
-/// (see [solutionPlacementIssue]) and fit inside the stage's own tray counts
-/// - a solution that only clears because the JSON put a part somewhere a
-/// player could never actually drop it isn't a real solution. (e) is
-/// checked before any physics runs (cheapest check, and the most
-/// fundamental - an unplaceable solution isn't worth 1800 simulated steps).
+/// with an empty placement list (a self-solving stage isn't a puzzle), (e)
+/// the solution must be PLACEABLE under the game's own canPlaceAt rules (see
+/// [solutionPlacementIssue]) and fit inside the stage's own tray counts - a
+/// solution that only clears because the JSON put a part somewhere a player
+/// could never actually drop it isn't a real solution, and (f) every preset
+/// object must be VISIBLE above the bottom tray bar in edit mode (see
+/// [_visibilityIssue]) - a goal object the player can never see isn't a real
+/// puzzle either, even if the physics clears fine. (e) and (f) are checked
+/// before any physics runs (cheapest checks, and the most fundamental - an
+/// unplaceable or invisible solution isn't worth 1800 simulated steps).
 ValidationReport validateAllStages(String dir, {int maxSteps = 1800}) {
   final directory = Directory(dir);
   final fileIds = directory.existsSync()
@@ -142,6 +145,17 @@ StageValidation _validateOne(String dir, String id, int maxSteps) {
     );
   }
 
+  final visibilityIssue = _visibilityIssue(data);
+  if (visibilityIssue != null) {
+    return StageValidation(
+      id: id,
+      ok: false,
+      failReason: visibilityIssue,
+      stepsToClear: null,
+      jitterStepsToClear: const [],
+    );
+  }
+
   final stepsToClear = _runToClear(data, data.solution, maxSteps);
   final jitterSteps = [
     for (final (dx, dAngle) in jitterVariants)
@@ -201,6 +215,39 @@ String? _placementIssue(StageData data) {
     }
   }
   return solutionPlacementIssue(data.preset, data.solution);
+}
+
+/// Rule (f) - null if every entry of [data.preset] is visible above the
+/// bottom tray bar in edit mode, else a reason for the first hidden one.
+/// Reuses [boxForPreset] (same footprint placement legality already checks
+/// presets against) so this can never drift from what a player actually
+/// sees/drops around - basket/button's half-heights (0.36/0.11) come from
+/// there too, mirroring the hand-fitted footprints [SimWorld] itself builds
+/// (`_buildBasket`/`_buildButton`), and every catalog part type's
+/// half-height comes straight from [Catalog.of] (radius, else h/2).
+///
+/// Platforms are the one exception: only their walking SURFACE (top) needs
+/// to clear the line, not the whole slab - a platform's floor may legally
+/// dip under the bar. Its footprint is the raw half-thickness (0.2, matching
+/// `_buildPlatform`'s fixture) below [PresetObject.y], not [boxForPreset]'s
+/// rotated box (platforms can be steep ramps; the walking surface is still
+/// what a player needs to see, not the rotated AABB's lowest corner).
+String? _visibilityIssue(StageData data) {
+  for (final p in data.preset) {
+    if (p.type == 'platform') {
+      final surfaceY = p.y - 0.2;
+      if (surfaceY > kTrayVisibleMaxY) {
+        return 'hidden behind tray: platform y=${p.y}';
+      }
+      continue;
+    }
+    final box = boxForPreset(p);
+    final bottomY = box.cy + box.halfY;
+    if (bottomY > kTrayVisibleMaxY) {
+      return 'hidden behind tray: ${p.type} y=${p.y}';
+    }
+  }
+  return null;
 }
 
 List<Placement> _jitter(List<Placement> solution, double dx, double dAngle) => [

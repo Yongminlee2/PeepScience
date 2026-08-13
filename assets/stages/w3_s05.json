@@ -6,9 +6,9 @@
   "preset": [
     { "type": "motor_gear", "x": 2.0, "y": 6.0, "angle": 0 },
     { "type": "platform", "x": 2.97, "y": 7.5, "angle": 0, "w": 3.0 },
-    { "type": "domino", "x": 2.97, "y": 7.05, "angle": 0 },
-    { "type": "domino", "x": 3.4, "y": 7.05, "angle": 0 },
-    { "type": "domino", "x": 3.83, "y": 7.05, "angle": 0 }
+    { "type": "domino", "x": 2.97, "y": 6.98, "angle": 0 },
+    { "type": "domino", "x": 3.4, "y": 6.98, "angle": 0 },
+    { "type": "domino", "x": 3.83, "y": 6.98, "angle": 0 }
   ],
   "tray": [ { "type": "paddle_gear", "count": 1 } ],
   "solution": [ { "type": "paddle_gear", "x": 2.97, "y": 6.0, "angle": 0 } ]

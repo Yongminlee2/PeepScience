@@ -6,8 +6,8 @@
   "preset": [
     { "type": "seesaw", "x": 2.0, "y": 6.0, "angle": 0 },
     { "type": "rubber_ball", "x": 3.2, "y": 5.6, "angle": 0 },
-    { "type": "trampoline", "x": 4.13, "y": 7.6, "angle": 0 },
-    { "type": "basket", "x": 5.62, "y": 7.53, "angle": 0 }
+    { "type": "trampoline", "x": 4.13, "y": 7.05, "angle": 0 },
+    { "type": "basket", "x": 5.1, "y": 5.8, "angle": 0 }
   ],
   "tray": [ { "type": "metal_ball", "count": 1 }, { "type": "rubber_ball", "count": 1 } ],
   "solution": [ { "type": "metal_ball", "x": 0.80, "y": 4.80, "angle": 0 } ]

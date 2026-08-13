@@ -6,7 +6,7 @@
   "preset": [
     { "type": "seesaw", "x": 6.0, "y": 6.0, "angle": 0 },
     { "type": "fan", "x": 3.0, "y": 5.8, "angle": 0 },
-    { "type": "basket", "x": 7.8, "y": 7.1, "angle": 0 }
+    { "type": "basket", "x": 7.6, "y": 6.8, "angle": 0 }
   ],
   "tray": [ { "type": "rubber_ball", "count": 1 } ],
   "solution": [ { "type": "rubber_ball", "x": 6.0, "y": 5.35, "angle": 0 } ]

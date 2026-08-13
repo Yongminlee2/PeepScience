@@ -13,6 +13,15 @@ const double kFieldMaxX = 15.7;
 const double kFieldMinY = 0.3;
 const double kFieldMaxY = 7.3;
 
+/// Validator rule (f) bound, in world meters: a preset's visible footprint
+/// must sit above this line. The tray HUD (hud.dart TrayBar, barHeight=150
+/// on the 1600x900 logical screen PiyakGame renders at) covers screen y >
+/// 750px; at the fixed 16x9m-world/1600x900px camera that's world y > 7.5.
+/// 7.45 leaves a hair of margin below the true edge. Distinct from
+/// [kFieldMaxY] (7.3), which bounds where a solution placement's CENTER may
+/// be dropped - this bounds where a PRESET's rendered edge may sit.
+const double kTrayVisibleMaxY = 7.45;
+
 /// Minimum gap (meters) required between a candidate's AABB and any existing
 /// preset/placement AABB - except gear-family pairs, which are allowed to
 /// overlap because they mesh instead (see [snapGearPosition]).

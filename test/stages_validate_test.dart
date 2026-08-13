@@ -61,4 +61,30 @@ void main() {
       expect(s.failReason, contains('tray'));
     });
   });
+
+  group('rule (f): 프리셋이 트레이 바 뒤에 가려지면 안 된다(편집 화면 기준)', () {
+    final report = validateAllStages('test/fixtures/stages_hidden_preset');
+
+    test('완전히 가려진 버튼(y=8.0)은 물리 시뮬레이션 없이 즉시 실패한다', () {
+      final s = report.stages.firstWhere((s) => s.id == 'w1_s01');
+      expect(s.ok, isFalse);
+      expect(s.failReason, contains('hidden behind tray'));
+      expect(s.failReason, contains('button'));
+      // rule (e)와 동일하게 물리를 아예 돌리지 않았다는 근거.
+      expect(s.stepsToClear, isNull);
+      expect(s.jitterStepsToClear, isEmpty);
+    });
+
+    test('걷는 면(윗면)이 가려진 플랫폼(y=7.7)도 실패한다', () {
+      final s = report.stages.firstWhere((s) => s.id == 'w1_s02');
+      expect(s.ok, isFalse);
+      expect(s.failReason, contains('hidden behind tray'));
+      expect(s.failReason, contains('platform'));
+    });
+
+    test('버튼을 보이는 위치(y=5.0)로 옮기면 가림 사유로는 실패하지 않는다', () {
+      final s = report.stages.firstWhere((s) => s.id == 'w1_s03');
+      expect(s.failReason, isNot(contains('hidden behind tray')));
+    });
+  });
 }

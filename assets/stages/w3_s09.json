@@ -4,7 +4,7 @@
   "index": 9,
   "goal": { "type": "pop_balloons" },
   "preset": [
-    { "type": "balloon", "x": 3.75, "y": 8.5, "angle": 0 },
+    { "type": "balloon", "x": 3.75, "y": 7.0, "angle": 0 },
     { "type": "tack", "x": 4.3, "y": 3.0, "angle": 0 }
   ],
   "tray": [ { "type": "gear", "count": 1 } ],
