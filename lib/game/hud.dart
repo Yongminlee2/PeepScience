@@ -47,6 +47,7 @@ const Color _kCandyGreenFill = Color(0xFF66BB6A);
 const Color _kCandyGreenBand = Color(0xFF43A047); // ▶ 바닥 밴드 + 다음 아이콘
 const Color _kCandyCoralFill = Color(0xFFFF7043);
 const Color _kCandyCoralBand = Color(0xFFE64A19); // ■ 바닥 밴드 + 다시 아이콘 + 깃발
+const Color _kCandyBlueFill = Color(0xFF42A5F5); // 폭죽 전용 4번째 캔디 색
 
 const Color _kGhostValidColor = Color(0x8843A047);
 const Color _kGhostInvalidColor = Color(0x88E53935);
@@ -680,39 +681,67 @@ void _drawNextIcon(Canvas canvas, Offset c, double r) {
   canvas.drawPath(path, Paint()..color = _kCandyGreenBand);
 }
 
-// catalog.dart의 파스텔 팔레트에서 발췌 - 앱 전체와 색감이 일관된다.
+// 이 파일 상단의 캔디 팔레트(_k*)에서 발췌 - 손맛 패스(오너 피드백: "물리
+// 손맛이 없다")에서 카탈로그의 옅은 파스텔 대신 HUD 크롬과 같은 진한 캔디
+// 톤으로 갈아탔다: 승리 폭죽도 트레이/버튼과 같은 재질언어로 읽히도록.
 const List<Color> _confettiColors = [
-  Color(0xFFFF8A80), // pastel coral
-  Color(0xFFFFE082), // pastel gold
-  Color(0xFF90CAF9), // pastel sky blue
-  Color(0xFF80CBC4), // pastel teal
-  Color(0xFFCE93D8), // pastel purple
-  Color(0xFFFFCC80), // pastel orange
+  _kCandyGreenFill,
+  _kCandyCoralFill,
+  _kCountChip, // candy gold
+  _kCandyBlueFill,
 ];
 
-/// One confetti burst: 40 circle particles radiating outward from [origin]
-/// at random angles/speeds, falling under gravity, gone after 0.9s (Flame's
-/// [ParticleSystemComponent] self-removes once its particle's lifespan
-/// ends - see that class's own `update`). [WinOverlay.onLoad] fires three
-/// of these at once from different points, matching the brief's "2~3회".
+/// One confetti burst: 60 particles (circles + small 4-point stars, mixed)
+/// radiating outward from [origin] at random angles/speeds, falling under
+/// gravity, gone after 0.9s (Flame's [ParticleSystemComponent] self-removes
+/// once its particle's lifespan ends - see that class's own `update`).
+/// [WinOverlay.onLoad] fires three of these at once from different points,
+/// matching the brief's "2~3회". Count bumped 40->60 and colors moved to the
+/// candy palette (see [_confettiColors]) as part of the same 손맛 pass.
 ParticleSystemComponent _confettiBurst(Vector2 origin) {
   final rng = Random();
   return ParticleSystemComponent(
     position: origin,
     particle: Particle.generate(
-      count: 40,
+      count: 60,
       lifespan: 0.9,
       generator: (i) {
         final angle = rng.nextDouble() * 2 * pi;
         final speed = 150 + rng.nextDouble() * 250;
-        return CircleParticle(
-          radius: 3 + rng.nextDouble() * 3,
-          paint: Paint()..color = _confettiColors[i % _confettiColors.length],
-        ).accelerated(
+        final paint = Paint()
+          ..color = _confettiColors[i % _confettiColors.length];
+        final radius = 3 + rng.nextDouble() * 3;
+        final shape = rng.nextBool()
+            ? CircleParticle(radius: radius, paint: paint)
+            : _starParticle(radius * 1.5, paint);
+        return shape.accelerated(
           acceleration: Vector2(0, 500),
           speed: Vector2(cos(angle), sin(angle)) * speed,
         );
       },
     ),
   );
+}
+
+// 작은 4갈래 별(스파클) 파티클 - CircleParticle과 섞어 폭죽에 모양 다양성을
+// 더한다. ComputedParticle의 renderer는 이미 파티클 자신의 현재 위치로
+// 캔버스가 translate된 상태로 호출되므로(flame AcceleratedParticle.render
+// 소스 확인 완료 - CircleParticle도 같은 이유로 Offset.zero에 그린다),
+// Offset.zero를 중심으로 그리면 된다.
+Particle _starParticle(double r, Paint paint) => ComputedParticle(
+      renderer: (canvas, particle) => _drawStar(canvas, r, paint),
+    );
+
+void _drawStar(Canvas canvas, double r, Paint paint) {
+  final path = Path()
+    ..moveTo(0, -r)
+    ..lineTo(r * 0.3, -r * 0.3)
+    ..lineTo(r, 0)
+    ..lineTo(r * 0.3, r * 0.3)
+    ..lineTo(0, r)
+    ..lineTo(-r * 0.3, r * 0.3)
+    ..lineTo(-r, 0)
+    ..lineTo(-r * 0.3, -r * 0.3)
+    ..close();
+  canvas.drawPath(path, paint);
 }

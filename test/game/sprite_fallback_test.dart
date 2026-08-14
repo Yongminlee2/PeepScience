@@ -53,11 +53,13 @@ void main() {
 
   testWidgets('아트가 없는 도형(platform)은 여전히 벡터 폴백이고 크래시하지 않는다',
       (t) async {
-    // platform은 발주서 14종에 없다(의도적으로 계속 도형) -
-    // part_view.dart의 _spriteRelPath가 preset == 'platform'이면 매니페스트
-    // 조회 없이 항상 null을 돌려준다(실제 Sprite.load를 타지 않으므로 위
-    // 테스트와 달리 runAsync 없이 기존 pump 관례만으로 충분하다). 여기까지
-    // 크래시 없이 렌더됐다는 것 자체가 "도형 렌더 유지"의 증거.
+    // platform은 발주서 14종에 없다(의도적으로 계속 도형) - 손맛 패스가
+    // part_view.dart의 _spriteRelPath에 선택적 타일 스프라이트 경로
+    // ('parts/platform_tile.png')를 추가했지만, 그 파일이 아직 매니페스트에
+    // 없는 동안은 onLoad의 manifest.contains 체크에서 조용히 걸러져
+    // Sprite.load 자체를 타지 않는다(실제 PNG 디코드가 없으므로 위 테스트와
+    // 달리 runAsync 없이 기존 pump 관례만으로 충분하다). 여기까지 크래시
+    // 없이 렌더됐다는 것 자체가 "도형 렌더 유지"의 증거.
     final s = stage('{"type":"platform","x":8,"y":8,"angle":0,"w":4}', '',
         '{"type":"plank","x":0,"y":0,"angle":0}');
 
@@ -70,6 +72,6 @@ void main() {
     final views = game.world.children.whereType<PartView>().toList();
     expect(views.length, 1);
     expect(views.single.hasSprite, isFalse,
-        reason: 'platform은 스프라이트 슬롯이 없으므로 항상 도형 폴백이어야 한다');
+        reason: '아직 platform_tile.png가 번들에 없으므로 도형 폴백이어야 한다');
   });
 }

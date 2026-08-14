@@ -1,0 +1,60 @@
+import 'package:flutter/material.dart';
+import 'package:flutter_test/flutter_test.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+
+import 'package:piyak_science/main.dart';
+import 'package:piyak_science/ui/strings.dart';
+import 'package:piyak_science/ui/theme.dart';
+
+/// nav_test.dart의 '홈 화면에 월드 카드 4개가 렌더된다' 테스트와 동일한
+/// 폭(2000) - 카드 4장(420폭+24마진=444*4=1776)이 스크롤 없이 한 화면에
+/// 다 들어가야 find.text가 스크롤 없이도 전부 찾는다.
+Future<void> _setSize(WidgetTester t, Size size) async {
+  t.view.physicalSize = size;
+  t.view.devicePixelRatio = 1.0;
+  addTearDown(t.view.resetPhysicalSize);
+  addTearDown(t.view.resetDevicePixelRatio);
+}
+
+void main() {
+  setUp(() {
+    AppLang().value = 'system';
+  });
+
+  testWidgets('클리어한 스테이지 수만큼 월드 카드에 진행도 칩(n/10)이 표시된다', (t) async {
+    SharedPreferences.setMockInitialValues({
+      'cleared_v1': ['w1_s01', 'w1_s02', 'w1_s03'],
+    });
+    await _setSize(t, const Size(2000, 900));
+    await t.pumpWidget(const PiyakScienceApp());
+    await t.pumpAndSettle();
+
+    expect(find.text('3/10'), findsOneWidget); // world1: 3개 클리어
+    expect(find.text('0/10'), findsNWidgets(3)); // world2~4: 0개
+  });
+
+  testWidgets('배경 썸네일 로드가 실패하면 errorBuilder가 월드 고유색 컨테이너로 조용히 대체한다',
+      (t) async {
+    SharedPreferences.setMockInitialValues({});
+    await _setSize(t, const Size(2000, 900));
+    await t.pumpWidget(const PiyakScienceApp());
+    await t.pumpAndSettle();
+
+    // 월드 카드 4장 각자 헤더 썸네일(Image.asset) 하나씩 - 실제 asset
+    // 로딩 성공/실패 타이밍(진짜 PNG 디코드라 runAsync 없인 test 안에서
+    // 안 끝남)에 기대지 않고, errorBuilder 콜백 자체를 직접 호출해 그
+    // 폴백 로직만 검증한다(명세의 "assert widget structure" 대안 경로).
+    final images = t.widgetList<Image>(find.byType(Image)).toList();
+    expect(images.length, 4);
+
+    final context = t.element(find.byType(Image).first);
+    for (final image in images) {
+      expect(image.errorBuilder, isNotNull);
+      final fallback = image.errorBuilder!(context, Exception('no asset'), null);
+      expect(fallback, isA<Container>());
+      final color = (fallback as Container).color;
+      expect(worldCardColors.contains(color), isTrue,
+          reason: '폴백 색은 항상 월드 고유 팔레트 중 하나여야 한다');
+    }
+  });
+}

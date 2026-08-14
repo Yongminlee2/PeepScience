@@ -1,4 +1,7 @@
-import 'package:flame/game.dart';
+// flame/game.dart also exports its own unrelated `Route` (RouterComponent's
+// in-game navigation, never used here) - hide it so flutter/material.dart's
+// Navigator `Route` (used by fadeRoute below) resolves unambiguously.
+import 'package:flame/game.dart' hide Route;
 import 'package:flutter/material.dart';
 
 import '../game/piyak_game.dart';
@@ -6,6 +9,21 @@ import '../services/progress.dart';
 import '../services/stage_loader.dart';
 import '../sim/registry.dart';
 import '../sim/stage_data.dart';
+
+/// ~250ms fade-in transition for entering [GameScreen] (owner-approved
+/// polish pass - a flat MaterialPageRoute cut straight into the game read as
+/// jarring). Pop/back behavior is whatever PageRouteBuilder's own default
+/// is - unchanged from a plain push/pushReplacement. Shared by
+/// home_screen.dart's initial stage-open and this file's own next-stage
+/// advance ([_GameScreenState._handleNext]) so both entry points feel the
+/// same instead of duplicating the transition twice.
+Route<T> fadeRoute<T>(WidgetBuilder builder) => PageRouteBuilder<T>(
+      pageBuilder: (context, animation, secondaryAnimation) =>
+          builder(context),
+      transitionDuration: const Duration(milliseconds: 250),
+      transitionsBuilder: (context, animation, secondaryAnimation, child) =>
+          FadeTransition(opacity: animation, child: child),
+    );
 
 /// Hosts one stage's [PiyakGame]. Reached either with an already-loaded
 /// [initialStage] (home screen validates the load before ever navigating
@@ -62,13 +80,11 @@ class _GameScreenState extends State<GameScreen> {
       Navigator.of(context).popUntil((r) => r.isFirst);
       return;
     }
-    Navigator.of(context).pushReplacement(MaterialPageRoute(
-      builder: (_) => GameScreen(
-        stageId: stageOrder[i + 1],
-        loader: widget.loader,
-        onProgressChanged: widget.onProgressChanged,
-      ),
-    ));
+    Navigator.of(context).pushReplacement(fadeRoute((_) => GameScreen(
+          stageId: stageOrder[i + 1],
+          loader: widget.loader,
+          onProgressChanged: widget.onProgressChanged,
+        )));
   }
 
   @override

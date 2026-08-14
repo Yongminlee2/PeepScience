@@ -3,7 +3,7 @@ import 'dart:math';
 import 'package:flame/components.dart';
 import 'package:flame/events.dart';
 import 'package:flutter/widgets.dart'
-    show Canvas, Color, Offset, Paint, PaintingStyle;
+    show Canvas, Color, Offset, Paint, PaintingStyle, Rect;
 
 import '../services/sound.dart';
 import '../sim/catalog.dart';
@@ -516,6 +516,34 @@ void handleEditMoveDragEnd(PiyakGame game, DragEndEvent event,
   }
 }
 
+// 선택 고리 색 - 개발용 파란색 대신 캔디 팔레트의 따뜻한 노랑(손맛 패스,
+// hud.dart의 _kCountChip/_kOutline과 같은 계열). 이 파일은 hud.dart의
+// private 상수를 가져올 수 없어 그대로 다시 적는다(SelectionOverlay.render의
+// 초콜릿 손잡이 외곽선과 같은 이유 - 아래 그 리터럴 참고).
+const Color _kRingValidColor = Color(0xFFF4C542);
+
+/// [radius]의 원을 실선 대신 점선(대시)으로 그린다 - 반지름/히트 영역은
+/// 전혀 건드리지 않고 이 함수를 부르는 쪽의 순수 시각 표현만 바뀐다.
+/// [dashPx]/[gapPx]는 원의 둘레를 따라 호(arc) 길이 기준.
+void _drawDashedCircle(
+  Canvas canvas,
+  Offset center,
+  double radius,
+  Paint paint, {
+  double dashPx = 12,
+  double gapPx = 8,
+}) {
+  final dashAngle = dashPx / radius;
+  final gapAngle = gapPx / radius;
+  final rect = Rect.fromCircle(center: center, radius: radius);
+  var angle = 0.0;
+  while (angle < 2 * pi) {
+    final sweep = min(dashAngle, 2 * pi - angle);
+    canvas.drawArc(rect, angle, sweep, false, paint);
+    angle += dashAngle + gapAngle;
+  }
+}
+
 /// Edit-mode-only visual for [PiyakGame.selectedIndex]: a ring around the
 /// selected placement, a delete-X 0.6m above it, and (only when the type is
 /// rotatable - plank, fan) a rotate-handle knob on the ring's edge, tinted
@@ -569,8 +597,9 @@ class SelectionOverlay extends Component {
   void render(Canvas canvas) {
     if (!_visible) return;
     final ringColor =
-        _invalid ? const Color(0xFFE53935) : const Color(0xFF2979FF);
-    canvas.drawCircle(
+        _invalid ? const Color(0xFFE53935) : _kRingValidColor;
+    _drawDashedCircle(
+      canvas,
       _center,
       _ringRadiusPx,
       Paint()

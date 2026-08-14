@@ -69,13 +69,11 @@ class _HomeScreenState extends State<HomeScreen> {
     try {
       final data = await widget.stageLoader(id);
       if (!mounted) return;
-      await Navigator.of(context).push(MaterialPageRoute(
-        builder: (_) => GameScreen(
-          stageId: id,
-          initialStage: data,
-          onProgressChanged: _refresh,
-        ),
-      ));
+      await Navigator.of(context).push(fadeRoute((_) => GameScreen(
+            stageId: id,
+            initialStage: data,
+            onProgressChanged: _refresh,
+          )));
       _refresh();
     } catch (_) {
       if (!mounted) return;
@@ -157,62 +155,129 @@ class _WorldCard extends StatelessWidget {
   final void Function(String id) onTapStage;
 
   static const double _width = 420;
+  static const double _headerHeight = 90;
+
+  int get _clearedCount => List.generate(
+        _stagesPerWorld,
+        (i) => _stageId(world, i + 1),
+      ).where(cleared.contains).length;
 
   @override
   Widget build(BuildContext context) {
-    final bg = worldCardColors[world - 1];
-    final fg = ThemeData.estimateBrightnessForColor(bg) == Brightness.dark
-        ? Colors.white
-        : Colors.black87;
+    // errorBuilder 전용 폴백 색(월드별 고유색 유지) - 카드 바탕 자체는 이제
+    // 캔디 크림(kCandyCream)으로 고정되므로 밝기 기반 fg 텍스트색 계산은
+    // 더 이상 필요 없다.
+    final bgFallback = worldCardColors[world - 1];
     return Container(
       width: _width,
       margin: const EdgeInsets.all(12),
-      padding: const EdgeInsets.all(16),
+      clipBehavior: Clip.antiAlias,
       decoration: BoxDecoration(
-        color: bg,
+        color: kCandyCream,
         borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: kChocolateOutline, width: 4),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            S.t('world$world'),
-            style: TextStyle(
-              fontSize: 22,
-              fontWeight: FontWeight.bold,
-              color: fg,
+          // 월드 배경 아트를 카드 헤더 썸네일로(오너 피드백: "디자인이
+          // 조잡하다" - 이미 번들된 bg 에셋을 홈 화면은 안 쓰고 있었다).
+          // 에셋이 없거나 로드에 실패하면 기존처럼 월드 고유 플랫 컬러로
+          // 조용히 대체된다.
+          SizedBox(
+            height: _headerHeight,
+            width: double.infinity,
+            child: Image.asset(
+              'assets/images/bg/world$world.png',
+              fit: BoxFit.cover,
+              errorBuilder: (context, error, stackTrace) =>
+                  Container(color: bgFallback),
             ),
           ),
-          const SizedBox(height: 12),
           Expanded(
-            child: GridView.builder(
-              physics: const NeverScrollableScrollPhysics(),
-              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: 5,
-                mainAxisSpacing: 8,
-                crossAxisSpacing: 8,
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        S.t('world$world'),
+                        style: const TextStyle(
+                          fontSize: 22,
+                          fontWeight: FontWeight.bold,
+                          color: kChocolateOutline,
+                        ),
+                      ),
+                      _ProgressChip(cleared: _clearedCount, total: _stagesPerWorld),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  Expanded(
+                    child: GridView.builder(
+                      physics: const NeverScrollableScrollPhysics(),
+                      gridDelegate:
+                          const SliverGridDelegateWithFixedCrossAxisCount(
+                        crossAxisCount: 5,
+                        mainAxisSpacing: 8,
+                        crossAxisSpacing: 8,
+                      ),
+                      itemCount: _stagesPerWorld,
+                      itemBuilder: (context, i) {
+                        final index = i + 1;
+                        final id = _stageId(world, index);
+                        final state = broken.contains(id)
+                            ? _CellState.broken
+                            : cleared.contains(id)
+                                ? _CellState.cleared
+                                : isUnlocked(id)
+                                    ? _CellState.unlocked
+                                    : _CellState.locked;
+                        return _StageCell(
+                          key: ValueKey('cell_$id'),
+                          index: index,
+                          state: state,
+                          onTap: () => onTapStage(id),
+                        );
+                      },
+                    ),
+                  ),
+                ],
               ),
-              itemCount: _stagesPerWorld,
-              itemBuilder: (context, i) {
-                final index = i + 1;
-                final id = _stageId(world, index);
-                final state = broken.contains(id)
-                    ? _CellState.broken
-                    : cleared.contains(id)
-                        ? _CellState.cleared
-                        : isUnlocked(id)
-                            ? _CellState.unlocked
-                            : _CellState.locked;
-                return _StageCell(
-                  key: ValueKey('cell_$id'),
-                  index: index,
-                  state: state,
-                  onTap: () => onTapStage(id),
-                );
-              },
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+/// "n/10" 진행도 칩 - 클리어 개수를 클리어 세트에서 그대로 유도(별도
+/// 저장/캐시 없음). [_WorldCard]의 헤더 Row 안, 월드 제목 옆에 표시.
+class _ProgressChip extends StatelessWidget {
+  const _ProgressChip({required this.cleared, required this.total});
+
+  final int cleared;
+  final int total;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+      decoration: BoxDecoration(
+        color: kCandyGold,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: kChocolateOutline, width: 2),
+      ),
+      child: Text(
+        '$cleared/$total',
+        style: const TextStyle(
+          fontWeight: FontWeight.bold,
+          fontSize: 13,
+          color: kChocolateOutline,
+        ),
       ),
     );
   }
