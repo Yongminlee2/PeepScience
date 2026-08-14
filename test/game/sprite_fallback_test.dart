@@ -6,8 +6,9 @@ import 'package:piyak_science/sim/catalog.dart';
 
 import '../sim/helpers.dart';
 
-// 이미지 에셋 14종(부품 12 + 목표물 2) 전체의 json id. platform은 발주서에
-// 없음(계속 도형) - 일부러 빠져 있다.
+// 이미지 에셋 14종(부품 12 + 목표물 2) 전체의 json id. platform은 발주서
+// 14종엔 없음 - 일부러 빠져 있다(타일 스프라이트는 따로 있음 - art-request.md
+// 계약 밖의 손맛 패스, part_view.dart의 _spriteRelPath doc 참고).
 final _ids = [...PartType.values.map(jsonIdOf), 'basket', 'button'];
 
 void main() {
@@ -51,27 +52,51 @@ void main() {
     }
   });
 
-  testWidgets('아트가 없는 도형(platform)은 여전히 벡터 폴백이고 크래시하지 않는다',
+  testWidgets(
+      'platform은 이제 타일 스프라이트를 로드해 렌더되고(크래시 없음), 없는 에셋 경로는 매니페스트 게이트가 막는다',
       (t) async {
-    // platform은 발주서 14종에 없다(의도적으로 계속 도형) - 손맛 패스가
-    // part_view.dart의 _spriteRelPath에 선택적 타일 스프라이트 경로
-    // ('parts/platform_tile.png')를 추가했지만, 그 파일이 아직 매니페스트에
-    // 없는 동안은 onLoad의 manifest.contains 체크에서 조용히 걸러져
-    // Sprite.load 자체를 타지 않는다(실제 PNG 디코드가 없으므로 위 테스트와
-    // 달리 runAsync 없이 기존 pump 관례만으로 충분하다). 여기까지 크래시
-    // 없이 렌더됐다는 것 자체가 "도형 렌더 유지"의 증거.
+    // platform_tile.png(256x128, seamless)가 번들에 추가되면서 part_view.dart
+    // _spriteRelPath의 'parts/platform_tile.png' 경로가 이제 manifest.contains
+    // 체크를 통과해 onLoad가 실제 PNG를 디코드한다(Sprite.load) - Test A와
+    // 같은 이유로 runAsync + 실제 딜레이가 필요하다: dart:ui의 이미지 디코드는
+    // 진짜 비동기 콜백이라 FakeAsync 안에서는 pump()만 반복해선 절대 안 끝나고
+    // (그러는 동안 이 PartView는 로딩 중 상태라 world.children에도 안 잡힌다 -
+    // runAsync 없이 돌려서 확인함: views.length가 0으로 나온다), 트리에
+    // 반영되려면 그 후 pump가 최소 1번 더 필요하다.
     final s = stage('{"type":"platform","x":8,"y":8,"angle":0,"w":4}', '',
         '{"type":"plank","x":0,"y":0,"angle":0}');
 
     final game = PiyakGame(s);
     await t.pumpWidget(GameWidget(game: game));
+    await t.runAsync(() async {
+      await Future<void>.delayed(const Duration(milliseconds: 200));
+    });
     for (var i = 0; i < 10; i++) {
       await t.pump();
     }
 
+    // platform 프리셋이 실제로 타일 스프라이트를 로드하고, render()의
+    // _renderPlatformTile 경로가 크래시 없이 돈다 - 이 프로젝트 최초의
+    // 타일 스프라이트 커버리지.
     final views = game.world.children.whereType<PartView>().toList();
     expect(views.length, 1);
-    expect(views.single.hasSprite, isFalse,
-        reason: '아직 platform_tile.png가 번들에 없으므로 도형 폴백이어야 한다');
+    expect(views.single.hasSprite, isTrue,
+        reason: 'platform_tile.png가 이제 번들에 있으므로 타일 스프라이트를 로드해야 한다');
+  });
+
+  test(
+      '없는 에셋 경로는 매니페스트에 없다 - onLoad가 Sprite.load 없이 벡터 폴백으로 떨어지는 근거',
+      () async {
+    // 카탈로그 14종 + basket + button + platform 전부 실물 아트가 생겨(위 두
+    // testWidgets 참고) 이제 실제 프리셋/파트로는 "아트 없음" 경로를 더 이상
+    // 재현할 수 없다. 대신 onLoad를 지키는 매니페스트 게이트
+    // (`if (!manifest.contains(...)) return;`, part_view.dart PartView.onLoad
+    // 참고)는 이미 공개돼 있는 loadAssetManifestPaths()로 직접 검증 가능하다 -
+    // 가짜 매니페스트를 주입하는 프레임워크 없이, 존재하지 않는 경로가 실제
+    // 번들 매니페스트에 없다는 사실 자체가 "Sprite.load 없이 벡터 폴백"을
+    // 계속 보장한다는 근거다.
+    final manifest = await loadAssetManifestPaths();
+    expect(
+        manifest.contains('assets/images/parts/__nonexistent__.png'), isFalse);
   });
 }
