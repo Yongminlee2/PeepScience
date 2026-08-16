@@ -172,7 +172,10 @@ class PiyakGame extends FlameGame with DragCallbacks {
     if (stage.feature == StageFeature.chainReaction) {
       camera.viewport.add(ChainReactionRibbon(this));
     }
-    if (stage.challenge != null && stage.prediction == null) {
+    // 부품 제한(2번째 별 조건)은 예측 패널이 있어도 항상 보여야 실행 전에
+    // 채점 기준을 확인할 수 있다 - ChallengeRibbon이 스스로 겹치지 않는
+    // 자리를 고른다(hud.dart의 _positionFor 참고).
+    if (stage.challenge != null) {
       camera.viewport.add(ChallengeRibbon(this));
     }
     if (stage.prediction != null) {

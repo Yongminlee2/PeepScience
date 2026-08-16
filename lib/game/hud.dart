@@ -159,7 +159,15 @@ class TrayBar extends PositionComponent {
 /// choices are recognizable before the child reads the text.
 class PredictionPanel extends PositionComponent {
   PredictionPanel(this.game)
-    : super(position: Vector2(470, 20), size: Vector2(660, 108), priority: 10);
+    : super(
+        position: Vector2(left, top),
+        size: Vector2(660, cardHeight),
+        priority: 10,
+      );
+
+  static const double left = 470;
+  static const double top = 20;
+  static const double cardHeight = 108;
 
   final PiyakGame game;
   double _nudgeSeconds = 0;
@@ -280,11 +288,25 @@ class PredictionChoiceButton extends PositionComponent {
   }
 }
 
+// Shared top-left "ribbon row" origin/gap - see ChallengeRibbon._positionFor.
+// A shipped stage never combines chain-reaction with prediction (stage_data
+// is the source of truth), so that ribbon only ever stacks under ONE of
+// {ChainReactionRibbon, PredictionPanel} at a time, never both.
+const double _kRibbonLeft = 136;
+const double _kRibbonTop = 20;
+const double _kRibbonGap = 8;
+
 /// A three-beat visual sentence for stages whose fun comes from watching
 /// motion transfer between several objects.
 class ChainReactionRibbon extends PositionComponent {
   ChainReactionRibbon(this.game)
-    : super(position: Vector2(136, 20), size: Vector2(320, 96), priority: 5);
+    : super(
+        position: Vector2(_kRibbonLeft, _kRibbonTop),
+        size: Vector2(320, cardHeight),
+        priority: 5,
+      );
+
+  static const double cardHeight = 96;
 
   final PiyakGame game;
   final List<Sprite?> _sprites = List<Sprite?>.filled(3, null);
@@ -364,8 +386,31 @@ class ChainReactionRibbon extends PositionComponent {
 }
 
 class ChallengeRibbon extends PositionComponent {
+  // 도전(부품 제한)은 연쇄 반응 리본과도, 예측 패널과도 함께 뜰 수 있다 -
+  // 겹치지 않도록 스스로 자리를 고른다: 연쇄 리본이 있으면 그 밑, 없고
+  // 예측 패널이 있으면 그 밑, 둘 다 없으면 기존 자리 그대로.
   ChallengeRibbon(this.game)
-    : super(position: Vector2(136, 20), size: Vector2(360, 96), priority: 5);
+    : super(
+        position: _positionFor(game.stage),
+        size: Vector2(360, 96),
+        priority: 5,
+      );
+
+  static Vector2 _positionFor(StageData stage) {
+    if (stage.feature == StageFeature.chainReaction) {
+      return Vector2(
+        _kRibbonLeft,
+        _kRibbonTop + ChainReactionRibbon.cardHeight + _kRibbonGap,
+      );
+    }
+    if (stage.prediction != null) {
+      return Vector2(
+        PredictionPanel.left,
+        PredictionPanel.top + PredictionPanel.cardHeight + _kRibbonGap,
+      );
+    }
+    return Vector2(_kRibbonLeft, _kRibbonTop);
+  }
 
   final PiyakGame game;
   Sprite? _star;
@@ -1119,7 +1164,7 @@ String _scienceFact(GoalType type) => switch (type) {
 
 /// One [WinOverlay] action button: filled rounded square with a
 /// caller-drawn icon, >=100px per side (shared-contract touch-target
-/// minimum for overlay buttons; [WinOverlay.buttonSize] is 140).
+/// minimum for overlay buttons; [WinOverlay.buttonSize] is 130).
 ///
 /// Public (not [WinOverlay]-private) and has no TapCallbacks: [PiyakGame]'s
 /// tap-synthesis dispatch needs to recognize this type via componentsAtPoint
