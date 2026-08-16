@@ -1,0 +1,90 @@
+{
+  "id": "w4_s13",
+  "world": 4,
+  "index": 13,
+  "goal": {
+    "type": "pop_balloons"
+  },
+  "preset": [
+    {
+      "type": "balloon",
+      "x": 14,
+      "y": 6.7,
+      "angle": 0
+    },
+    {
+      "type": "tack",
+      "x": 11.73,
+      "y": 0.04999999999999999,
+      "angle": 0
+    },
+    {
+      "type": "balloon",
+      "x": 2,
+      "y": 6.7,
+      "angle": 0
+    },
+    {
+      "type": "tack",
+      "x": 4.27,
+      "y": 0.04999999999999999,
+      "angle": 0
+    }
+  ],
+  "tray": [
+    {
+      "type": "plank",
+      "count": 3
+    },
+    {
+      "type": "fan",
+      "count": 2
+    },
+    {
+      "type": "gear",
+      "count": 2
+    }
+  ],
+  "solution": [
+    {
+      "type": "plank",
+      "x": 14,
+      "y": 4.7,
+      "angle": 0
+    },
+    {
+      "type": "fan",
+      "x": 15.65,
+      "y": 5.3,
+      "angle": 180
+    },
+    {
+      "type": "gear",
+      "x": 10.5,
+      "y": 4.8,
+      "angle": 0
+    },
+    {
+      "type": "plank",
+      "x": 2,
+      "y": 4.7,
+      "angle": 0
+    },
+    {
+      "type": "fan",
+      "x": 0.35,
+      "y": 5.3,
+      "angle": 0
+    },
+    {
+      "type": "gear",
+      "x": 5.5,
+      "y": 4.8,
+      "angle": 0
+    }
+  ],
+  "feature": "chain_reaction",
+  "challenge": {
+    "part_limit": 6
+  }
+}

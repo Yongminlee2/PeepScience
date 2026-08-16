@@ -1,3 +1,5 @@
+import 'dart:async';
+
 // flame/game.dart also exports its own unrelated `Route` (RouterComponent's
 // in-game navigation, never used here) - hide it so flutter/material.dart's
 // Navigator `Route` (used by fadeRoute below) resolves unambiguously.
@@ -9,6 +11,9 @@ import '../services/progress.dart';
 import '../services/stage_loader.dart';
 import '../sim/registry.dart';
 import '../sim/stage_data.dart';
+import 'strings.dart';
+import 'theme.dart';
+import 'tutorial_overlay.dart';
 
 /// ~250ms fade-in transition for entering [GameScreen] (owner-approved
 /// polish pass - a flat MaterialPageRoute cut straight into the game read as
@@ -18,12 +23,11 @@ import '../sim/stage_data.dart';
 /// advance ([_GameScreenState._handleNext]) so both entry points feel the
 /// same instead of duplicating the transition twice.
 Route<T> fadeRoute<T>(WidgetBuilder builder) => PageRouteBuilder<T>(
-      pageBuilder: (context, animation, secondaryAnimation) =>
-          builder(context),
-      transitionDuration: const Duration(milliseconds: 250),
-      transitionsBuilder: (context, animation, secondaryAnimation, child) =>
-          FadeTransition(opacity: animation, child: child),
-    );
+  pageBuilder: (context, animation, secondaryAnimation) => builder(context),
+  transitionDuration: const Duration(milliseconds: 250),
+  transitionsBuilder: (context, animation, secondaryAnimation, child) =>
+      FadeTransition(opacity: animation, child: child),
+);
 
 /// Hosts one stage's [PiyakGame]. Reached either with an already-loaded
 /// [initialStage] (home screen validates the load before ever navigating
@@ -48,7 +52,7 @@ class GameScreen extends StatefulWidget {
   /// initializer list, so this constructor stays const-constructible.
   final Future<StageData> Function(String id)? loader;
 
-  /// Notified right after every markCleared. Home screen wires this to its
+  /// Notified right after progress is saved. Home screen wires this to its
   /// own progress refresh so the grid picks up progress made across a whole
   /// chain of stage-to-stage advances, not just the first: `pushReplacement`
   /// completes the *original* pushed route immediately (on the very first
@@ -66,9 +70,42 @@ class _GameScreenState extends State<GameScreen> {
       : (widget.loader ?? StageLoader.load)(widget.stageId);
 
   PiyakGame? _game;
+  bool _showTutorial = false;
 
-  void _handleCleared(String id) async {
+  @override
+  void initState() {
+    super.initState();
+    unawaited(_loadFirstVisitTutorial());
+  }
+
+  Future<void> _loadFirstVisitTutorial() async {
+    if (stageOrder.isEmpty || widget.stageId != stageOrder.first) return;
+    final progress = await ProgressStore.init();
+    final seen = await progress.tutorialSeen();
+    if (mounted && !seen) setState(() => _showTutorial = true);
+  }
+
+  void _openTutorial() {
+    setState(() => _showTutorial = true);
+  }
+
+  void _finishTutorial() {
+    setState(() => _showTutorial = false);
+    _game?.triggerGoalPulse();
+    unawaited(_rememberTutorial());
+  }
+
+  Future<void> _rememberTutorial() async {
+    final progress = await ProgressStore.init();
+    await progress.markTutorialSeen();
+  }
+
+  void _handleCleared(String id, int stars) async {
     final p = await ProgressStore.init();
+    // Save the score before the clear flag. ProgressStore backfills legacy
+    // cleared stages as 3-star clears, so reversing this order would make a
+    // brand-new 1/2-star result look like legacy data.
+    await p.markStars(id, stars);
     await p.markCleared(id);
     widget.onProgressChanged?.call();
   }
@@ -80,11 +117,15 @@ class _GameScreenState extends State<GameScreen> {
       Navigator.of(context).popUntil((r) => r.isFirst);
       return;
     }
-    Navigator.of(context).pushReplacement(fadeRoute((_) => GameScreen(
+    Navigator.of(context).pushReplacement(
+      fadeRoute(
+        (_) => GameScreen(
           stageId: stageOrder[i + 1],
           loader: widget.loader,
           onProgressChanged: widget.onProgressChanged,
-        )));
+        ),
+      ),
+    );
   }
 
   @override
@@ -121,9 +162,91 @@ class _GameScreenState extends State<GameScreen> {
           final game = _game ??= PiyakGame(snap.data!)
             ..onCleared = _handleCleared
             ..onNextRequested = _handleNext;
-          return GameWidget(game: game);
+          return Stack(
+            fit: StackFit.expand,
+            children: [
+              GameWidget(game: game),
+              Positioned(
+                top: 14,
+                right: 16,
+                child: SafeArea(
+                  child: _RoundHudButton(
+                    semanticLabel: S.t('home'),
+                    tooltip: S.t('home'),
+                    icon: Icons.home_rounded,
+                    fillColor: kCandyCream,
+                    onPressed: () => Navigator.of(context).maybePop(),
+                  ),
+                ),
+              ),
+              Positioned(
+                top: 14,
+                right: 82,
+                child: SafeArea(
+                  child: _RoundHudButton(
+                    key: const ValueKey('tutorial_help'),
+                    semanticLabel: S.t('tutorialHelp'),
+                    tooltip: S.t('tutorialHelp'),
+                    icon: Icons.lightbulb_rounded,
+                    fillColor: kCandyGold,
+                    onPressed: _openTutorial,
+                  ),
+                ),
+              ),
+              if (_showTutorial)
+                TutorialOverlay(
+                  goalType: game.stage.goal.type,
+                  onFinished: _finishTutorial,
+                ),
+            ],
+          );
         },
       ),
     );
   }
+}
+
+class _RoundHudButton extends StatelessWidget {
+  const _RoundHudButton({
+    super.key,
+    required this.semanticLabel,
+    required this.tooltip,
+    required this.icon,
+    required this.fillColor,
+    required this.onPressed,
+  });
+
+  final String semanticLabel;
+  final String tooltip;
+  final IconData icon;
+  final Color fillColor;
+  final VoidCallback onPressed;
+
+  @override
+  Widget build(BuildContext context) => Semantics(
+    button: true,
+    label: semanticLabel,
+    child: Container(
+      width: 54,
+      height: 54,
+      decoration: BoxDecoration(
+        color: fillColor,
+        shape: BoxShape.circle,
+        border: Border.all(color: kChocolateOutline, width: 2.5),
+        boxShadow: const [
+          BoxShadow(
+            color: Color(0x33000000),
+            blurRadius: 8,
+            offset: Offset(0, 3),
+          ),
+        ],
+      ),
+      child: IconButton(
+        tooltip: tooltip,
+        icon: Icon(icon),
+        color: kChocolateOutline,
+        onPressed: onPressed,
+      ),
+    ),
+  );
 }

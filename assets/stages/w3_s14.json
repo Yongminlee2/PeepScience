@@ -1,0 +1,78 @@
+{
+  "id": "w3_s14",
+  "world": 3,
+  "index": 14,
+  "goal": {
+    "type": "ball_in_basket"
+  },
+  "preset": [
+    {
+      "type": "platform",
+      "x": 6.97,
+      "y": 5.35,
+      "angle": 0,
+      "w": 1.0
+    },
+    {
+      "type": "metal_ball",
+      "x": 6.97,
+      "y": 4.85,
+      "angle": 0
+    },
+    {
+      "type": "seesaw",
+      "x": 9.47,
+      "y": 6.0,
+      "angle": 0
+    },
+    {
+      "type": "basket",
+      "x": 7.67,
+      "y": 7.0,
+      "angle": 0
+    }
+  ],
+  "tray": [
+    {
+      "type": "paddle_gear",
+      "count": 2
+    },
+    {
+      "type": "motor_gear",
+      "count": 1
+    },
+    {
+      "type": "gear",
+      "count": 2
+    }
+  ],
+  "solution": [
+    {
+      "type": "motor_gear",
+      "x": 4.06,
+      "y": 4.0,
+      "angle": 0
+    },
+    {
+      "type": "gear",
+      "x": 5.03,
+      "y": 4,
+      "angle": 0
+    },
+    {
+      "type": "gear",
+      "x": 6,
+      "y": 4,
+      "angle": 0
+    },
+    {
+      "type": "paddle_gear",
+      "x": 6.97,
+      "y": 4.0,
+      "angle": 0
+    }
+  ],
+  "challenge": {
+    "part_limit": 4
+  }
+}

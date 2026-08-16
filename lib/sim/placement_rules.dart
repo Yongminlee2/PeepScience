@@ -45,8 +45,13 @@ bool isGearFamily(PartType t) =>
 /// gear radius (not the AABB half-extent) for gear-family members, used by
 /// the snap-distance math in [snapGearPosition]; null for everything else.
 class PlacementBox {
-  const PlacementBox(this.cx, this.cy, this.halfX, this.halfY,
-      {this.gearRadius});
+  const PlacementBox(
+    this.cx,
+    this.cy,
+    this.halfX,
+    this.halfY, {
+    this.gearRadius,
+  });
 
   final double cx;
   final double cy;
@@ -81,8 +86,13 @@ PlacementBox boxForPart(PartType type, double cx, double cy, double angleDeg) {
   } else {
     (halfX, halfY) = rotatedHalfExtents(s.w! / 2, s.h! / 2, angleRad);
   }
-  return PlacementBox(cx, cy, halfX, halfY,
-      gearRadius: isGearFamily(type) ? s.radius : null);
+  return PlacementBox(
+    cx,
+    cy,
+    halfX,
+    halfY,
+    gearRadius: isGearFamily(type) ? s.radius : null,
+  );
 }
 
 /// [PlacementBox] for a `stage.preset` entry - platform/basket/button get
@@ -91,8 +101,7 @@ PlacementBox boxForPart(PartType type, double cx, double cy, double angleDeg) {
 PlacementBox boxForPreset(PresetObject p) {
   switch (p.type) {
     case 'platform':
-      final (hx, hy) =
-          rotatedHalfExtents(p.w! / 2, 0.2, p.angleDeg * pi / 180);
+      final (hx, hy) = rotatedHalfExtents(p.w! / 2, 0.2, p.angleDeg * pi / 180);
       return PlacementBox(p.x, p.y, hx, hy);
     case 'basket':
       // Matches PartView's basket footprint (floor + two walls envelope).
@@ -115,8 +124,13 @@ bool aabbOverlaps(PlacementBox a, PlacementBox b, double margin) {
 /// the placement is legal. [canPlaceAt] is this with the reason thrown away
 /// (the hot path - called every drag-update frame - only needs the bool) -
 /// this is the single source of truth so the two can never drift apart.
-String? placementRejectReason(Iterable<PlacementBox> existingBoxes,
-    PartType type, double x, double y, double angleDeg) {
+String? placementRejectReason(
+  Iterable<PlacementBox> existingBoxes,
+  PartType type,
+  double x,
+  double y,
+  double angleDeg,
+) {
   if (x < kFieldMinX || x > kFieldMaxX || y < kFieldMinY || y > kFieldMaxY) {
     return 'out of bounds: ($x, $y) not in x:[$kFieldMinX,$kFieldMaxX] '
         'y:[$kFieldMinY,$kFieldMaxY]';
@@ -136,17 +150,25 @@ String? placementRejectReason(Iterable<PlacementBox> existingBoxes,
 /// [existingBoxes] - except gear-family vs. gear-family pairs, which are
 /// allowed to overlap so they can mesh. [angleDeg] only matters for the two
 /// rotatable types (plank, fan).
-bool canPlaceAt(Iterable<PlacementBox> existingBoxes, PartType type, double x,
-        double y, double angleDeg) =>
-    placementRejectReason(existingBoxes, type, x, y, angleDeg) == null;
+bool canPlaceAt(
+  Iterable<PlacementBox> existingBoxes,
+  PartType type,
+  double x,
+  double y,
+  double angleDeg,
+) => placementRejectReason(existingBoxes, type, x, y, angleDeg) == null;
 
 /// If [type] is gear-family and a same-family neighbor in [existingBoxes]
 /// exists within r1+r2+[kGearSnapCatchRange] of ([rawX],[rawY]), returns the
 /// point at exactly r1+r2-[kGearSnapSlack] from that neighbor's center,
 /// along the neighbor->raw direction. Otherwise (including for non-gear
 /// types, or no neighbor in range) returns ([rawX],[rawY]) unchanged.
-(double, double) snapGearPosition(Iterable<PlacementBox> existingBoxes,
-    PartType type, double rawX, double rawY) {
+(double, double) snapGearPosition(
+  Iterable<PlacementBox> existingBoxes,
+  PartType type,
+  double rawX,
+  double rawY,
+) {
   if (!isGearFamily(type)) return (rawX, rawY);
   final r1 = Catalog.of(type).radius!;
   PlacementBox? nearest;
@@ -189,10 +211,16 @@ bool canPlaceAt(Iterable<PlacementBox> existingBoxes, PartType type, double x,
 /// `SimWorld.verify`) or whether it fits the stage's tray counts -
 /// validate_core.dart's stage-file validator layers both of those on top.
 String? solutionPlacementIssue(
-    List<PresetObject> preset, List<Placement> solution) {
+  List<PresetObject> preset,
+  List<Placement> solution,
+) {
   final boxes = [for (final p in preset) boxForPreset(p)];
   for (var i = 0; i < solution.length; i++) {
     final p = solution[i];
+    if (!Catalog.of(p.type).rotatable && p.angleDeg.abs() > 0.001) {
+      return 'solution[$i] (${jsonIdOf(p.type)}) has angle '
+          '${p.angleDeg}, but the editor cannot rotate this part';
+    }
     final (sx, sy) = snapGearPosition(boxes, p.type, p.x, p.y);
     final drift = sqrt(pow(sx - p.x, 2) + pow(sy - p.y, 2));
     if (drift > 0.01) {

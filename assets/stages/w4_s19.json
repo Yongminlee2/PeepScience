@@ -1,0 +1,96 @@
+{
+  "id": "w4_s19",
+  "world": 4,
+  "index": 19,
+  "goal": {
+    "type": "topple_dominoes"
+  },
+  "preset": [
+    {
+      "type": "platform",
+      "x": 5,
+      "y": 7,
+      "angle": 0,
+      "w": 4
+    },
+    {
+      "type": "platform",
+      "x": 11,
+      "y": 7,
+      "angle": 0,
+      "w": 4
+    },
+    {
+      "type": "domino",
+      "x": 4.2,
+      "y": 6.35,
+      "angle": 0
+    },
+    {
+      "type": "domino",
+      "x": 4.8,
+      "y": 6.35,
+      "angle": 0
+    },
+    {
+      "type": "domino",
+      "x": 5.4,
+      "y": 6.35,
+      "angle": 0
+    },
+    {
+      "type": "domino",
+      "x": 6.0,
+      "y": 6.35,
+      "angle": 0
+    },
+    {
+      "type": "domino",
+      "x": 10.2,
+      "y": 6.35,
+      "angle": 0
+    },
+    {
+      "type": "domino",
+      "x": 10.8,
+      "y": 6.35,
+      "angle": 0
+    },
+    {
+      "type": "domino",
+      "x": 11.4,
+      "y": 6.35,
+      "angle": 0
+    },
+    {
+      "type": "domino",
+      "x": 12.0,
+      "y": 6.35,
+      "angle": 0
+    }
+  ],
+  "tray": [
+    {
+      "type": "fan",
+      "count": 3
+    }
+  ],
+  "solution": [
+    {
+      "type": "fan",
+      "x": 2.35,
+      "y": 7.1,
+      "angle": -30
+    },
+    {
+      "type": "fan",
+      "x": 8.35,
+      "y": 7.1,
+      "angle": -30
+    }
+  ],
+  "challenge": {
+    "part_limit": 2
+  },
+  "feature": "chain_reaction"
+}

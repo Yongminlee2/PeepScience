@@ -90,10 +90,10 @@ const Offset _runButtonCenter = Offset(
 /// the pump loop in each test below only needs a handful of iterations to
 /// reach `cleared` (straight ~3.5m drop, no ramp/plank to build first).
 StageData _trivialStage() => stage(
-      '{"type":"basket","x":8,"y":6,"angle":0}',
-      '{"type":"rubber_ball","count":1}',
-      '{"type":"rubber_ball","x":8,"y":2,"angle":0}',
-    );
+  '{"type":"basket","x":8,"y":6,"angle":0}',
+  '{"type":"rubber_ball","count":1}',
+  '{"type":"rubber_ball","x":8,"y":2,"angle":0}',
+);
 
 /// Reproduces the first-playtest dead-run: a preset ball with nothing under
 /// it (no basket at all, so `cleared` can never latch) falls straight down
@@ -101,14 +101,13 @@ StageData _trivialStage() => stage(
 /// "press ▶ with nothing placed" scenario. tray/solution are dummy data
 /// (StageData requires a non-empty solution array) never placed by the test.
 StageData _deadRunStage() => stage(
-      '{"type":"rubber_ball","x":8,"y":1,"angle":0}',
-      '{"type":"plank","count":1}',
-      '{"type":"plank","x":10,"y":5,"angle":0}',
-    );
+  '{"type":"rubber_ball","x":8,"y":1,"angle":0}',
+  '{"type":"plank","count":1}',
+  '{"type":"plank","x":10,"y":5,"angle":0}',
+);
 
 void main() {
-  testWidgets(
-      '실행 버튼을 탭하면 run 모드로 전환되고, 클리어되면 오버레이가 뜨며 onCleared가 스테이지 id로 '
+  testWidgets('실행 버튼을 탭하면 run 모드로 전환되고, 클리어되면 오버레이가 뜨며 onCleared가 스테이지 id로 '
       '1회 호출되고 sim은 더 이상 진행되지 않는다', (t) async {
     final s = _trivialStage();
     final game = await _pumpGame(t, s);
@@ -118,9 +117,10 @@ void main() {
 
     var clearedCount = 0;
     String? clearedId;
-    game.onCleared = (id) {
+    game.onCleared = (id, stars) {
       clearedCount++;
       clearedId = id;
+      expect(stars, 3);
     };
 
     await _tap(t, _runButtonCenter);
@@ -129,8 +129,11 @@ void main() {
     await _pumpUntilCleared(t, game);
 
     expect(game.sim, isNotNull);
-    expect(game.sim!.cleared, isTrue,
-        reason: '이 pump 예산 안에 클리어되지 않음 - 낙하 스테이지 튜닝을 확인');
+    expect(
+      game.sim!.cleared,
+      isTrue,
+      reason: '이 pump 예산 안에 클리어되지 않음 - 낙하 스테이지 튜닝을 확인',
+    );
     expect(clearedCount, 1);
     expect(clearedId, s.id);
     expect(game.camera.viewport.children.whereType<WinOverlay>().length, 1);
@@ -146,8 +149,40 @@ void main() {
     expect(game.mode, GameMode.run);
   });
 
-  testWidgets('■을 탭하면 run 도중에도 edit 모드로 복귀하고 배치는 그대로, 선택은 해제된 채로 남는다',
+  testWidgets('예측 실험은 선택 전 실행을 막고 정답 예측+부품 제한이면 별 3개를 준다',
       (t) async {
+    final base = _trivialStage();
+    final s = StageData(
+      id: base.id,
+      world: base.world,
+      index: base.index,
+      goal: base.goal,
+      preset: base.preset,
+      tray: base.tray,
+      solution: base.solution,
+      prediction: const PredictionSpec(answer: PartType.metalBall),
+      challenge: const ChallengeSpec(partLimit: 1),
+    );
+    final game = await _pumpGame(t, s);
+    game.addPlacement(s.solution.single);
+    await t.pump();
+
+    await _tap(t, _runButtonCenter);
+    expect(game.mode, GameMode.edit, reason: '예측을 고르기 전에는 실행되면 안 된다');
+
+    // PredictionPanel(470,20) + metal button(565,11) + half 43.
+    await _tap(t, const Offset(1078, 74));
+    expect(game.predictionChoice, PartType.metalBall);
+
+    await _tap(t, _runButtonCenter);
+    expect(game.mode, GameMode.run);
+    await _pumpUntilCleared(t, game);
+    expect(game.earnedStars, 3);
+  });
+
+  testWidgets('■을 탭하면 run 도중에도 edit 모드로 복귀하고 배치는 그대로, 선택은 해제된 채로 남는다', (
+    t,
+  ) async {
     final s = _trivialStage();
     final game = await _pumpGame(t, s);
     game.addPlacement(s.solution.single);
@@ -166,8 +201,9 @@ void main() {
     expect(game.selectedIndex, isNull);
   });
 
-  testWidgets('오버레이의 다음 버튼을 탭하면 onNextRequested가 호출된다 (화면 전환은 Task 11)',
-      (t) async {
+  testWidgets('오버레이의 다음 버튼을 탭하면 onNextRequested가 호출된다 (화면 전환은 Task 11)', (
+    t,
+  ) async {
     final s = _trivialStage();
     final game = await _pumpGame(t, s);
     game.addPlacement(s.solution.single);
@@ -185,8 +221,9 @@ void main() {
     expect(nextCalled, isTrue);
   });
 
-  testWidgets('오버레이의 다시 버튼을 탭하면 edit 모드로 복귀하고 오버레이가 사라지며 배치는 그대로 남는다',
-      (t) async {
+  testWidgets('오버레이의 다시 버튼을 탭하면 edit 모드로 복귀하고 오버레이가 사라지며 배치는 그대로 남는다', (
+    t,
+  ) async {
     final s = _trivialStage();
     final game = await _pumpGame(t, s);
     game.addPlacement(s.solution.single);
@@ -205,8 +242,7 @@ void main() {
     expect(game.placements.single.type, PartType.rubberBall);
   });
 
-  testWidgets(
-      '목표를 못 채운 채 동적 물체가 전부 화면 밖으로 사라지면 유예 시간 후 자동으로 edit 모드로 '
+  testWidgets('목표를 못 채운 채 동적 물체가 전부 화면 밖으로 사라지면 유예 시간 후 자동으로 edit 모드로 '
       '복귀하고 배치는 그대로 남는다 (첫 플레이테스트 재현: 아무것도 안 놓고 ▶만 누름)', (t) async {
     final s = _deadRunStage();
     final game = await _pumpGame(t, s);
@@ -222,8 +258,11 @@ void main() {
 
     await _pumpUntilEdit(t, game);
 
-    expect(game.mode, GameMode.edit,
-        reason: '이 pump 예산 안에 자동 복귀하지 않음 - 유예 타이머 확인');
+    expect(
+      game.mode,
+      GameMode.edit,
+      reason: '이 pump 예산 안에 자동 복귀하지 않음 - 유예 타이머 확인',
+    );
     expect(game.sim, isNull);
     expect(game.placements.length, 1);
     expect(game.placements.single.type, PartType.plank);

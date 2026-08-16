@@ -1,0 +1,59 @@
+{
+  "id": "w4_s17",
+  "world": 4,
+  "index": 17,
+  "goal": {
+    "type": "ball_in_basket"
+  },
+  "preset": [
+    {
+      "type": "rubber_ball",
+      "x": 8.0,
+      "y": 4.07,
+      "angle": 0
+    },
+    {
+      "type": "basket",
+      "x": 3.6,
+      "y": 4.5,
+      "angle": 0
+    }
+  ],
+  "tray": [
+    {
+      "type": "fan",
+      "count": 2
+    },
+    {
+      "type": "trampoline",
+      "count": 1
+    },
+    {
+      "type": "seesaw",
+      "count": 1
+    }
+  ],
+  "solution": [
+    {
+      "type": "fan",
+      "x": 10.3,
+      "y": 4.3,
+      "angle": 178
+    },
+    {
+      "type": "trampoline",
+      "x": 5.4,
+      "y": 6.3,
+      "angle": 0
+    },
+    {
+      "type": "seesaw",
+      "x": 8.0,
+      "y": 4.5,
+      "angle": 0
+    }
+  ],
+  "challenge": {
+    "part_limit": 3
+  }
+}

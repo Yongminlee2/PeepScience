@@ -3,6 +3,8 @@
   "world": 2,
   "index": 5,
   "goal": { "type": "ball_in_basket" },
+  "prediction": { "answer": "metal_ball" },
+  "challenge": { "part_limit": 1 },
   "preset": [
     { "type": "seesaw", "x": 3.0, "y": 6.0, "angle": 0 },
     { "type": "rubber_ball", "x": 4.2, "y": 5.6, "angle": 0 },

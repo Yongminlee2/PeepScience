@@ -1,0 +1,79 @@
+{
+  "id": "w3_s15",
+  "world": 3,
+  "index": 15,
+  "goal": {
+    "type": "topple_dominoes"
+  },
+  "preset": [
+    {
+      "type": "platform",
+      "x": 13.14,
+      "y": 7.5,
+      "angle": 0,
+      "w": 3.0
+    },
+    {
+      "type": "domino",
+      "x": 13.14,
+      "y": 6.98,
+      "angle": 0
+    },
+    {
+      "type": "domino",
+      "x": 13.57,
+      "y": 6.98,
+      "angle": 0
+    },
+    {
+      "type": "domino",
+      "x": 14,
+      "y": 6.98,
+      "angle": 0
+    }
+  ],
+  "tray": [
+    {
+      "type": "paddle_gear",
+      "count": 2
+    },
+    {
+      "type": "motor_gear",
+      "count": 1
+    },
+    {
+      "type": "gear",
+      "count": 2
+    }
+  ],
+  "solution": [
+    {
+      "type": "motor_gear",
+      "x": 10.23,
+      "y": 6.0,
+      "angle": 0
+    },
+    {
+      "type": "gear",
+      "x": 11.2,
+      "y": 6,
+      "angle": 0
+    },
+    {
+      "type": "gear",
+      "x": 12.17,
+      "y": 6,
+      "angle": 0
+    },
+    {
+      "type": "paddle_gear",
+      "x": 13.14,
+      "y": 6.0,
+      "angle": 0
+    }
+  ],
+  "challenge": {
+    "part_limit": 4
+  },
+  "feature": "chain_reaction"
+}

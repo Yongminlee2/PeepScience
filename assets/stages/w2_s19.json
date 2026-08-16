@@ -1,0 +1,64 @@
+{
+  "id": "w2_s19",
+  "world": 2,
+  "index": 19,
+  "goal": {
+    "type": "ball_in_basket"
+  },
+  "preset": [
+    {
+      "type": "rubber_ball",
+      "x": 5.05,
+      "y": 5.57,
+      "angle": 0
+    },
+    {
+      "type": "metal_ball",
+      "x": 7.55,
+      "y": 4.8,
+      "angle": 0
+    },
+    {
+      "type": "basket",
+      "x": 2.25,
+      "y": 5.5,
+      "angle": 0
+    }
+  ],
+  "tray": [
+    {
+      "type": "seesaw",
+      "count": 2
+    },
+    {
+      "type": "trampoline",
+      "count": 2
+    }
+  ],
+  "solution": [
+    {
+      "type": "seesaw",
+      "x": 6.25,
+      "y": 6,
+      "angle": 0
+    },
+    {
+      "type": "trampoline",
+      "x": 4.02,
+      "y": 6.85,
+      "angle": 0
+    },
+    {
+      "type": "trampoline",
+      "x": 2.5,
+      "y": 6.9,
+      "angle": 0
+    }
+  ],
+  "challenge": {
+    "part_limit": 3
+  },
+  "prediction": {
+    "answer": "metal_ball"
+  }
+}

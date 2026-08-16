@@ -9,7 +9,7 @@ void main() {
   test('버튼 목표: 공이 버튼 위로 떨어지면 클리어', () {
     final s = stage(
       '{"type":"button","x":5,"y":7,"angle":0},'
-      '{"type":"rubber_ball","x":5,"y":1,"angle":0}',
+          '{"type":"rubber_ball","x":5,"y":1,"angle":0}',
       '',
       '{"type":"plank","x":0,"y":0,"angle":0}',
       goal: 'press_button',
@@ -24,9 +24,9 @@ void main() {
   test('풍선 목표: 프리셋 풍선을 모두 압정에 터뜨리면 클리어', () {
     final s = stage(
       '{"type":"balloon","x":4,"y":6,"angle":0},'
-      '{"type":"balloon","x":6,"y":6,"angle":0},'
-      '{"type":"tack","x":4,"y":2,"angle":0},'
-      '{"type":"tack","x":6,"y":2,"angle":0}',
+          '{"type":"balloon","x":6,"y":6,"angle":0},'
+          '{"type":"tack","x":4,"y":2,"angle":0},'
+          '{"type":"tack","x":6,"y":2,"angle":0}',
       '',
       '{"type":"plank","x":0,"y":0,"angle":0}',
       goal: 'pop_balloons',
@@ -43,7 +43,7 @@ void main() {
     final s = stage(
       // 프리셋 풍선 근처에는 압정이 없다 - 이 풍선은 끝까지 터지지 않는다.
       '{"type":"balloon","x":4,"y":6,"angle":0},'
-      '{"type":"tack","x":8,"y":2,"angle":0}',
+          '{"type":"tack","x":8,"y":2,"angle":0}',
       '',
       '{"type":"plank","x":0,"y":0,"angle":0}',
       goal: 'pop_balloons',
@@ -63,7 +63,7 @@ void main() {
   test('도미노 목표: 프리셋 도미노가 전부 쓰러지면 클리어', () {
     final s = stage(
       '{"type":"domino","x":6,"y":7.35,"angle":0},'
-      '{"type":"domino","x":7,"y":7.35,"angle":0}',
+          '{"type":"domino","x":7,"y":7.35,"angle":0}',
       '',
       '{"type":"plank","x":0,"y":0,"angle":0}',
       goal: 'topple_dominoes',
@@ -83,7 +83,7 @@ void main() {
   test('도미노 목표: 하나라도 서 있으면 미달', () {
     final s = stage(
       '{"type":"domino","x":6,"y":7.35,"angle":0},'
-      '{"type":"domino","x":7,"y":7.35,"angle":0}',
+          '{"type":"domino","x":7,"y":7.35,"angle":0}',
       '',
       '{"type":"plank","x":0,"y":0,"angle":0}',
       goal: 'topple_dominoes',
@@ -97,5 +97,30 @@ void main() {
     // dominoes[1]은 angle 0으로 그대로 서 있다.
     w.step();
     expect(w.cleared, isFalse);
+  });
+
+  test('수집 별은 공 접촉 시 사라지고 클리어와 별도로 기록된다', () {
+    final s = StageData(
+      id: 'star_test',
+      world: 1,
+      index: 1,
+      goal: GoalSpec(type: GoalType.ballInBasket),
+      preset: [
+        PresetObject(type: 'rubber_ball', x: 5, y: 1, angleDeg: 0),
+        PresetObject(type: 'basket', x: 5, y: 7, angleDeg: 0),
+      ],
+      tray: [TrayEntry(type: PartType.plank, count: 1)],
+      solution: [Placement(type: PartType.plank, x: 1, y: 1, angleDeg: 0)],
+      challenge: const ChallengeSpec(
+        partLimit: 1,
+        collectibleStar: CollectibleStarSpec(x: 5, y: 4),
+      ),
+    );
+    final w = SimWorld(s, const []);
+    for (var i = 0; i < 600 && !w.cleared; i++) {
+      w.step();
+    }
+    expect(w.starCollected, isTrue);
+    expect(w.cleared, isTrue);
   });
 }

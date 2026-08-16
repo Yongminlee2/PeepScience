@@ -1,0 +1,56 @@
+{
+  "id": "w4_s11",
+  "world": 4,
+  "index": 11,
+  "goal": {
+    "type": "press_button"
+  },
+  "preset": [
+    {
+      "type": "platform",
+      "x": 4.98,
+      "y": 7,
+      "angle": 0,
+      "w": 2.95
+    },
+    {
+      "type": "rubber_ball",
+      "x": 4.5,
+      "y": 6.5,
+      "angle": 0
+    },
+    {
+      "type": "button",
+      "x": 9,
+      "y": 6.5,
+      "angle": 0
+    }
+  ],
+  "tray": [
+    {
+      "type": "fan",
+      "count": 2
+    },
+    {
+      "type": "plank",
+      "count": 1
+    }
+  ],
+  "solution": [
+    {
+      "type": "fan",
+      "x": 2.9,
+      "y": 6.8,
+      "angle": -2
+    },
+    {
+      "type": "plank",
+      "x": 7.5,
+      "y": 7,
+      "angle": -18
+    }
+  ],
+  "challenge": {
+    "part_limit": 2
+  }
+}

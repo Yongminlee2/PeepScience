@@ -1,0 +1,70 @@
+{
+  "id": "w2_s18",
+  "world": 2,
+  "index": 18,
+  "goal": {
+    "type": "pop_balloons"
+  },
+  "preset": [
+    {
+      "type": "balloon",
+      "x": 4.0,
+      "y": 7,
+      "angle": 0
+    },
+    {
+      "type": "tack",
+      "x": 6.0,
+      "y": 0.5,
+      "angle": 0
+    },
+    {
+      "type": "balloon",
+      "x": 12.0,
+      "y": 7,
+      "angle": 0
+    },
+    {
+      "type": "tack",
+      "x": 10.0,
+      "y": 0.5,
+      "angle": 0
+    }
+  ],
+  "tray": [
+    {
+      "type": "plank",
+      "count": 5
+    }
+  ],
+  "solution": [
+    {
+      "type": "plank",
+      "x": 3.5,
+      "y": 4.5,
+      "angle": -45
+    },
+    {
+      "type": "plank",
+      "x": 4.5,
+      "y": 2,
+      "angle": 0
+    },
+    {
+      "type": "plank",
+      "x": 12.5,
+      "y": 4.5,
+      "angle": 45
+    },
+    {
+      "type": "plank",
+      "x": 11.5,
+      "y": 2,
+      "angle": 0
+    }
+  ],
+  "challenge": {
+    "part_limit": 4
+  },
+  "feature": "chain_reaction"
+}

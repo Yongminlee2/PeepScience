@@ -1,0 +1,57 @@
+{
+  "id": "w3_s19",
+  "world": 3,
+  "index": 19,
+  "goal": {
+    "type": "pop_balloons"
+  },
+  "preset": [
+    {
+      "type": "balloon",
+      "x": 12.45,
+      "y": 7,
+      "angle": 0
+    },
+    {
+      "type": "tack",
+      "x": 13,
+      "y": 3,
+      "angle": 0
+    },
+    {
+      "type": "balloon",
+      "x": 3.55,
+      "y": 7,
+      "angle": 0
+    },
+    {
+      "type": "tack",
+      "x": 3,
+      "y": 3,
+      "angle": 0
+    }
+  ],
+  "tray": [
+    {
+      "type": "gear",
+      "count": 3
+    }
+  ],
+  "solution": [
+    {
+      "type": "gear",
+      "x": 11.7,
+      "y": 6,
+      "angle": 0
+    },
+    {
+      "type": "gear",
+      "x": 4.3,
+      "y": 6,
+      "angle": 0
+    }
+  ],
+  "challenge": {
+    "part_limit": 2
+  }
+}

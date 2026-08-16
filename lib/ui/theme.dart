@@ -27,3 +27,37 @@ const List<Color> worldCardColors = [
 const Color kChocolateOutline = Color(0xFF4E342E);
 const Color kCandyCream = Color(0xFFFFFBF0);
 const Color kCandyGold = Color(0xFFFFCA28);
+const Color kHomeCanvasTop = Color(0xFFFFFAF4);
+const Color kHomeCanvasBottom = Color(0xFFF4ECF8);
+
+/// Shared Material shell for the non-game screens. The game itself is
+/// painted by Flame, but home/settings should still feel like the same warm
+/// candy-and-chocolate product instead of stock Material scaffolding.
+ThemeData piyakTheme() => ThemeData(
+  useMaterial3: true,
+  colorScheme: ColorScheme.fromSeed(
+    seedColor: kCandyGold,
+    brightness: Brightness.light,
+    surface: kCandyCream,
+  ),
+  scaffoldBackgroundColor: kHomeCanvasTop,
+  appBarTheme: const AppBarTheme(
+    backgroundColor: kHomeCanvasTop,
+    foregroundColor: kChocolateOutline,
+    elevation: 0,
+    scrolledUnderElevation: 0,
+    centerTitle: false,
+  ),
+  textTheme: const TextTheme(
+    headlineSmall: TextStyle(
+      color: kChocolateOutline,
+      fontWeight: FontWeight.w900,
+    ),
+    titleLarge: TextStyle(
+      color: kChocolateOutline,
+      fontWeight: FontWeight.w800,
+    ),
+    bodyLarge: TextStyle(color: kChocolateOutline),
+  ),
+  dividerColor: kChocolateOutline.withAlpha(36),
+);

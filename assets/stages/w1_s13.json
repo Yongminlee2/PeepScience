@@ -1,0 +1,72 @@
+{
+  "id": "w1_s13",
+  "world": 1,
+  "index": 13,
+  "goal": {
+    "type": "press_button"
+  },
+  "preset": [
+    {
+      "type": "rubber_ball",
+      "x": 14,
+      "y": 1,
+      "angle": 0
+    },
+    {
+      "type": "platform",
+      "x": 11.75,
+      "y": 5.2,
+      "angle": 0,
+      "w": 6.5
+    },
+    {
+      "type": "platform",
+      "x": 5.4,
+      "y": 5.2,
+      "angle": 0,
+      "w": 2
+    },
+    {
+      "type": "platform",
+      "x": 1.05,
+      "y": 5.2,
+      "angle": 0,
+      "w": 2.5
+    },
+    {
+      "type": "button",
+      "x": 0.8,
+      "y": 5.11,
+      "angle": 0
+    }
+  ],
+  "tray": [
+    {
+      "type": "plank",
+      "count": 4
+    }
+  ],
+  "solution": [
+    {
+      "type": "plank",
+      "x": 14,
+      "y": 2.3,
+      "angle": -28
+    },
+    {
+      "type": "plank",
+      "x": 7.45,
+      "y": 5.12,
+      "angle": 0
+    },
+    {
+      "type": "plank",
+      "x": 3.35,
+      "y": 5.12,
+      "angle": 0
+    }
+  ],
+  "challenge": {
+    "part_limit": 3
+  }
+}

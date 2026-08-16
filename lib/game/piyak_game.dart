@@ -30,12 +30,9 @@ enum GameMode { edit, run }
 /// PartView, which does the actual per-frame copy).
 class PiyakGame extends FlameGame with DragCallbacks {
   PiyakGame(this.stage)
-      : super(
-          camera: CameraComponent.withFixedResolution(
-            width: 1600,
-            height: 900,
-          ),
-        );
+    : super(
+        camera: CameraComponent.withFixedResolution(width: 1600, height: 900),
+      );
 
   /// Meters -> pixels; single source of truth is [kPpm] in part_view.dart.
   static const double ppm = kPpm;
@@ -54,11 +51,23 @@ class PiyakGame extends FlameGame with DragCallbacks {
   /// `update`'s accumulator loop / `_onCleared`) - passed [stage]'s own id.
   /// Task 11 wires this to progress-tracking/navigation; here it's just
   /// invoked.
-  void Function(String stageId)? onCleared;
+  void Function(String stageId, int stars)? onCleared;
 
   /// Fired when [WinOverlay]'s 다음(next) button is tapped. Task 11 wires
   /// this to advancing to the next stage; here it's just invoked.
   VoidCallback? onNextRequested;
+
+  /// Predict-before-running choice for experiment stages. It deliberately
+  /// survives retry so the child can change their mind instead of being
+  /// forced through the prompt from scratch after every attempt.
+  PartType? predictionChoice;
+
+  /// Result of the latest successful run, rendered by [WinOverlay] and
+  /// persisted by GameScreen through [onCleared].
+  int earnedStars = 0;
+
+  double runElapsedSeconds = 0;
+  bool _starPickupCelebrated = false;
 
   /// Index into [placements] currently selected in edit mode (draws a
   /// selection ring + delete-X, and a rotate handle when the type is
@@ -160,6 +169,15 @@ class PiyakGame extends FlameGame with DragCallbacks {
     // comment for why it has to be mounted there.
     camera.viewport.add(TrayBar(this));
     camera.viewport.add(GoalBadge(this));
+    if (stage.feature == StageFeature.chainReaction) {
+      camera.viewport.add(ChainReactionRibbon(this));
+    }
+    if (stage.challenge != null && stage.prediction == null) {
+      camera.viewport.add(ChallengeRibbon(this));
+    }
+    if (stage.prediction != null) {
+      camera.viewport.add(PredictionPanel(this));
+    }
     camera.viewport.add(RunToggleButton(this));
     // 목표물 강조 펄스(스킨 패스: 목표 배지가 뭘 가리키는지 안 읽힌다는
     // 오너 피드백) - 최초 진입 1회. resetToEdit()도 같은 호출을 하므로
@@ -168,7 +186,16 @@ class PiyakGame extends FlameGame with DragCallbacks {
   }
 
   @override
-  Color backgroundColor() => const Color(0xFFBEE7F5);
+  Color backgroundColor() => switch (stage.world) {
+    // Fixed 16:9 gameplay is letterboxed on modern 19.5:9/20:9 phones.
+    // Match the bars to each world instead of exposing the old bright
+    // cyan debug-looking frame around every scene.
+    1 => const Color(0xFFE9E2D8),
+    2 => const Color(0xFFD8E4D1),
+    3 => const Color(0xFFD8D2CC),
+    4 => const Color(0xFF18244A),
+    _ => const Color(0xFFFFFBF0),
+  };
 
   void startRun() {
     // Stale overlay/confetti from a previous run, if any (normally already
@@ -196,8 +223,12 @@ class PiyakGame extends FlameGame with DragCallbacks {
     _lastButtonPressed = false;
     _gearTickAccum = 0;
     _deadRunTimer = null;
-    _hasMotorGear = sim!.world.bodies
-        .any((b) => (b.userData as PartTag?)?.part == PartType.motorGear);
+    runElapsedSeconds = 0;
+    earnedStars = 0;
+    _starPickupCelebrated = false;
+    _hasMotorGear = sim!.world.bodies.any(
+      (b) => (b.userData as PartTag?)?.part == PartType.motorGear,
+    );
     _rebuildViews();
   }
 
@@ -207,6 +238,21 @@ class PiyakGame extends FlameGame with DragCallbacks {
     mode = GameMode.edit;
     _rebuildViews();
     triggerGoalPulse();
+  }
+
+  void selectPrediction(PartType type) {
+    if (mode != GameMode.edit || stage.prediction == null) return;
+    if (type != PartType.rubberBall && type != PartType.metalBall) return;
+    predictionChoice = type;
+    Sound.play(Sfx.tap);
+  }
+
+  bool get canStartRun => stage.prediction == null || predictionChoice != null;
+
+  void nudgePrediction() {
+    for (final child in camera.viewport.children) {
+      if (child is PredictionPanel) child.nudge();
+    }
   }
 
   /// Replays the goal-object affordance pulse (see [PartView.pulse]'s own
@@ -308,8 +354,12 @@ class PiyakGame extends FlameGame with DragCallbacks {
   void setPlacementAngle(int index, double angleDeg) {
     assert(index >= 0 && index < placements.length);
     final p = placements[index];
-    placements[index] =
-        Placement(type: p.type, x: p.x, y: p.y, angleDeg: angleDeg);
+    placements[index] = Placement(
+      type: p.type,
+      x: p.x,
+      y: p.y,
+      angleDeg: angleDeg,
+    );
     _rebuildViews();
   }
 
@@ -319,8 +369,12 @@ class PiyakGame extends FlameGame with DragCallbacks {
   void setPlacementPosition(int index, double x, double y) {
     assert(index >= 0 && index < placements.length);
     final p = placements[index];
-    placements[index] =
-        Placement(type: p.type, x: x, y: y, angleDeg: p.angleDeg);
+    placements[index] = Placement(
+      type: p.type,
+      x: x,
+      y: y,
+      angleDeg: p.angleDeg,
+    );
     _rebuildViews();
   }
 
@@ -411,7 +465,8 @@ class PiyakGame extends FlameGame with DragCallbacks {
       // pointer already owns movingIndex (a second pointer touching some
       // OTHER part's footprint while a move is in flight) - a bare read
       // would wrongly mark THIS pointer consumed for someone else's move.
-      consumed: (rotatingBefore == null && rotatingIndex != null) ||
+      consumed:
+          (rotatingBefore == null && rotatingIndex != null) ||
           (movingBefore == null && movingIndex != null),
     );
   }
@@ -470,6 +525,10 @@ class PiyakGame extends FlameGame with DragCallbacks {
         c.activate();
         return;
       }
+      if (c is PredictionChoiceButton) {
+        c.activate();
+        return;
+      }
       if (c is GoalBadge) {
         c.activate();
         return;
@@ -486,11 +545,13 @@ class PiyakGame extends FlameGame with DragCallbacks {
     // every later frame for the rest of this sim's lifetime - cleared only
     // ever resets by a fresh startRun() replacing `sim` entirely.
     if (mode == GameMode.run && s != null && !s.cleared) {
+      runElapsedSeconds += dt;
       _acc += dt;
       _acc = min(_acc, 0.25);
       while (_acc >= SimWorld.dt) {
         s.step();
         _acc -= SimWorld.dt;
+        _handleStarPickup(s);
         if (s.cleared) {
           // Stop stepping THIS frame too, not just future ones - a stage
           // that clears on e.g. the 3rd of up to 15 steps queued in one
@@ -551,8 +612,9 @@ class PiyakGame extends FlameGame with DragCallbacks {
   // 게이트로 대부분 걸러지지만, 이 프레임의 스텝 루프 도중 막 cleared가
   // 된 경우까지 한 번 더 방어.
   void _tickDeadRunTimer(SimWorld s, double dt) {
-    final hasDynamicBody =
-        s.world.bodies.any((b) => b.bodyType == BodyType.dynamic);
+    final hasDynamicBody = s.world.bodies.any(
+      (b) => b.bodyType == BodyType.dynamic,
+    );
     if (s.cleared || hasDynamicBody) {
       _deadRunTimer = null;
       return;
@@ -579,19 +641,40 @@ class PiyakGame extends FlameGame with DragCallbacks {
   // this reacts to can only be observed, and thus only fire this, once.
   void _onCleared() {
     Sound.play(Sfx.win);
-    onCleared?.call(stage.id);
+    final challenge = stage.challenge;
+    final partStar =
+        challenge == null || placements.length <= challenge.partLimit;
+    final bonusStar = challenge?.collectibleStar != null
+        ? (sim?.starCollected ?? false)
+        : stage.prediction != null
+        ? predictionChoice == stage.prediction!.answer
+        : true;
+    earnedStars = 1 + (partStar ? 1 : 0) + (bonusStar ? 1 : 0);
+    onCleared?.call(stage.id, earnedStars);
     camera.viewport.add(WinOverlay(this));
+  }
+
+  void _handleStarPickup(SimWorld s) {
+    if (!s.starCollected || _starPickupCelebrated) return;
+    _starPickupCelebrated = true;
+    final star = stage.challenge?.collectibleStar;
+    if (star == null) return;
+    Sound.play(Sfx.buttonClick);
+    world.add(starPickupBurst(Vector2(star.x, star.y) * kPpm));
   }
 
   /// Test helper: first ball's world-space y in meters (run mode only).
   double ballY() {
     final s = sim;
     if (s == null) return 0;
-    return s.world.bodies.firstWhere((b) {
-      final t = b.userData;
-      return t is PartTag &&
-          (t.part == PartType.rubberBall || t.part == PartType.metalBall);
-    }).position.y;
+    return s.world.bodies
+        .firstWhere((b) {
+          final t = b.userData;
+          return t is PartTag &&
+              (t.part == PartType.rubberBall || t.part == PartType.metalBall);
+        })
+        .position
+        .y;
   }
 
   // Rebuilds every scene PartView from scratch: simplest way to keep the
@@ -641,29 +724,41 @@ class PiyakGame extends FlameGame with DragCallbacks {
     final list = <_SceneEntry>[];
     for (final p in stage.preset) {
       if (p.type == 'platform' || p.type == 'basket' || p.type == 'button') {
-        list.add(_SceneEntry(
-          preset: p.type,
-          xM: p.x,
-          yM: p.y,
-          angleDeg: p.angleDeg,
-          platformWidthM: p.w ?? 0,
-        ));
+        list.add(
+          _SceneEntry(
+            preset: p.type,
+            xM: p.x,
+            yM: p.y,
+            angleDeg: p.angleDeg,
+            platformWidthM: p.w ?? 0,
+          ),
+        );
       } else {
-        list.add(_SceneEntry(
-          part: partTypeFromJson(p.type),
-          xM: p.x,
-          yM: p.y,
-          angleDeg: p.angleDeg,
-        ));
+        list.add(
+          _SceneEntry(
+            part: partTypeFromJson(p.type),
+            xM: p.x,
+            yM: p.y,
+            angleDeg: p.angleDeg,
+          ),
+        );
       }
     }
+    final collectibleStar = stage.challenge?.collectibleStar;
+    if (collectibleStar != null) {
+      list.add(
+        _SceneEntry(
+          preset: 'collectible_star',
+          xM: collectibleStar.x,
+          yM: collectibleStar.y,
+          angleDeg: 0,
+        ),
+      );
+    }
     for (final pl in placements) {
-      list.add(_SceneEntry(
-        part: pl.type,
-        xM: pl.x,
-        yM: pl.y,
-        angleDeg: pl.angleDeg,
-      ));
+      list.add(
+        _SceneEntry(part: pl.type, xM: pl.x, yM: pl.y, angleDeg: pl.angleDeg),
+      );
     }
     return list;
   }
@@ -674,7 +769,7 @@ class PiyakGame extends FlameGame with DragCallbacks {
 /// [PiyakGame.onDragStart]) for what this is for.
 class _TapCandidate {
   _TapCandidate({required this.start, required this.consumed})
-      : startTime = DateTime.now();
+    : startTime = DateTime.now();
 
   /// Canvas position the drag started at - a confirmed tap fires here, not
   /// wherever the pointer happened to drift to by release.
@@ -716,7 +811,7 @@ class _SceneEntry {
 /// flat color shows through unchanged, so the game looks exactly as before.
 class _BackgroundView extends PositionComponent {
   _BackgroundView(this.worldNum)
-      : super(priority: -1000, size: Vector2(1600, 900));
+    : super(priority: -1000, size: Vector2(1600, 900));
 
   final int worldNum;
   Sprite? _sprite;

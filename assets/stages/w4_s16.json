@@ -1,0 +1,66 @@
+{
+  "id": "w4_s16",
+  "world": 4,
+  "index": 16,
+  "goal": {
+    "type": "ball_in_basket"
+  },
+  "preset": [
+    {
+      "type": "platform",
+      "x": 9.97,
+      "y": 6.35,
+      "angle": 0,
+      "w": 1.0
+    },
+    {
+      "type": "rubber_ball",
+      "x": 9.97,
+      "y": 5.85,
+      "angle": 0
+    },
+    {
+      "type": "basket",
+      "x": 12,
+      "y": 6.75,
+      "angle": 0
+    }
+  ],
+  "tray": [
+    {
+      "type": "paddle_gear",
+      "count": 2
+    },
+    {
+      "type": "motor_gear",
+      "count": 1
+    },
+    {
+      "type": "fan",
+      "count": 1
+    }
+  ],
+  "solution": [
+    {
+      "type": "motor_gear",
+      "x": 9,
+      "y": 5.0,
+      "angle": 0
+    },
+    {
+      "type": "paddle_gear",
+      "x": 9.97,
+      "y": 5.0,
+      "angle": 0
+    },
+    {
+      "type": "fan",
+      "x": 11,
+      "y": 7.0,
+      "angle": 0
+    }
+  ],
+  "challenge": {
+    "part_limit": 3
+  }
+}

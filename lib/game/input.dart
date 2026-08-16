@@ -3,7 +3,7 @@ import 'dart:math';
 import 'package:flame/components.dart';
 import 'package:flame/events.dart';
 import 'package:flutter/widgets.dart'
-    show Canvas, Color, Offset, Paint, PaintingStyle, Rect;
+    show Canvas, Color, Offset, Paint, PaintingStyle, Radius, Rect, RRect;
 
 import '../services/sound.dart';
 import '../sim/catalog.dart';
@@ -49,10 +49,19 @@ Vector2 canvasToWorldPx(PiyakGame game, Vector2 canvasPoint) =>
 /// Reusable: Task 8 (moving an existing part) and Task 12 (stage editor)
 /// call this too.
 bool canPlaceAt(
-    PiyakGame game, PartType type, Vector2 worldPos, double angleDeg,
-    {int? excludeIndex}) {
-  return rules.canPlaceAt(_existingBoxes(game, excludeIndex: excludeIndex),
-      type, worldPos.x, worldPos.y, angleDeg);
+  PiyakGame game,
+  PartType type,
+  Vector2 worldPos,
+  double angleDeg, {
+  int? excludeIndex,
+}) {
+  return rules.canPlaceAt(
+    _existingBoxes(game, excludeIndex: excludeIndex),
+    type,
+    worldPos.x,
+    worldPos.y,
+    angleDeg,
+  );
 }
 
 /// If [type] is gear-family and a same-family preset/placement neighbor
@@ -65,11 +74,18 @@ bool canPlaceAt(
 /// never treats its own (live, mid-drag) box as the neighbor to snap
 /// against - a fresh tray drop (hud.dart) has no such self to exclude,
 /// hence the default null.
-Vector2 snapGearPosition(PiyakGame game, PartType type, Vector2 rawWorldPos,
-    {int? excludeIndex}) {
+Vector2 snapGearPosition(
+  PiyakGame game,
+  PartType type,
+  Vector2 rawWorldPos, {
+  int? excludeIndex,
+}) {
   final (x, y) = rules.snapGearPosition(
-      _existingBoxes(game, excludeIndex: excludeIndex), type, rawWorldPos.x,
-      rawWorldPos.y);
+    _existingBoxes(game, excludeIndex: excludeIndex),
+    type,
+    rawWorldPos.x,
+    rawWorldPos.y,
+  );
   return Vector2(x, y);
 }
 
@@ -79,7 +95,10 @@ Vector2 snapGearPosition(PiyakGame game, PartType type, Vector2 rawWorldPos,
 /// drag-ghost preview and the real drop, so the ghost always shows exactly
 /// what dropping right now would do.
 ({Vector2 pos, bool valid}) resolveDrop(
-    PiyakGame game, PartType type, Vector2 rawWorldPos) {
+  PiyakGame game,
+  PartType type,
+  Vector2 rawWorldPos,
+) {
   final pos = snapGearPosition(game, type, rawWorldPos);
   return (pos: pos, valid: canPlaceAt(game, type, pos, 0));
 }
@@ -88,8 +107,10 @@ Vector2 snapGearPosition(PiyakGame game, PartType type, Vector2 rawWorldPos,
 /// as the pure [rules.PlacementBox] type - the one place this file bridges
 /// PiyakGame's Flutter/Flame-flavored state into sim/placement_rules.dart's
 /// plain-Dart inputs.
-Iterable<rules.PlacementBox> _existingBoxes(PiyakGame game,
-    {int? excludeIndex}) sync* {
+Iterable<rules.PlacementBox> _existingBoxes(
+  PiyakGame game, {
+  int? excludeIndex,
+}) sync* {
   for (final p in game.stage.preset) {
     yield rules.boxForPreset(p);
   }
@@ -308,7 +329,7 @@ void handleEditDragStart(PiyakGame game, DragStartEvent event) {
   final distFromCenter = (worldPos - Vector2(p.x, p.y)).length;
   final onRingBand =
       (distFromCenter - selectionRingRadiusM(p.type)).abs() <=
-          kRingBandHalfWidthM;
+      kRingBandHalfWidthM;
   if (!onKnob && !onRingBand) return;
   game.rotatingIndex = idx;
   game.rotateFallbackAngleDeg = p.angleDeg;
@@ -360,8 +381,13 @@ void handleEditDragEnd(PiyakGame game, DragEndEvent event) {
   game.rotateDragCanvasPos = null;
   if (idx == null || idx >= game.placements.length) return;
   final p = game.placements[idx];
-  final valid = canPlaceAt(game, p.type, Vector2(p.x, p.y), p.angleDeg,
-      excludeIndex: idx);
+  final valid = canPlaceAt(
+    game,
+    p.type,
+    Vector2(p.x, p.y),
+    p.angleDeg,
+    excludeIndex: idx,
+  );
   if (!valid) {
     game.setPlacementAngle(idx, game.rotateFallbackAngleDeg);
   }
@@ -492,8 +518,11 @@ void handleEditMoveDragUpdate(PiyakGame game, DragUpdateEvent event) {
 /// no-snap landing both typically already ARE the target, so this skips a
 /// pointless extra rebuild on the most common releases. The part stays
 /// selected either way - only its position is ever in question here.
-void handleEditMoveDragEnd(PiyakGame game, DragEndEvent event,
-    {required double traveled}) {
+void handleEditMoveDragEnd(
+  PiyakGame game,
+  DragEndEvent event, {
+  required double traveled,
+}) {
   final idx = game.movingIndex;
   if (idx == null || event.pointerId != game.movingPointerId) return;
   game.movingIndex = null;
@@ -505,10 +534,19 @@ void handleEditMoveDragEnd(PiyakGame game, DragEndEvent event,
   if (traveled < PiyakGame.kTapMaxTravelPx) {
     target = game.movePreDragPosM;
   } else {
-    final landing = snapGearPosition(game, p.type, Vector2(p.x, p.y),
-        excludeIndex: idx);
-    final valid =
-        canPlaceAt(game, p.type, landing, p.angleDeg, excludeIndex: idx);
+    final landing = snapGearPosition(
+      game,
+      p.type,
+      Vector2(p.x, p.y),
+      excludeIndex: idx,
+    );
+    final valid = canPlaceAt(
+      game,
+      p.type,
+      landing,
+      p.angleDeg,
+      excludeIndex: idx,
+    );
     target = valid ? landing : game.movePreDragPosM;
   }
   if (p.x != target.x || p.y != target.y) {
@@ -562,7 +600,10 @@ class SelectionOverlay extends Component {
   bool _showHandle = false;
   bool _invalid = false;
   late Offset _center;
-  late double _ringRadiusPx;
+  late double _partWidthPx;
+  late double _partHeightPx;
+  late double _partAngleRad;
+  late bool _roundOutline;
   late Offset _handlePos;
   late Offset _deleteCenter;
 
@@ -578,7 +619,12 @@ class SelectionOverlay extends Component {
     _visible = true;
     final p = game.placements[idx];
     _center = _px(p.x, p.y);
-    _ringRadiusPx = selectionRingRadiusM(p.type) * kPpm;
+    final spec = Catalog.of(p.type);
+    final diameter = (spec.radius ?? 0) * 2;
+    _partWidthPx = max(spec.w ?? 0, diameter) * kPpm;
+    _partHeightPx = max(spec.h ?? 0, diameter) * kPpm;
+    _partAngleRad = p.angleDeg * pi / 180;
+    _roundOutline = spec.w == null && spec.h == null && spec.radius != null;
     _showHandle = Catalog.of(p.type).rotatable;
     if (_showHandle) {
       final h = rotateHandleWorldPos(p);
@@ -586,9 +632,15 @@ class SelectionOverlay extends Component {
     }
     final del = deleteButtonWorldPos(p);
     _deleteCenter = _px(del.x, del.y);
-    _invalid = (game.rotatingIndex == idx || game.movingIndex == idx) &&
-        !canPlaceAt(game, p.type, Vector2(p.x, p.y), p.angleDeg,
-            excludeIndex: idx);
+    _invalid =
+        (game.rotatingIndex == idx || game.movingIndex == idx) &&
+        !canPlaceAt(
+          game,
+          p.type,
+          Vector2(p.x, p.y),
+          p.angleDeg,
+          excludeIndex: idx,
+        );
   }
 
   static Offset _px(double xM, double yM) => Offset(xM * kPpm, yM * kPpm);
@@ -596,17 +648,41 @@ class SelectionOverlay extends Component {
   @override
   void render(Canvas canvas) {
     if (!_visible) return;
-    final ringColor =
-        _invalid ? const Color(0xFFE53935) : _kRingValidColor;
-    _drawDashedCircle(
-      canvas,
-      _center,
-      _ringRadiusPx,
-      Paint()
-        ..color = ringColor
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = 6, // 스킨 패스: 살짝 두껍게(4 -> 6, hud.dart와 통일감)
-    );
+    final ringColor = _invalid ? const Color(0xFFE53935) : _kRingValidColor;
+    final outlinePaint = Paint()
+      ..color = ringColor
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 6;
+    if (_roundOutline) {
+      _drawDashedCircle(
+        canvas,
+        _center,
+        max(_partWidthPx, _partHeightPx) / 2 + 12,
+        outlinePaint,
+      );
+    } else {
+      // A long plank inside its old enclosing circle looked like a debug
+      // gizmo: the circle had to be as tall as the entire plank was wide.
+      // Show the selected physical footprint instead, while keeping the
+      // generous invisible ring-band hit target and handle geometry intact.
+      canvas.save();
+      canvas.translate(_center.dx, _center.dy);
+      canvas.rotate(_partAngleRad);
+      final rect = Rect.fromCenter(
+        center: Offset.zero,
+        width: _partWidthPx + 24,
+        height: _partHeightPx + 24,
+      );
+      canvas.drawRRect(
+        RRect.fromRectAndRadius(rect, const Radius.circular(14)),
+        Paint()..color = ringColor.withAlpha(34),
+      );
+      canvas.drawRRect(
+        RRect.fromRectAndRadius(rect, const Radius.circular(14)),
+        outlinePaint,
+      );
+      canvas.restore();
+    }
     if (_showHandle) {
       canvas.drawLine(
         _center,
@@ -616,7 +692,10 @@ class SelectionOverlay extends Component {
           ..strokeWidth = 3,
       );
       canvas.drawCircle(
-          _handlePos, 14, Paint()..color = const Color(0xFFFFC107));
+        _handlePos,
+        14,
+        Paint()..color = const Color(0xFFFFC107),
+      );
       canvas.drawCircle(
         _handlePos,
         14,
@@ -630,7 +709,10 @@ class SelectionOverlay extends Component {
       );
     }
     canvas.drawCircle(
-        _deleteCenter, 16, Paint()..color = const Color(0xFFFFFFFF));
+      _deleteCenter,
+      16,
+      Paint()..color = const Color(0xFFFFFFFF),
+    );
     canvas.drawCircle(
       _deleteCenter,
       16,
@@ -642,9 +724,15 @@ class SelectionOverlay extends Component {
     final xPaint = Paint()
       ..color = const Color(0xFFE53935)
       ..strokeWidth = 3;
-    canvas.drawLine(_deleteCenter.translate(-7, -7),
-        _deleteCenter.translate(7, 7), xPaint);
-    canvas.drawLine(_deleteCenter.translate(-7, 7),
-        _deleteCenter.translate(7, -7), xPaint);
+    canvas.drawLine(
+      _deleteCenter.translate(-7, -7),
+      _deleteCenter.translate(7, 7),
+      xPaint,
+    );
+    canvas.drawLine(
+      _deleteCenter.translate(-7, 7),
+      _deleteCenter.translate(7, -7),
+      xPaint,
+    );
   }
 }

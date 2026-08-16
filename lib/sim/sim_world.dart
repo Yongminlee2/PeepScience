@@ -9,9 +9,12 @@ import 'stage_data.dart';
 /// goal-counting) can identify what a body represents.
 class PartTag {
   const PartTag({this.part, this.preset = '', this.fromPreset = false});
-  final PartType? part; // set for catalog parts; null for platform/basket/button
-  final String preset; // 'platform' | 'basket' | 'button' (non-empty only for those)
-  final bool fromPreset; // true = came from stage.preset, false = player placement
+  final PartType?
+  part; // set for catalog parts; null for platform/basket/button
+  final String
+  preset; // 'platform' | 'basket' | 'button' (non-empty only for those)
+  final bool
+  fromPreset; // true = came from stage.preset, false = player placement
 }
 
 /// Fixture-level tag on the basket's inner sensor fixture.
@@ -19,6 +22,11 @@ const _basketSensorTag = 'basket_sensor';
 
 /// Fixture-level tag on the button's top-face press sensor fixture.
 const _buttonSensorTag = 'button_sensor';
+
+/// Fixture-level tag for the optional mastery collectible. It is deliberately
+/// separate from goal sensors: missing it can cost a bonus star but can never
+/// prevent the ordinary stage clear.
+const _collectibleStarSensorTag = 'collectible_star_sensor';
 
 class SimWorld {
   SimWorld(this.stage, this.placements) {
@@ -32,6 +40,7 @@ class SimWorld {
   bool cleared = false;
   int stepCount = 0;
   final List<Body> _destroyQueue = [];
+  final List<Body> _collectedStarQueue = [];
   final List<_FanZone> _fanZones = [];
   final List<_GearPin> _gearPins = [];
 
@@ -48,6 +57,7 @@ class SimWorld {
   int _presetBalloonTotal = 0;
   int _presetDominoTotal = 0;
   bool buttonPressed = false;
+  bool starCollected = false;
 
   void _build() {
     world.setContactListener(_GoalContactListener(this));
@@ -59,9 +69,18 @@ class SimWorld {
       } else if (p.type == 'button') {
         _buildButton(p);
       } else {
-        _buildCatalogBody(partTypeFromJson(p.type), p.x, p.y, p.angleDeg,
-            fromPreset: true);
+        _buildCatalogBody(
+          partTypeFromJson(p.type),
+          p.x,
+          p.y,
+          p.angleDeg,
+          fromPreset: true,
+        );
       }
+    }
+    final collectibleStar = stage.challenge?.collectibleStar;
+    if (collectibleStar != null) {
+      _buildCollectibleStar(collectibleStar);
     }
     for (final pl in placements) {
       _buildCatalogBody(pl.type, pl.x, pl.y, pl.angleDeg, fromPreset: false);
@@ -102,9 +121,9 @@ class SimWorld {
   }
 
   int _countFromPreset(PartType type) => world.bodies.where((b) {
-        final tag = b.userData as PartTag?;
-        return tag?.part == type && tag!.fromPreset;
-      }).length;
+    final tag = b.userData as PartTag?;
+    return tag?.part == type && tag!.fromPreset;
+  }).length;
 
   // Any catalog PartType -> single-fixture body (circle if the spec has a
   // radius, box otherwise), plus the couple of per-type extras wired in
@@ -112,28 +131,37 @@ class SimWorld {
   // plank/rubberBall/metalBall/balloon/domino/trampoline/seesaw fully, and is
   // a reasonable physical stand-in for the remaining joint/compound parts
   // (gear family, paddleGear, fan) — 관절·바람 등 타입별 추가 배선은 아래에서.
-  Body _buildCatalogBody(PartType type, double x, double y, double angleDeg,
-      {required bool fromPreset}) {
+  Body _buildCatalogBody(
+    PartType type,
+    double x,
+    double y,
+    double angleDeg, {
+    required bool fromPreset,
+  }) {
     final spec = Catalog.of(type);
     final isStatic = spec.density == null;
-    final body = world.createBody(BodyDef(
-      type: isStatic ? BodyType.static : BodyType.dynamic,
-      position: Vector2(x, y),
-      angle: angleDeg * pi / 180,
-      userData: PartTag(part: type, fromPreset: fromPreset),
-    ));
+    final body = world.createBody(
+      BodyDef(
+        type: isStatic ? BodyType.static : BodyType.dynamic,
+        position: Vector2(x, y),
+        angle: angleDeg * pi / 180,
+        userData: PartTag(part: type, fromPreset: fromPreset),
+      ),
+    );
     final shape = spec.radius != null
         ? CircleShape(radius: spec.radius!)
         : (PolygonShape()..setAsBoxXY(spec.w! / 2, spec.h! / 2));
-    body.createFixture(FixtureDef(
-      shape,
-      density: spec.density ?? 0,
-      friction: spec.friction,
-      restitution: spec.restitution,
-      // tack IS a sensor by definition (contract table) - never a solid
-      // obstacle, even though pop-on-touch is wired up in a later task.
-      isSensor: type == PartType.tack,
-    ));
+    body.createFixture(
+      FixtureDef(
+        shape,
+        density: spec.density ?? 0,
+        friction: spec.friction,
+        restitution: spec.restitution,
+        // tack IS a sensor by definition (contract table) - never a solid
+        // obstacle, even though pop-on-touch is wired up in a later task.
+        isSensor: type == PartType.tack,
+      ),
+    );
     if (!isStatic) {
       body.gravityScale = Vector2(spec.gravityScale, spec.gravityScale);
       if (spec.linearDamping != null) {
@@ -148,10 +176,9 @@ class SimWorld {
       // either side; without a limit here a free pivot just spins like a
       // propeller once anything uneven sits on one end (verified against
       // this exact failure while tuning the parts_test seesaw case).
-      final pin = world.createBody(BodyDef(
-        type: BodyType.static,
-        position: Vector2(x, y),
-      ));
+      final pin = world.createBody(
+        BodyDef(type: BodyType.static, position: Vector2(x, y)),
+      );
       final pivot = RevoluteJointDef()
         ..initialize(pin, body, body.worldCenter)
         ..enableLimit = true
@@ -165,22 +192,23 @@ class SimWorld {
         // Paddle arm straight through the gear's own center (spans both
         // sides). Same PartSpec drives both fixtures - it's the only
         // density/friction/restitution record paddleGear has.
-        body.createFixture(FixtureDef(
-          PolygonShape()..setAsBoxXY(spec.w! / 2, spec.h! / 2),
-          density: spec.density!,
-          friction: spec.friction,
-          restitution: spec.restitution,
-        ));
+        body.createFixture(
+          FixtureDef(
+            PolygonShape()..setAsBoxXY(spec.w! / 2, spec.h! / 2),
+            density: spec.density!,
+            friction: spec.friction,
+            restitution: spec.restitution,
+          ),
+        );
       }
       // Free-spinning revolute pin at the gear's own center - no angle
       // limit (unlike the seesaw), so a meshed pair's GearJoint can spin it
       // continuously.
       // 톱니 전달은 GearJoint 방식. 마찰 전달은 핀 고정 원끼리 수직항력이
       // 0이라 물리적으로 불가 — docs/개발일지.md 2차 참고.
-      final pin = world.createBody(BodyDef(
-        type: BodyType.static,
-        position: Vector2(x, y),
-      ));
+      final pin = world.createBody(
+        BodyDef(type: BodyType.static, position: Vector2(x, y)),
+      );
       final jointDef = RevoluteJointDef()
         ..initialize(pin, body, body.worldCenter);
       if (type == PartType.motorGear) {
@@ -198,38 +226,45 @@ class SimWorld {
   }
 
   void _buildPlatform(PresetObject p) {
-    final body = world.createBody(BodyDef(
-      type: BodyType.static,
-      position: Vector2(p.x, p.y),
-      angle: p.angleDeg * pi / 180,
-      userData: const PartTag(preset: 'platform', fromPreset: true),
-    ));
-    body.createFixture(FixtureDef(
-      PolygonShape()..setAsBoxXY(p.w! / 2, 0.2),
-      friction: 0.6,
-      restitution: 0.1,
-    ));
+    final body = world.createBody(
+      BodyDef(
+        type: BodyType.static,
+        position: Vector2(p.x, p.y),
+        angle: p.angleDeg * pi / 180,
+        userData: const PartTag(preset: 'platform', fromPreset: true),
+      ),
+    );
+    body.createFixture(
+      FixtureDef(
+        PolygonShape()..setAsBoxXY(p.w! / 2, 0.2),
+        friction: 0.6,
+        restitution: 0.1,
+      ),
+    );
   }
 
   void _buildButton(PresetObject p) {
-    final body = world.createBody(BodyDef(
-      type: BodyType.static,
-      position: Vector2(p.x, p.y),
-      angle: p.angleDeg * pi / 180,
-      userData: const PartTag(preset: 'button', fromPreset: true),
-    ));
-    body.createFixture(FixtureDef(
-      PolygonShape()..setAsBoxXY(0.4, 0.11),
-      friction: 0.5,
-    ));
+    final body = world.createBody(
+      BodyDef(
+        type: BodyType.static,
+        position: Vector2(p.x, p.y),
+        angle: p.angleDeg * pi / 180,
+        userData: const PartTag(preset: 'button', fromPreset: true),
+      ),
+    );
+    body.createFixture(
+      FixtureDef(PolygonShape()..setAsBoxXY(0.4, 0.11), friction: 0.5),
+    );
     // Top-face press sensor, straddling the box's top surface (local y =
     // -0.11 in this y-down frame) so it overlaps as soon as anything rests
     // on top, matching the basket sensor's "generous straddle" pattern.
-    body.createFixture(FixtureDef(
-      PolygonShape()..setAsBox(0.38, 0.05, Vector2(0, -0.11), 0),
-      isSensor: true,
-      userData: _buttonSensorTag,
-    ));
+    body.createFixture(
+      FixtureDef(
+        PolygonShape()..setAsBox(0.38, 0.05, Vector2(0, -0.11), 0),
+        isSensor: true,
+        userData: _buttonSensorTag,
+      ),
+    );
   }
 
   // Compound static body: floor + two side walls + an inner sensor fixture.
@@ -239,32 +274,59 @@ class SimWorld {
   //   the sensor is centered on the anchor so a ball resting on the floor
   //   (center at y=0 local) sits inside it.
   void _buildBasket(PresetObject p) {
-    final body = world.createBody(BodyDef(
-      type: BodyType.static,
-      position: Vector2(p.x, p.y),
-      angle: p.angleDeg * pi / 180,
-      userData: const PartTag(preset: 'basket', fromPreset: true),
-    ));
-    body.createFixture(FixtureDef(
-      PolygonShape()..setAsBox(0.5, 0.06, Vector2(0, 0.36), 0),
-      friction: 0.5,
-      restitution: 0.1,
-    ));
-    body.createFixture(FixtureDef(
-      PolygonShape()..setAsBox(0.06, 0.3, Vector2(-0.44, 0), 0),
-      friction: 0.5,
-      restitution: 0.1,
-    ));
-    body.createFixture(FixtureDef(
-      PolygonShape()..setAsBox(0.06, 0.3, Vector2(0.44, 0), 0),
-      friction: 0.5,
-      restitution: 0.1,
-    ));
-    body.createFixture(FixtureDef(
-      PolygonShape()..setAsBox(0.35, 0.175, Vector2(0, 0), 0),
-      isSensor: true,
-      userData: _basketSensorTag,
-    ));
+    final body = world.createBody(
+      BodyDef(
+        type: BodyType.static,
+        position: Vector2(p.x, p.y),
+        angle: p.angleDeg * pi / 180,
+        userData: const PartTag(preset: 'basket', fromPreset: true),
+      ),
+    );
+    body.createFixture(
+      FixtureDef(
+        PolygonShape()..setAsBox(0.5, 0.06, Vector2(0, 0.36), 0),
+        friction: 0.5,
+        restitution: 0.1,
+      ),
+    );
+    body.createFixture(
+      FixtureDef(
+        PolygonShape()..setAsBox(0.06, 0.3, Vector2(-0.44, 0), 0),
+        friction: 0.5,
+        restitution: 0.1,
+      ),
+    );
+    body.createFixture(
+      FixtureDef(
+        PolygonShape()..setAsBox(0.06, 0.3, Vector2(0.44, 0), 0),
+        friction: 0.5,
+        restitution: 0.1,
+      ),
+    );
+    body.createFixture(
+      FixtureDef(
+        PolygonShape()..setAsBox(0.35, 0.175, Vector2(0, 0), 0),
+        isSensor: true,
+        userData: _basketSensorTag,
+      ),
+    );
+  }
+
+  void _buildCollectibleStar(CollectibleStarSpec star) {
+    final body = world.createBody(
+      BodyDef(
+        type: BodyType.static,
+        position: Vector2(star.x, star.y),
+        userData: const PartTag(preset: 'collectible_star', fromPreset: true),
+      ),
+    );
+    body.createFixture(
+      FixtureDef(
+        CircleShape(radius: 0.28),
+        isSensor: true,
+        userData: _collectibleStarSensorTag,
+      ),
+    );
   }
 
   void step() {
@@ -274,6 +336,13 @@ class SimWorld {
       }
     }
     world.stepDt(dt);
+    // Contact callbacks run while the physics world is locked, so the star
+    // cannot be moved there. Hide it immediately after the step instead;
+    // the ordinary off-screen cleanup below then destroys its body safely.
+    for (final star in _collectedStarQueue) {
+      star.setTransform(Vector2(-100, -100), 0);
+    }
+    _collectedStarQueue.clear();
     for (final b in world.bodies.toList()) {
       final p = b.position;
       if (p.x < -2 || p.x > 18 || p.y > 11 || p.y < -2) _destroyQueue.add(b);
@@ -323,6 +392,12 @@ class SimWorld {
     }
   }
 
+  void _collectStar(Body starBody) {
+    if (starCollected || _collectedStarQueue.contains(starBody)) return;
+    starCollected = true;
+    _collectedStarQueue.add(starBody);
+  }
+
   static bool verify(StageData s, List<Placement> p, {int maxSteps = 1800}) {
     final w = SimWorld(s, p);
     for (var i = 0; i < maxSteps && !w.cleared; i++) {
@@ -347,13 +422,13 @@ class _GearPin {
 // +x/+y axes) are computed once here instead of every step.
 class _FanZone {
   _FanZone(Body fan, PartSpec spec)
-      : origin = fan.position.clone(),
-        dir = Vector2(cos(fan.angle), sin(fan.angle)),
-        perp = Vector2(-sin(fan.angle), cos(fan.angle)),
-        near = spec.w! / 2,
-        far = spec.w! / 2 + _zoneLength,
-        halfWidth = _zoneWidth / 2,
-        force = spec.windForce!;
+    : origin = fan.position.clone(),
+      dir = Vector2(cos(fan.angle), sin(fan.angle)),
+      perp = Vector2(-sin(fan.angle), cos(fan.angle)),
+      near = spec.w! / 2,
+      far = spec.w! / 2 + _zoneLength,
+      halfWidth = _zoneWidth / 2,
+      force = spec.windForce!;
 
   static const _zoneLength = 3.0;
   static const _zoneWidth = 0.8;
@@ -390,6 +465,7 @@ class _GoalContactListener extends ContactListener {
     _maybePopBalloon(a, b);
     _maybePressButton(a, b);
     _maybeBounce(a, b);
+    _maybeCollectStar(a, b);
   }
 
   bool _ballEnteredBasket(Fixture a, Fixture b) {
@@ -413,7 +489,8 @@ class _GoalContactListener extends ContactListener {
     }
   }
 
-  bool _isTack(Fixture f) => (f.body.userData as PartTag?)?.part == PartType.tack;
+  bool _isTack(Fixture f) =>
+      (f.body.userData as PartTag?)?.part == PartType.tack;
   bool _isBalloon(Fixture f) =>
       (f.body.userData as PartTag?)?.part == PartType.balloon;
 
@@ -441,4 +518,12 @@ class _GoalContactListener extends ContactListener {
 
   bool _isTrampoline(Fixture f) =>
       (f.body.userData as PartTag?)?.part == PartType.trampoline;
+
+  void _maybeCollectStar(Fixture a, Fixture b) {
+    if (a.userData == _collectibleStarSensorTag && _isDynamicSolid(b)) {
+      _sim._collectStar(a.body);
+    } else if (b.userData == _collectibleStarSensorTag && _isDynamicSolid(a)) {
+      _sim._collectStar(b.body);
+    }
+  }
 }

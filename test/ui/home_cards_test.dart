@@ -21,7 +21,7 @@ void main() {
     AppLang().value = 'system';
   });
 
-  testWidgets('클리어한 스테이지 수만큼 월드 카드에 진행도 칩(n/10)이 표시된다', (t) async {
+  testWidgets('클리어한 스테이지 수만큼 월드 카드에 진행도 칩(n/20)이 표시된다', (t) async {
     SharedPreferences.setMockInitialValues({
       'cleared_v1': ['w1_s01', 'w1_s02', 'w1_s03'],
     });
@@ -29,12 +29,41 @@ void main() {
     await t.pumpWidget(const PiyakScienceApp());
     await t.pumpAndSettle();
 
-    expect(find.text('3/10'), findsOneWidget); // world1: 3개 클리어
-    expect(find.text('0/10'), findsNWidgets(3)); // world2~4: 0개
+    expect(find.text('3/20'), findsOneWidget); // world1: 3개 클리어
+    expect(find.text('0/20'), findsNWidgets(3)); // world2~4: 0개
   });
 
-  testWidgets('배경 썸네일 로드가 실패하면 errorBuilder가 월드 고유색 컨테이너로 조용히 대체한다',
-      (t) async {
+  testWidgets('월드 카드 화살표로 11~20단계 페이지를 열 수 있다', (t) async {
+    SharedPreferences.setMockInitialValues({});
+    await _setSize(t, const Size(2000, 900));
+    await t.pumpWidget(const PiyakScienceApp());
+    await t.pumpAndSettle();
+
+    expect(find.byKey(const ValueKey('cell_w1_s01')), findsOneWidget);
+    expect(find.byKey(const ValueKey('cell_w1_s11')), findsNothing);
+
+    await t.tap(find.byKey(const ValueKey('stage_page_next_w1')));
+    await t.pumpAndSettle();
+
+    expect(find.byKey(const ValueKey('cell_w1_s01')), findsNothing);
+    expect(find.byKey(const ValueKey('cell_w1_s11')), findsOneWidget);
+    expect(find.text('11–20'), findsOneWidget);
+  });
+
+  testWidgets('짧은 가로형 휴대폰에서도 20단계 전환기가 넘치지 않는다', (t) async {
+    SharedPreferences.setMockInitialValues({});
+    await _setSize(t, const Size(780, 360));
+    await t.pumpWidget(const PiyakScienceApp());
+    await t.pumpAndSettle();
+
+    await t.tap(find.byKey(const ValueKey('stage_page_next_w1')));
+    await t.pumpAndSettle();
+
+    expect(find.byKey(const ValueKey('cell_w1_s20')), findsOneWidget);
+    expect(t.takeException(), isNull);
+  });
+
+  testWidgets('배경 썸네일 로드가 실패하면 errorBuilder가 월드 고유색 컨테이너로 조용히 대체한다', (t) async {
     SharedPreferences.setMockInitialValues({});
     await _setSize(t, const Size(2000, 900));
     await t.pumpWidget(const PiyakScienceApp());
@@ -44,17 +73,33 @@ void main() {
     // 로딩 성공/실패 타이밍(진짜 PNG 디코드라 runAsync 없인 test 안에서
     // 안 끝남)에 기대지 않고, errorBuilder 콜백 자체를 직접 호출해 그
     // 폴백 로직만 검증한다(명세의 "assert widget structure" 대안 경로).
-    final images = t.widgetList<Image>(find.byType(Image)).toList();
+    final images = t
+        .widgetList<Image>(find.byType(Image))
+        .where(
+          (image) =>
+              image.image is AssetImage &&
+              (image.image as AssetImage).assetName.startsWith(
+                'assets/images/bg/world',
+              ),
+        )
+        .toList();
     expect(images.length, 4);
 
     final context = t.element(find.byType(Image).first);
     for (final image in images) {
       expect(image.errorBuilder, isNotNull);
-      final fallback = image.errorBuilder!(context, Exception('no asset'), null);
+      final fallback = image.errorBuilder!(
+        context,
+        Exception('no asset'),
+        null,
+      );
       expect(fallback, isA<Container>());
       final color = (fallback as Container).color;
-      expect(worldCardColors.contains(color), isTrue,
-          reason: '폴백 색은 항상 월드 고유 팔레트 중 하나여야 한다');
+      expect(
+        worldCardColors.contains(color),
+        isTrue,
+        reason: '폴백 색은 항상 월드 고유 팔레트 중 하나여야 한다',
+      );
     }
   });
 }

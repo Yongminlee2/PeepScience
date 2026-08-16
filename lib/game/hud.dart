@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:math';
 
 import 'package:flame/components.dart';
@@ -6,8 +7,10 @@ import 'package:flame/particles.dart';
 import 'package:flutter/widgets.dart'
     show
         BlurStyle,
+        BlendMode,
         Canvas,
         Color,
+        ColorFilter,
         FontWeight,
         MaskFilter,
         Offset,
@@ -84,10 +87,10 @@ class TrayBar extends PositionComponent {
   // 1600x900 matches PiyakGame's fixed-resolution camera (16x9m * kPpm) -
   // see piyak_game.dart's CameraComponent.withFixedResolution call.
   TrayBar(this.game)
-      : super(
-          position: Vector2(0, 900 - barHeight),
-          size: Vector2(1600, barHeight),
-        );
+    : super(
+        position: Vector2(0, 900 - barHeight),
+        size: Vector2(1600, barHeight),
+      );
 
   static const double barHeight = 150;
   static const double slotSize = 120;
@@ -101,16 +104,318 @@ class TrayBar extends PositionComponent {
     for (var i = 0; i < game.stage.tray.length; i++) {
       add(_TraySlot(game, game.stage.tray[i], i));
     }
+
+    final infoX =
+        slotGap + game.stage.tray.length * (slotSize + slotGap) + 22.0;
+    final title =
+        '${S.stageLabel(game.stage.world, game.stage.index)}  ·  '
+        '${_goalText(game.stage.goal.type)}';
+    add(
+      TextComponent(
+        text: title,
+        position: Vector2(infoX, 42),
+        anchor: Anchor.centerLeft,
+        textRenderer: TextPaint(
+          style: const TextStyle(
+            color: _kOutline,
+            fontSize: 27,
+            fontWeight: FontWeight.w900,
+          ),
+        ),
+      ),
+    );
+    add(
+      TextComponent(
+        text: S.t('dragHint'),
+        position: Vector2(infoX, 91),
+        anchor: Anchor.centerLeft,
+        textRenderer: TextPaint(
+          style: const TextStyle(
+            color: Color(0xB84E342E),
+            fontSize: 18,
+            fontWeight: FontWeight.w700,
+          ),
+        ),
+      ),
+    );
   }
 
   @override
   void render(Canvas canvas) {
-    canvas.drawRect(Rect.fromLTWH(0, 0, size.x, size.y), Paint()..color = _kBarBg);
+    canvas.drawRect(
+      Rect.fromLTWH(0, 0, size.x, size.y),
+      Paint()..color = _kBarBg,
+    );
     // 초콜릿 상단 테두리 - 놀이판과 트레이 사이 경계를 사탕/스티커 재질로.
     canvas.drawRect(
       Rect.fromLTWH(0, 0, size.x, _kBarBorderWidth),
       Paint()..color = _kOutline,
     );
+  }
+}
+
+/// Compact predict-before-running prompt for the material comparison
+/// stages. It uses the same real ball sprites as the playfield so the two
+/// choices are recognizable before the child reads the text.
+class PredictionPanel extends PositionComponent {
+  PredictionPanel(this.game)
+    : super(position: Vector2(470, 20), size: Vector2(660, 108), priority: 10);
+
+  final PiyakGame game;
+  double _nudgeSeconds = 0;
+
+  @override
+  Future<void> onLoad() async {
+    add(
+      TextComponent(
+        text: S.t('predictionQuestion'),
+        position: Vector2(24, 33),
+        anchor: Anchor.centerLeft,
+        textRenderer: TextPaint(
+          style: const TextStyle(
+            color: _kOutline,
+            fontSize: 23,
+            fontWeight: FontWeight.w900,
+          ),
+        ),
+      ),
+    );
+    add(
+      TextComponent(
+        text: S.t('predictionHint'),
+        position: Vector2(24, 76),
+        anchor: Anchor.centerLeft,
+        textRenderer: TextPaint(
+          style: const TextStyle(
+            color: Color(0xB84E342E),
+            fontSize: 16,
+            fontWeight: FontWeight.w700,
+          ),
+        ),
+      ),
+    );
+    add(
+      PredictionChoiceButton(
+        game,
+        PartType.rubberBall,
+        position: Vector2(470, 11),
+      ),
+    );
+    add(
+      PredictionChoiceButton(
+        game,
+        PartType.metalBall,
+        position: Vector2(565, 11),
+      ),
+    );
+  }
+
+  void nudge() => _nudgeSeconds = 0.7;
+
+  @override
+  void update(double dt) {
+    super.update(dt);
+    _nudgeSeconds = max(0, _nudgeSeconds - dt);
+  }
+
+  @override
+  void render(Canvas canvas) {
+    _drawStickerCard(canvas, Rect.fromLTWH(0, 0, size.x, size.y), 24, _kCardBg);
+    if (_nudgeSeconds > 0) {
+      canvas.drawRRect(
+        RRect.fromRectAndRadius(
+          Rect.fromLTWH(4, 4, size.x - 8, size.y - 8),
+          const Radius.circular(20),
+        ),
+        Paint()
+          ..color = _kCandyCoralFill
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = 6,
+      );
+    }
+  }
+}
+
+class PredictionChoiceButton extends PositionComponent {
+  PredictionChoiceButton(this.game, this.type, {required Vector2 position})
+    : super(position: position, size: Vector2.all(86));
+
+  final PiyakGame game;
+  final PartType type;
+  Sprite? _sprite;
+
+  @override
+  Future<void> onLoad() async {
+    unawaited(_loadSprite());
+  }
+
+  Future<void> _loadSprite() async {
+    _sprite = await Sprite.load('parts/${jsonIdOf(type)}.png');
+  }
+
+  void activate() => game.selectPrediction(type);
+
+  @override
+  void render(Canvas canvas) {
+    final selected = game.predictionChoice == type;
+    _drawStickerCard(
+      canvas,
+      Rect.fromLTWH(0, 0, size.x, size.y),
+      18,
+      selected ? const Color(0xFFFFF0B8) : _kCardBg,
+    );
+    if (selected) {
+      canvas.drawRRect(
+        RRect.fromRectAndRadius(
+          Rect.fromLTWH(5, 5, size.x - 10, size.y - 10),
+          const Radius.circular(14),
+        ),
+        Paint()
+          ..color = _kCountChip
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = 5,
+      );
+    }
+    _sprite?.render(canvas, position: Vector2.all(11), size: Vector2.all(64));
+  }
+}
+
+/// A three-beat visual sentence for stages whose fun comes from watching
+/// motion transfer between several objects.
+class ChainReactionRibbon extends PositionComponent {
+  ChainReactionRibbon(this.game)
+    : super(position: Vector2(136, 20), size: Vector2(320, 96), priority: 5);
+
+  final PiyakGame game;
+  final List<Sprite?> _sprites = List<Sprite?>.filled(3, null);
+
+  List<String> get _paths => switch (game.stage.goal.type) {
+    GoalType.toppleDominoes => const [
+      'parts/rubber_ball.png',
+      'parts/domino.png',
+      'parts/domino.png',
+    ],
+    GoalType.popBalloons => const [
+      'parts/fan.png',
+      'parts/balloon.png',
+      'parts/tack.png',
+    ],
+    _ => const [
+      'parts/motor_gear.png',
+      'parts/paddle_gear.png',
+      'parts/basket.png',
+    ],
+  };
+
+  @override
+  Future<void> onLoad() async {
+    add(
+      TextComponent(
+        text: S.t('chainReaction'),
+        position: Vector2(160, 13),
+        anchor: Anchor.topCenter,
+        textRenderer: TextPaint(
+          style: const TextStyle(
+            color: _kOutline,
+            fontSize: 15,
+            fontWeight: FontWeight.w900,
+          ),
+        ),
+      ),
+    );
+    for (var i = 0; i < _paths.length; i++) {
+      final index = i;
+      unawaited(Sprite.load(_paths[i]).then((s) => _sprites[index] = s));
+    }
+  }
+
+  @override
+  void render(Canvas canvas) {
+    _drawStickerCard(canvas, Rect.fromLTWH(0, 0, size.x, size.y), 22, _kCardBg);
+    final progress = game.sim?.cleared == true
+        ? 3
+        : game.mode == GameMode.run
+        ? 2
+        : 1;
+    for (var i = 0; i < 3; i++) {
+      final center = Offset(72.0 + i * 88, 61);
+      if (i < 2) {
+        for (var dot = 0; dot < 4; dot++) {
+          canvas.drawCircle(
+            Offset(center.dx + 31 + dot * 9, center.dy),
+            2.5,
+            Paint()..color = const Color(0x884E342E),
+          );
+        }
+      }
+      canvas.drawCircle(
+        center,
+        25,
+        Paint()..color = i < progress ? const Color(0xFFFFF0B8) : _kCardBg,
+      );
+      final sprite = _sprites[i];
+      sprite?.render(
+        canvas,
+        position: Vector2(center.dx - 21, center.dy - 21),
+        size: Vector2.all(42),
+      );
+    }
+  }
+}
+
+class ChallengeRibbon extends PositionComponent {
+  ChallengeRibbon(this.game)
+    : super(position: Vector2(136, 20), size: Vector2(360, 96), priority: 5);
+
+  final PiyakGame game;
+  Sprite? _star;
+
+  @override
+  Future<void> onLoad() async {
+    unawaited(Sprite.load('parts/collectible_star.png').then((s) => _star = s));
+    add(
+      TextComponent(
+        text: S.t('challengeTitle'),
+        position: Vector2(24, 25),
+        anchor: Anchor.centerLeft,
+        textRenderer: TextPaint(
+          style: const TextStyle(
+            color: _kOutline,
+            fontSize: 18,
+            fontWeight: FontWeight.w900,
+          ),
+        ),
+      ),
+    );
+    add(
+      TextComponent(
+        text: '${S.t('partLimit')}  ${game.stage.challenge!.partLimit}',
+        position: Vector2(24, 67),
+        anchor: Anchor.centerLeft,
+        textRenderer: TextPaint(
+          style: const TextStyle(
+            color: Color(0xB84E342E),
+            fontSize: 16,
+            fontWeight: FontWeight.w800,
+          ),
+        ),
+      ),
+    );
+  }
+
+  @override
+  void render(Canvas canvas) {
+    _drawStickerCard(canvas, Rect.fromLTWH(0, 0, size.x, size.y), 22, _kCardBg);
+    final star = _star;
+    if (star != null) {
+      for (var i = 0; i < 3; i++) {
+        star.render(
+          canvas,
+          position: Vector2(245 + i * 36, 29),
+          size: Vector2.all(34),
+        );
+      }
+    }
   }
 }
 
@@ -121,16 +426,17 @@ class TrayBar extends PositionComponent {
 /// its type is removed (Task 8's delete needs no extra bookkeeping here).
 class _TraySlot extends PositionComponent with DragCallbacks {
   _TraySlot(this.game, this.entry, int index)
-      : super(
-          position: Vector2(
-            TrayBar.slotGap + index * (TrayBar.slotSize + TrayBar.slotGap),
-            TrayBar.slotMarginTop,
-          ),
-          size: Vector2.all(TrayBar.slotSize),
-        );
+    : super(
+        position: Vector2(
+          TrayBar.slotGap + index * (TrayBar.slotSize + TrayBar.slotGap),
+          TrayBar.slotMarginTop,
+        ),
+        size: Vector2.all(TrayBar.slotSize),
+      );
 
   final PiyakGame game;
   final TrayEntry entry;
+  Sprite? _sprite;
 
   late final TextComponent _countLabel = TextComponent(
     text: '$_remaining',
@@ -161,6 +467,20 @@ class _TraySlot extends PositionComponent with DragCallbacks {
   @override
   Future<void> onLoad() async {
     add(_countLabel);
+    // The slot must become interactive immediately. Image decoding can take
+    // a few frames on first launch (especially now that every part has real
+    // art), so do not hold DragCallbacks mounting behind that I/O. The
+    // colored fallback renders until the sprite is ready, then the next
+    // frame picks it up automatically.
+    unawaited(_loadSprite());
+  }
+
+  Future<void> _loadSprite() async {
+    final relPath = 'parts/${jsonIdOf(entry.type)}.png';
+    final manifest = await loadAssetManifestPaths();
+    if (manifest.contains('assets/images/$relPath')) {
+      _sprite = await Sprite.load(relPath);
+    }
   }
 
   @override
@@ -175,19 +495,39 @@ class _TraySlot extends PositionComponent with DragCallbacks {
     final rect = Rect.fromLTWH(0, 0, size.x, size.y);
     _drawStickerCard(canvas, rect, 14, empty ? _kSlotEmptyBg : _kCardBg);
     final partCenter = Offset(size.x / 2, size.y / 2 - 10);
-    canvas.drawCircle(
-      partCenter,
-      26,
-      Paint()..color = Color(Catalog.of(entry.type).color),
-    );
-    canvas.drawCircle(
-      partCenter,
-      26,
-      Paint()
-        ..color = _kOutline
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = 2.5,
-    );
+    final sprite = _sprite;
+    if (sprite != null) {
+      const maxW = 84.0;
+      const maxH = 58.0;
+      final scale = min(maxW / sprite.srcSize.x, maxH / sprite.srcSize.y);
+      final drawSize = sprite.srcSize * scale;
+      sprite.render(
+        canvas,
+        position: Vector2(
+          partCenter.dx - drawSize.x / 2,
+          partCenter.dy - drawSize.y / 2,
+        ),
+        size: drawSize,
+        overridePaint: empty
+            ? (Paint()..color = const Color(0x88FFFFFF))
+            : null,
+      );
+    } else {
+      // Asset failure remains non-fatal, matching PartView's fallback rule.
+      canvas.drawCircle(
+        partCenter,
+        26,
+        Paint()..color = Color(Catalog.of(entry.type).color),
+      );
+      canvas.drawCircle(
+        partCenter,
+        26,
+        Paint()
+          ..color = _kOutline
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = 2.5,
+      );
+    }
     // 개수 칩 - 작은 캔디 원 위에 개수를 얹어(_countLabel, child라 이 뒤에
     // 그려짐) "정체불명 박스"가 아니라 라벨 있는 카드로 읽히게 한다.
     final chipCenter = Offset(size.x / 2, size.y - 20);
@@ -281,7 +621,12 @@ class _TraySlot extends PositionComponent with DragCallbacks {
     ghost?.removeFromParent();
     if (result != null && result.valid) {
       game.addPlacement(
-        Placement(type: entry.type, x: result.pos.x, y: result.pos.y, angleDeg: 0),
+        Placement(
+          type: entry.type,
+          x: result.pos.x,
+          y: result.pos.y,
+          angleDeg: 0,
+        ),
       );
       // Auto-select on drop (owner-approved UX overhaul, Improvement A) -
       // addPlacement() only ever appends, so the new entry is always the
@@ -353,13 +698,13 @@ class _TraySlot extends PositionComponent with DragCallbacks {
 /// on a real device).
 class RunToggleButton extends PositionComponent {
   RunToggleButton(this.game)
-      : super(
-          position: Vector2(
-            1600 - margin - buttonDiameter,
-            900 - TrayBar.barHeight - margin - buttonDiameter,
-          ),
-          size: Vector2.all(buttonDiameter),
-        );
+    : super(
+        position: Vector2(
+          1600 - margin - buttonDiameter,
+          900 - TrayBar.barHeight - margin - buttonDiameter,
+        ),
+        size: Vector2.all(buttonDiameter),
+      );
 
   static const double buttonDiameter = 120;
   static const double margin = 20;
@@ -373,6 +718,11 @@ class RunToggleButton extends PositionComponent {
   /// [PiyakGame]'s synthesized-tap dispatch.
   void activate() {
     if (game.mode == GameMode.edit) {
+      if (!game.canStartRun) {
+        Sound.play(Sfx.tap);
+        game.nudgePrediction();
+        return;
+      }
       game.startRun();
     } else if (game.sim?.cleared != true) {
       game.resetToEdit();
@@ -446,7 +796,7 @@ class RunToggleButton extends PositionComponent {
 /// piyak_game.dart's "Real-finger tap synthesis" comment).
 class GoalBadge extends PositionComponent {
   GoalBadge(this.game)
-      : super(position: Vector2.all(margin), size: Vector2.all(cardSize));
+    : super(position: Vector2.all(margin), size: Vector2.all(cardSize));
 
   static const double margin = 20;
   static const double cardSize = 96;
@@ -500,29 +850,36 @@ class GoalBadge extends PositionComponent {
   void _drawBasket(Canvas canvas, Offset c) {
     final paint = Paint()..color = const Color(0xFFFFD54F);
     canvas.drawRect(
-        Rect.fromCenter(center: c.translate(0, 14), width: 46, height: 10),
-        paint);
+      Rect.fromCenter(center: c.translate(0, 14), width: 46, height: 10),
+      paint,
+    );
     canvas.drawRect(
-        Rect.fromCenter(center: c.translate(-20, 0), width: 8, height: 30),
-        paint);
+      Rect.fromCenter(center: c.translate(-20, 0), width: 8, height: 30),
+      paint,
+    );
     canvas.drawRect(
-        Rect.fromCenter(center: c.translate(20, 0), width: 8, height: 30),
-        paint);
+      Rect.fromCenter(center: c.translate(20, 0), width: 8, height: 30),
+      paint,
+    );
   }
 
   // Mini button: same half-round dome as PartView._renderButton.
   void _drawButton(Canvas canvas, Offset c) {
     final rect = Rect.fromCircle(center: c.translate(0, 8), radius: 26);
     canvas.drawArc(
-        rect, pi, pi, true, Paint()..color = const Color(0xFFEF9A9A));
+      rect,
+      pi,
+      pi,
+      true,
+      Paint()..color = const Color(0xFFEF9A9A),
+    );
   }
 
   // Mini balloon: same oval+string as PartView._renderBalloon.
   void _drawBalloon(Canvas canvas, Offset c) {
     final paint = Paint()..color = const Color(0xFFF48FB1);
     final top = c.translate(0, -6);
-    canvas.drawOval(
-        Rect.fromCenter(center: top, width: 34, height: 42), paint);
+    canvas.drawOval(Rect.fromCenter(center: top, width: 34, height: 42), paint);
     canvas.drawLine(
       top.translate(0, 21),
       top.translate(0, 34),
@@ -536,13 +893,16 @@ class GoalBadge extends PositionComponent {
   void _drawDominoes(Canvas canvas, Offset c) {
     final paint = Paint()..color = const Color(0xFFFFCC80);
     canvas.drawRect(
-        Rect.fromCenter(center: c.translate(-10, 6), width: 14, height: 40),
-        paint);
+      Rect.fromCenter(center: c.translate(-10, 6), width: 14, height: 40),
+      paint,
+    );
     canvas.save();
     canvas.translate(c.dx + 16, c.dy + 16);
     canvas.rotate(0.9);
     canvas.drawRect(
-        Rect.fromCenter(center: Offset.zero, width: 14, height: 40), paint);
+      Rect.fromCenter(center: Offset.zero, width: 14, height: 40),
+      paint,
+    );
     canvas.restore();
   }
 }
@@ -563,58 +923,199 @@ class GoalBadge extends PositionComponent {
 /// `Component._remove`) can never linger into edit mode or a fresh run.
 class WinOverlay extends PositionComponent {
   WinOverlay(this.game)
-      : super(
-          position: Vector2.zero(),
-          size: Vector2(1600, 900),
-          priority: 100,
-        );
+    : super(position: Vector2.zero(), size: Vector2(1600, 900), priority: 100);
 
   final PiyakGame game;
+  Sprite? _starSprite;
 
-  static const double buttonSize = 140;
-  static const Offset retryButtonCenter = Offset(710, 600);
-  static const Offset nextButtonCenter = Offset(890, 600);
+  static const double buttonSize = 130;
+  static const Offset retryButtonCenter = Offset(700, 635);
+  static const Offset nextButtonCenter = Offset(900, 635);
+  static const Rect panelRect = Rect.fromLTWH(420, 130, 760, 640);
 
   @override
   Future<void> onLoad() async {
+    // The overlay and its buttons must mount in the exact clear frame. Star
+    // decoding is allowed to finish a few frames later, just like tray art;
+    // otherwise an immediate real-finger retry tap can land before the
+    // overlay exists.
+    unawaited(
+      Sprite.load('parts/collectible_star.png').then((s) => _starSprite = s),
+    );
     // 폭죽: 원 파티클 40개짜리 방사형 버스트를 화면 위쪽 세 곳에서 동시에.
     add(_confettiBurst(Vector2(420, 260)));
     add(_confettiBurst(Vector2(800, 200)));
     add(_confettiBurst(Vector2(1180, 260)));
-    add(TextComponent(
-      text: S.t('clear'),
-      position: Vector2(800, 380),
-      anchor: Anchor.center,
-      textRenderer: TextPaint(
-        style: const TextStyle(
-          color: Color(0xFFFFFFFF),
-          fontSize: 96,
-          fontWeight: FontWeight.w900,
+    add(
+      TextComponent(
+        text: S.t('clear'),
+        position: Vector2(800, 245),
+        anchor: Anchor.center,
+        textRenderer: TextPaint(
+          style: const TextStyle(
+            color: _kOutline,
+            fontSize: 82,
+            fontWeight: FontWeight.w900,
+          ),
         ),
       ),
-    ));
-    add(WinOverlayButton(
-      center: retryButtonCenter,
-      size: buttonSize,
-      draw: _drawRetryIcon,
-      onTap: game.resetToEdit,
-    ));
-    add(WinOverlayButton(
-      center: nextButtonCenter,
-      size: buttonSize,
-      draw: _drawNextIcon,
-      onTap: () => game.onNextRequested?.call(),
-    ));
+    );
+    add(
+      TextComponent(
+        text: S.t('clearMessage'),
+        position: Vector2(800, 410),
+        anchor: Anchor.center,
+        textRenderer: TextPaint(
+          style: const TextStyle(
+            color: _kOutline,
+            fontSize: 28,
+            fontWeight: FontWeight.w800,
+          ),
+        ),
+      ),
+    );
+    add(
+      TextComponent(
+        text: '${S.t('starsEarned')}  ${game.earnedStars}/3',
+        position: Vector2(800, 465),
+        anchor: Anchor.center,
+        textRenderer: TextPaint(
+          style: const TextStyle(
+            color: _kOutline,
+            fontSize: 23,
+            fontWeight: FontWeight.w900,
+          ),
+        ),
+      ),
+    );
+    if (game.stage.prediction != null) {
+      add(
+        TextComponent(
+          text: game.predictionChoice == game.stage.prediction!.answer
+              ? S.t('predictionCorrect')
+              : S.t('predictionWrong'),
+          position: Vector2(800, 505),
+          anchor: Anchor.center,
+          textRenderer: TextPaint(
+            style: TextStyle(
+              color: game.predictionChoice == game.stage.prediction!.answer
+                  ? _kCandyGreenBand
+                  : _kCandyCoralBand,
+              fontSize: 20,
+              fontWeight: FontWeight.w900,
+            ),
+          ),
+        ),
+      );
+    }
+    add(
+      TextComponent(
+        text: '${S.t('scienceNote')} · ${_scienceFact(game.stage.goal.type)}',
+        position: Vector2(800, game.stage.prediction == null ? 515 : 535),
+        anchor: Anchor.center,
+        textRenderer: TextPaint(
+          style: const TextStyle(
+            color: Color(0xCC4E342E),
+            fontSize: 21,
+            fontWeight: FontWeight.w700,
+          ),
+        ),
+      ),
+    );
+    add(
+      WinOverlayButton(
+        center: retryButtonCenter,
+        size: buttonSize,
+        draw: _drawRetryIcon,
+        onTap: game.resetToEdit,
+      ),
+    );
+    add(
+      WinOverlayButton(
+        center: nextButtonCenter,
+        size: buttonSize,
+        draw: _drawNextIcon,
+        onTap: () => game.onNextRequested?.call(),
+      ),
+    );
+    add(
+      TextComponent(
+        text: S.t('retry'),
+        position: Vector2(retryButtonCenter.dx, 710),
+        anchor: Anchor.topCenter,
+        textRenderer: TextPaint(
+          style: const TextStyle(
+            color: _kOutline,
+            fontSize: 22,
+            fontWeight: FontWeight.w900,
+          ),
+        ),
+      ),
+    );
+    add(
+      TextComponent(
+        text: S.t('next'),
+        position: Vector2(nextButtonCenter.dx, 710),
+        anchor: Anchor.topCenter,
+        textRenderer: TextPaint(
+          style: const TextStyle(
+            color: _kOutline,
+            fontSize: 22,
+            fontWeight: FontWeight.w900,
+          ),
+        ),
+      ),
+    );
   }
 
   @override
   void render(Canvas canvas) {
     canvas.drawRect(
       Rect.fromLTWH(0, 0, size.x, size.y),
-      Paint()..color = const Color(0xB0000000),
+      Paint()..color = const Color(0x99000000),
     );
+    _drawStickerCard(canvas, panelRect, 36, _kCardBg);
+    canvas.drawRRect(
+      RRect.fromRectAndRadius(
+        const Rect.fromLTWH(570, 155, 460, 16),
+        const Radius.circular(8),
+      ),
+      Paint()..color = _kCountChip,
+    );
+    final star = _starSprite;
+    if (star != null) {
+      for (var i = 0; i < 3; i++) {
+        final inactive = i >= game.earnedStars;
+        star.render(
+          canvas,
+          position: Vector2(692 + i * 74, 290),
+          size: Vector2.all(68),
+          overridePaint: inactive
+              ? (Paint()
+                  ..colorFilter = const ColorFilter.mode(
+                    Color(0x558C8C8C),
+                    BlendMode.srcIn,
+                  ))
+              : null,
+        );
+      }
+    }
   }
 }
+
+String _goalText(GoalType type) => switch (type) {
+  GoalType.ballInBasket => S.t('goalBasket'),
+  GoalType.pressButton => S.t('goalButton'),
+  GoalType.popBalloons => S.t('goalBalloons'),
+  GoalType.toppleDominoes => S.t('goalDominoes'),
+};
+
+String _scienceFact(GoalType type) => switch (type) {
+  GoalType.ballInBasket => S.t('factBasket'),
+  GoalType.pressButton => S.t('factButton'),
+  GoalType.popBalloons => S.t('factBalloons'),
+  GoalType.toppleDominoes => S.t('factDominoes'),
+};
 
 /// One [WinOverlay] action button: filled rounded square with a
 /// caller-drawn icon, >=100px per side (shared-contract touch-target
@@ -632,9 +1133,9 @@ class WinOverlayButton extends PositionComponent {
     required this.draw,
     required this.onTap,
   }) : super(
-          position: Vector2(center.dx - size / 2, center.dy - size / 2),
-          size: Vector2.all(size),
-        );
+         position: Vector2(center.dx - size / 2, center.dy - size / 2),
+         size: Vector2.all(size),
+       );
 
   final void Function(Canvas canvas, Offset center, double radius) draw;
   final VoidCallback onTap;
@@ -656,7 +1157,12 @@ void _drawRetryIcon(Canvas canvas, Offset c, double r) {
   const start = -pi * 0.65;
   const sweep = pi * 1.5;
   canvas.drawArc(
-      Rect.fromCircle(center: c, radius: r), start, sweep, false, paint);
+    Rect.fromCircle(center: c, radius: r),
+    start,
+    sweep,
+    false,
+    paint,
+  );
   final tipAngle = start + sweep;
   final tip = Offset(c.dx + r * cos(tipAngle), c.dy + r * sin(tipAngle));
   canvas.save();
@@ -723,14 +1229,39 @@ ParticleSystemComponent _confettiBurst(Vector2 origin) {
   );
 }
 
+/// Short mint/gold sparkle used where the optional collectible disappears.
+/// The collectible itself is a raster asset; these particles are only the
+/// transient pickup feedback.
+ParticleSystemComponent starPickupBurst(Vector2 origin) {
+  final rng = Random();
+  return ParticleSystemComponent(
+    position: origin,
+    priority: 50,
+    particle: Particle.generate(
+      count: 24,
+      lifespan: 0.65,
+      generator: (i) {
+        final angle = rng.nextDouble() * 2 * pi;
+        final speed = 90 + rng.nextDouble() * 150;
+        final paint = Paint()
+          ..color = i.isEven ? const Color(0xFF80CBC4) : _kCountChip;
+        return _starParticle(5 + rng.nextDouble() * 4, paint).accelerated(
+          acceleration: Vector2(0, 160),
+          speed: Vector2(cos(angle), sin(angle)) * speed,
+        );
+      },
+    ),
+  );
+}
+
 // 작은 4갈래 별(스파클) 파티클 - CircleParticle과 섞어 폭죽에 모양 다양성을
 // 더한다. ComputedParticle의 renderer는 이미 파티클 자신의 현재 위치로
 // 캔버스가 translate된 상태로 호출되므로(flame AcceleratedParticle.render
 // 소스 확인 완료 - CircleParticle도 같은 이유로 Offset.zero에 그린다),
 // Offset.zero를 중심으로 그리면 된다.
 Particle _starParticle(double r, Paint paint) => ComputedParticle(
-      renderer: (canvas, particle) => _drawStar(canvas, r, paint),
-    );
+  renderer: (canvas, particle) => _drawStar(canvas, r, paint),
+);
 
 void _drawStar(Canvas canvas, double r, Paint paint) {
   final path = Path()

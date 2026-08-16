@@ -22,8 +22,9 @@ const double kPpm = 100.0;
 /// PartViews rebuilt per mode switch, see `PiyakGame._rebuildViews`).
 Future<Set<String>>? _manifestFuture;
 Future<Set<String>> loadAssetManifestPaths() {
-  return _manifestFuture ??= AssetManifest.loadFromAssetBundle(rootBundle)
-      .then((m) => m.listAssets().toSet());
+  return _manifestFuture ??= AssetManifest.loadFromAssetBundle(
+    rootBundle,
+  ).then((m) => m.listAssets().toSet());
 }
 
 /// Sprite path (relative to Flame's default `assets/images/` prefix) for a
@@ -38,6 +39,7 @@ String? _spriteRelPath(PartType? part, String preset) {
   if (preset == 'platform') return 'parts/platform_tile.png';
   if (preset == 'basket') return 'parts/basket.png';
   if (preset == 'button') return 'parts/button.png';
+  if (preset == 'collectible_star') return 'parts/collectible_star.png';
   if (part == null) return null;
   return 'parts/${jsonIdOf(part)}.png';
 }
@@ -60,11 +62,11 @@ class PartView extends PositionComponent {
     required Vector2 posM,
     required double angleRad,
   }) : super(
-          position: posM * kPpm,
-          angle: angleRad,
-          anchor: Anchor.center,
-          size: _sizeFor(part, preset, platformWidthM),
-        );
+         position: posM * kPpm,
+         angle: angleRad,
+         anchor: Anchor.center,
+         size: _sizeFor(part, preset, platformWidthM),
+       );
 
   /// null in edit mode (nothing to follow); set in run mode.
   final Body? body;
@@ -105,13 +107,16 @@ class PartView extends PositionComponent {
     _sprite = await Sprite.load(relPath);
   }
 
-  late final Paint _fill = Paint()..color = ghostColor ?? _colorFrom(_colorArgb);
+  late final Paint _fill = Paint()
+    ..color = ghostColor ?? _colorFrom(_colorArgb);
   late final Paint _stroke = Paint()
     ..color = ghostColor?.withAlpha(220) ?? const Color(0x66263238)
     ..style = PaintingStyle.stroke
     ..strokeWidth = 2.5;
-  late final Paint _highlight = Paint()..color = ghostColor ?? const Color(0x99FFFFFF);
-  late final Paint _accent = Paint()..color = ghostColor ?? const Color(0xFF37474F);
+  late final Paint _highlight = Paint()
+    ..color = ghostColor ?? const Color(0x99FFFFFF);
+  late final Paint _accent = Paint()
+    ..color = ghostColor ?? const Color(0xFF37474F);
   late final Paint _zigzag = Paint()
     ..color = ghostColor ?? const Color(0xFF37474F)
     ..style = PaintingStyle.stroke
@@ -121,10 +126,10 @@ class PartView extends PositionComponent {
   // 않으므로(트레이는 PartType만 드래그하고 platform은 preset 전용) 아래
   // ghostColor 분기는 실제로는 안 타지만, 이 파일의 다른 모든 Paint 필드와
   // 문체를 맞추기 위해 그대로 남긴다.
-  late final Paint _platformFill =
-      Paint()..color = ghostColor ?? const Color(0xFFC68958);
-  late final Paint _platformBand =
-      Paint()..color = ghostColor ?? const Color(0xFFB07A48);
+  late final Paint _platformFill = Paint()
+    ..color = ghostColor ?? const Color(0xFFC68958);
+  late final Paint _platformBand = Paint()
+    ..color = ghostColor ?? const Color(0xFFB07A48);
   late final Paint _platformGrain = Paint()
     ..color = ghostColor?.withAlpha(160) ?? const Color(0x334E342E)
     ..strokeWidth = 2;
@@ -147,6 +152,8 @@ class PartView extends PositionComponent {
         return 0xFFFFD54F; // pastel gold (goal object)
       case 'button':
         return 0xFFEF9A9A; // pastel red (goal object)
+      case 'collectible_star':
+        return 0xFF80CBC4; // mint bonus collectible
       default:
         return 0xFFCCCCCC;
     }
@@ -255,8 +262,7 @@ class PartView extends PositionComponent {
     }
     _squashElapsedS = next;
     final decay = 1 - next / kSquashDurationS;
-    scale =
-        Vector2(1 + kSquashScaleBump * decay, 1 - kSquashScaleBump * decay);
+    scale = Vector2(1 + kSquashScaleBump * decay, 1 - kSquashScaleBump * decay);
   }
 
   // 흙먼지 퍼프: 짧게 사는 원 파티클 6~10개. 이 PartView 자신이 아니라
@@ -268,25 +274,27 @@ class PartView extends PositionComponent {
   // 필요 없다.
   void _spawnDustPuff() {
     final rng = Random();
-    parent?.add(ParticleSystemComponent(
-      position: position.clone(),
-      particle: Particle.generate(
-        count: 6 + rng.nextInt(5),
-        lifespan: kDustLifespanS,
-        generator: (i) {
-          final a = rng.nextDouble() * 2 * pi;
-          final speed = 30 + rng.nextDouble() * 60;
-          return CircleParticle(
-            radius: 2 + rng.nextDouble() * 2,
-            paint: Paint()
-              ..color = _kDustColors[rng.nextInt(_kDustColors.length)],
-          ).accelerated(
-            acceleration: Vector2(0, 60),
-            speed: Vector2(cos(a), sin(a)) * speed,
-          );
-        },
+    parent?.add(
+      ParticleSystemComponent(
+        position: position.clone(),
+        particle: Particle.generate(
+          count: 6 + rng.nextInt(5),
+          lifespan: kDustLifespanS,
+          generator: (i) {
+            final a = rng.nextDouble() * 2 * pi;
+            final speed = 30 + rng.nextDouble() * 60;
+            return CircleParticle(
+              radius: 2 + rng.nextDouble() * 2,
+              paint: Paint()
+                ..color = _kDustColors[rng.nextInt(_kDustColors.length)],
+            ).accelerated(
+              acceleration: Vector2(0, 60),
+              speed: Vector2(cos(a), sin(a)) * speed,
+            );
+          },
+        ),
       ),
-    ));
+    );
   }
 
   @override
@@ -332,6 +340,10 @@ class PartView extends PositionComponent {
         _renderBasket(canvas);
       case _Shape.button:
         _renderButton(canvas);
+      case _Shape.collectible:
+        // The collectible is a real raster asset. If that asset is missing,
+        // render nothing rather than substituting unrelated debug geometry.
+        return;
     }
   }
 
@@ -341,7 +353,11 @@ class PartView extends PositionComponent {
   // 명세의 "your call" 선택). 고스트 프리뷰(드래그 중 미리보기)도 제외 -
   // 아직 놓이지 않은 부품에 그림자는 과함.
   void _renderShadow(Canvas canvas) {
-    if (ghostColor != null || part == PartType.balloon) return;
+    if (ghostColor != null ||
+        part == PartType.balloon ||
+        preset == 'collectible_star') {
+      return;
+    }
     final rect = Rect.fromCenter(
       center: Offset(size.x / 2, size.y / 2 + kShadowHeight / 2 + 2),
       width: size.x * 0.9,
@@ -380,22 +396,33 @@ class PartView extends PositionComponent {
     canvas.drawCircle(c, r, _fill);
     canvas.drawCircle(c, r, _stroke);
     canvas.drawCircle(
-        Offset(c.dx - r * 0.35, c.dy - r * 0.35), r * 0.3, _highlight);
+      Offset(c.dx - r * 0.35, c.dy - r * 0.35),
+      r * 0.3,
+      _highlight,
+    );
     // 굴러가는 느낌(오너 피드백: "물리 손맛이 없다") - 몸체 회전이 눈에
     // 보이도록 중심에서 벗어난 점 하나. _renderGear의 회전 표시자와 정확히
     // 같은 아이디어: 로컬 고정 오프셋이라 angle(=body.angle)이 바뀔 때마다
     // 화면에서 실제로 돈다. 패턴 아트가 들어오면 그쪽이 자연히 이 역할을
     // 대신하겠지만, 그때도 도형 폴백/아트 공백 상황엔 이게 남아 있어야 한다.
     canvas.drawCircle(
-        c + rollMarkerOffset!, r * kRollMarkerRadiusFrac, _accent);
+      c + rollMarkerOffset!,
+      r * kRollMarkerRadiusFrac,
+      _accent,
+    );
   }
 
   void _renderBox(Canvas canvas) {
     final (hw, hh) = _boxHalfExtentsM;
     final rect = Rect.fromCenter(
-        center: _p(0, 0), width: hw * 2 * kPpm, height: hh * 2 * kPpm);
+      center: _p(0, 0),
+      width: hw * 2 * kPpm,
+      height: hh * 2 * kPpm,
+    );
     final rr = RRect.fromRectAndRadius(
-        rect, Radius.circular(min(hw, hh) * kPpm * 0.35));
+      rect,
+      Radius.circular(min(hw, hh) * kPpm * 0.35),
+    );
     canvas.drawRRect(rr, _fill);
     canvas.drawRRect(rr, _stroke);
   }
@@ -419,7 +446,10 @@ class PartView extends PositionComponent {
     for (final frac in [0.35, 0.55, 0.75]) {
       final y = rect.top + rect.height * frac;
       canvas.drawLine(
-          Offset(rect.left, y), Offset(rect.right, y), _platformGrain);
+        Offset(rect.left, y),
+        Offset(rect.right, y),
+        _platformGrain,
+      );
     }
     canvas.restore();
     canvas.drawRRect(rr, _platformStroke);
@@ -447,7 +477,10 @@ class PartView extends PositionComponent {
     final c = _p(0, 0);
     if (part == PartType.paddleGear) {
       final barRect = Rect.fromCenter(
-          center: c, width: spec!.w! * kPpm, height: spec!.h! * kPpm);
+        center: c,
+        width: spec!.w! * kPpm,
+        height: spec!.h! * kPpm,
+      );
       canvas.drawRect(barRect, _accentFill);
       canvas.drawRect(barRect, _stroke);
     }
@@ -462,9 +495,10 @@ class PartView extends PositionComponent {
       canvas.rotate(i * (2 * pi / teeth));
       canvas.drawRect(
         Rect.fromCenter(
-            center: Offset(r + toothLen / 2, 0),
-            width: toothLen,
-            height: toothW),
+          center: Offset(r + toothLen / 2, 0),
+          width: toothLen,
+          height: toothW,
+        ),
         _fill,
       );
       canvas.restore();
@@ -474,14 +508,14 @@ class PartView extends PositionComponent {
     canvas.drawCircle(Offset(c.dx + r * 0.55, c.dy), r * 0.15, _accent);
   }
 
-  late final Paint _accentFill = Paint()..color = ghostColor ?? const Color(0xFF546E7A);
+  late final Paint _accentFill = Paint()
+    ..color = ghostColor ?? const Color(0xFF546E7A);
 
   void _renderSeesaw(Canvas canvas) {
     final hw = spec!.w! / 2 * kPpm;
     final hh = spec!.h! / 2 * kPpm;
     final c = _p(0, 0);
-    final rect =
-        Rect.fromCenter(center: c, width: hw * 2, height: hh * 2);
+    final rect = Rect.fromCenter(center: c, width: hw * 2, height: hh * 2);
     canvas.drawRect(rect, _fill);
     canvas.drawRect(rect, _stroke);
     // Triangle pivot stand, apex at the bar's own center (the real pivot
@@ -502,18 +536,23 @@ class PartView extends PositionComponent {
     final rect = Rect.fromCenter(center: c, width: rx * 2, height: ry * 2);
     canvas.drawOval(rect, _fill);
     canvas.drawOval(rect, _stroke);
-    canvas.drawLine(Offset(c.dx, c.dy + ry),
-        Offset(c.dx, c.dy + ry + spec!.radius! * kPpm * 0.6), _stroke);
+    canvas.drawLine(
+      Offset(c.dx, c.dy + ry),
+      Offset(c.dx, c.dy + ry + spec!.radius! * kPpm * 0.6),
+      _stroke,
+    );
     canvas.drawCircle(
-        Offset(c.dx - rx * 0.3, c.dy - ry * 0.35), rx * 0.25, _highlight);
+      Offset(c.dx - rx * 0.3, c.dy - ry * 0.35),
+      rx * 0.25,
+      _highlight,
+    );
   }
 
   void _renderFan(Canvas canvas) {
     final hw = spec!.w! / 2 * kPpm;
     final hh = spec!.h! / 2 * kPpm;
     final c = _p(0, 0);
-    final rect =
-        Rect.fromCenter(center: c, width: hw * 2, height: hh * 2);
+    final rect = Rect.fromCenter(center: c, width: hw * 2, height: hh * 2);
     canvas.drawRect(rect, _fill);
     canvas.drawRect(rect, _stroke);
     // 3 wind lines off the local +x face - matches the physics wind zone's
@@ -521,7 +560,10 @@ class PartView extends PositionComponent {
     for (var i = -1; i <= 1; i++) {
       final y = c.dy + i * hh * 0.5;
       canvas.drawLine(
-          Offset(c.dx + hw, y), Offset(c.dx + hw + hh * 1.4, y), _stroke);
+        Offset(c.dx + hw, y),
+        Offset(c.dx + hw + hh * 1.4, y),
+        _stroke,
+      );
     }
   }
 
@@ -529,8 +571,7 @@ class PartView extends PositionComponent {
     final hw = spec!.w! / 2 * kPpm;
     final hh = spec!.h! / 2 * kPpm;
     final c = _p(0, 0);
-    final rect =
-        Rect.fromCenter(center: c, width: hw * 2, height: hh * 2);
+    final rect = Rect.fromCenter(center: c, width: hw * 2, height: hh * 2);
     canvas.drawRect(rect, _fill);
     canvas.drawRect(rect, _stroke);
     const zigzags = 6;
@@ -564,9 +605,17 @@ class PartView extends PositionComponent {
   }
 
   void _rectAt(
-      Canvas canvas, double xM, double yM, double halfWM, double halfHM) {
+    Canvas canvas,
+    double xM,
+    double yM,
+    double halfWM,
+    double halfHM,
+  ) {
     final rect = Rect.fromCenter(
-        center: _p(xM, yM), width: halfWM * 2 * kPpm, height: halfHM * 2 * kPpm);
+      center: _p(xM, yM),
+      width: halfWM * 2 * kPpm,
+      height: halfHM * 2 * kPpm,
+    );
     canvas.drawRect(rect, _fill);
     canvas.drawRect(rect, _stroke);
   }
@@ -583,12 +632,16 @@ class PartView extends PositionComponent {
   }
 
   static Vector2 _sizeFor(
-      PartType? part, String preset, double platformWidthM) {
+    PartType? part,
+    String preset,
+    double platformWidthM,
+  ) {
     if (preset == 'platform') {
       return Vector2(platformWidthM * kPpm, 0.4 * kPpm);
     }
     if (preset == 'basket') return Vector2(1.0 * kPpm, 0.72 * kPpm);
     if (preset == 'button') return Vector2(0.8 * kPpm, 0.22 * kPpm);
+    if (preset == 'collectible_star') return Vector2.all(0.64 * kPpm);
     final s = Catalog.of(part!);
     if (s.radius != null) return Vector2.all(2 * s.radius! * kPpm);
     return Vector2(s.w! * kPpm, s.h! * kPpm);
@@ -602,6 +655,8 @@ class PartView extends PositionComponent {
         return _Shape.basket;
       case 'button':
         return _Shape.button;
+      case 'collectible_star':
+        return _Shape.collectible;
     }
     switch (part!) {
       case PartType.plank:
@@ -639,5 +694,6 @@ enum _Shape {
   trampoline,
   tack,
   basket,
-  button
+  button,
+  collectible,
 }

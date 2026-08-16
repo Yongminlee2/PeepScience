@@ -7,11 +7,10 @@ import 'registry.dart';
 import 'sim_world.dart';
 import 'stage_data.dart';
 
-/// x±0.05m, angle±2° applied to every solution placement at once (same
-/// offset for every placement in one run). 3 fixed variants - deterministic,
-/// no RNG - a solution must clear with all of them (plus the untouched
-/// original) to guard against knife-edge placements a finger can't
-/// reproduce. y is never jittered (contract only specifies x/angle).
+/// x±0.05m applied to every solution placement and angle±2° applied only to
+/// parts the editor actually lets the player rotate (plank/fan). 3 fixed
+/// deterministic variants guard against knife-edge finger drops. Gears,
+/// seesaws and trampolines keep angle 0 because the player cannot rotate them.
 const List<(double dx, double dAngleDeg)> jitterVariants = [
   (0.05, 2.0),
   (-0.05, -2.0),
@@ -78,27 +77,27 @@ ValidationReport validateAllStages(String dir, {int maxSteps = 1800}) {
   final directory = Directory(dir);
   final fileIds = directory.existsSync()
       ? directory
-          .listSync()
-          .whereType<File>()
-          .map((f) => f.uri.pathSegments.last)
-          .where((name) => name.endsWith('.json'))
-          .map((name) => name.substring(0, name.length - '.json'.length))
-          .toSet()
+            .listSync()
+            .whereType<File>()
+            .map((f) => f.uri.pathSegments.last)
+            .where((name) => name.endsWith('.json'))
+            .map((name) => name.substring(0, name.length - '.json'.length))
+            .toSet()
       : <String>{};
   final orderSet = stageOrder.toSet();
 
   final missingFiles = [
     for (final id in stageOrder)
-      if (!fileIds.contains(id)) id
+      if (!fileIds.contains(id)) id,
   ];
   final extraFiles = [
     for (final id in fileIds)
-      if (!orderSet.contains(id)) id
+      if (!orderSet.contains(id)) id,
   ]..sort();
 
   final stages = [
     for (final id in stageOrder)
-      if (fileIds.contains(id)) _validateOne(dir, id, maxSteps)
+      if (fileIds.contains(id)) _validateOne(dir, id, maxSteps),
   ];
 
   return ValidationReport(
@@ -127,7 +126,8 @@ StageValidation _validateOne(String dir, String id, int maxSteps) {
     return StageValidation(
       id: id,
       ok: false,
-      failReason: 'filename/id mismatch: $id.json declares id "${data.id}" '
+      failReason:
+          'filename/id mismatch: $id.json declares id "${data.id}" '
           '(copy-paste 흔적 의심)',
       stepsToClear: null,
       jitterStepsToClear: const [],
@@ -159,12 +159,13 @@ StageValidation _validateOne(String dir, String id, int maxSteps) {
   final stepsToClear = _runToClear(data, data.solution, maxSteps);
   final jitterSteps = [
     for (final (dx, dAngle) in jitterVariants)
-      _runToClear(data, _jitter(data.solution, dx, dAngle), maxSteps)
+      _runToClear(data, _jitter(data.solution, dx, dAngle), maxSteps),
   ];
   // Rule (d): a stage that clears with nothing placed isn't a puzzle. Only
   // worth checking once the real solution already clears - otherwise the
   // solution failure above is already the reason to report.
-  final selfSolving = stepsToClear != null &&
+  final selfSolving =
+      stepsToClear != null &&
       SimWorld.verify(data, const [], maxSteps: maxSteps);
 
   String? failReason;
@@ -174,17 +175,20 @@ StageValidation _validateOne(String dir, String id, int maxSteps) {
     final failedIdx = jitterSteps.indexWhere((s) => s == null);
     if (failedIdx != -1) {
       final (dx, dAngle) = jitterVariants[failedIdx];
-      failReason = 'jitter (dx=$dx, dAngle=$dAngle) did not clear within '
+      failReason =
+          'jitter (dx=$dx, dAngle=$dAngle) did not clear within '
           '$maxSteps steps';
     } else if (selfSolving) {
-      failReason = 'self-solving: clears with no placements at all - not '
+      failReason =
+          'self-solving: clears with no placements at all - not '
           'a puzzle';
     }
   }
 
   return StageValidation(
     id: id,
-    ok: stepsToClear != null &&
+    ok:
+        stepsToClear != null &&
         jitterSteps.every((s) => s != null) &&
         !selfSolving,
     failReason: failReason,
@@ -251,14 +255,14 @@ String? _visibilityIssue(StageData data) {
 }
 
 List<Placement> _jitter(List<Placement> solution, double dx, double dAngle) => [
-      for (final p in solution)
-        Placement(
-          type: p.type,
-          x: p.x + dx,
-          y: p.y,
-          angleDeg: p.angleDeg + dAngle,
-        )
-    ];
+  for (final p in solution)
+    Placement(
+      type: p.type,
+      x: p.x + dx,
+      y: p.y,
+      angleDeg: p.angleDeg + (Catalog.of(p.type).rotatable ? dAngle : 0),
+    ),
+];
 
 /// Steps a fresh [SimWorld] until cleared or [maxSteps] reached; returns the
 /// step count at clear, or null if it never cleared. Builds its own loop

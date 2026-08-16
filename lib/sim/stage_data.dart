@@ -14,11 +14,11 @@ class Placement {
   });
 
   Map<String, dynamic> toJson() => {
-        'type': jsonIdOf(type),
-        'x': x,
-        'y': y,
-        'angle': angleDeg,
-      };
+    'type': jsonIdOf(type),
+    'x': x,
+    'y': y,
+    'angle': angleDeg,
+  };
 
   static Placement fromJson(Map<String, dynamic> j) {
     final typeStr = j['type'];
@@ -32,7 +32,8 @@ class Placement {
 
     if (xVal is! num || yVal is! num || angleVal is! num) {
       throw FormatException(
-          'Placement x, y, angle must be numbers, got x:$xVal, y:$yVal, angle:$angleVal');
+        'Placement x, y, angle must be numbers, got x:$xVal, y:$yVal, angle:$angleVal',
+      );
     }
 
     return Placement(
@@ -48,15 +49,9 @@ class TrayEntry {
   final PartType type;
   final int count;
 
-  TrayEntry({
-    required this.type,
-    required this.count,
-  });
+  TrayEntry({required this.type, required this.count});
 
-  Map<String, dynamic> toJson() => {
-        'type': jsonIdOf(type),
-        'count': count,
-      };
+  Map<String, dynamic> toJson() => {'type': jsonIdOf(type), 'count': count};
 
   static TrayEntry fromJson(Map<String, dynamic> j) {
     final typeStr = j['type'];
@@ -75,7 +70,8 @@ class TrayEntry {
 }
 
 class PresetObject {
-  final String type; // "platform", "basket", "button", or part type (PartType converted to JSON)
+  final String
+  type; // "platform", "basket", "button", or part type (PartType converted to JSON)
   final double x;
   final double y;
   final double angleDeg;
@@ -125,7 +121,8 @@ class PresetObject {
 
     if (xVal is! num || yVal is! num || angleVal is! num) {
       throw FormatException(
-          'PresetObject x, y, angle must be numbers, got x:$xVal, y:$yVal, angle:$angleVal');
+        'PresetObject x, y, angle must be numbers, got x:$xVal, y:$yVal, angle:$angleVal',
+      );
     }
 
     final w = j['w'];
@@ -146,9 +143,7 @@ class GoalSpec {
 
   GoalSpec({required this.type});
 
-  Map<String, dynamic> toJson() => {
-        'type': goalJsonIdOf(type),
-      };
+  Map<String, dynamic> toJson() => {'type': goalJsonIdOf(type)};
 
   static GoalSpec fromJson(Map<String, dynamic> j) {
     final typeStr = j['type'];
@@ -160,6 +155,94 @@ class GoalSpec {
   }
 }
 
+/// Optional stage presentation hook. It never changes physics; the game
+/// layer uses it to explain a satisfying multi-step cause/effect setup.
+enum StageFeature { chainReaction }
+
+StageFeature stageFeatureFromJson(String id) => switch (id) {
+  'chain_reaction' => StageFeature.chainReaction,
+  _ => throw FormatException('Unknown stage feature: $id'),
+};
+
+String stageFeatureJsonIdOf(StageFeature feature) => switch (feature) {
+  StageFeature.chainReaction => 'chain_reaction',
+};
+
+/// A lightweight predict-before-running prompt. The first experiment uses
+/// the two ball materials already in the catalog so the prediction is tied
+/// to real physical behavior, not a quiz detached from play.
+class PredictionSpec {
+  final PartType answer;
+
+  const PredictionSpec({required this.answer});
+
+  Map<String, dynamic> toJson() => {'answer': jsonIdOf(answer)};
+
+  static PredictionSpec fromJson(Map<String, dynamic> j) {
+    final raw = j['answer'];
+    if (raw is! String) {
+      throw FormatException('Prediction answer must be a string');
+    }
+    final answer = partTypeFromJson(raw);
+    if (answer != PartType.rubberBall && answer != PartType.metalBall) {
+      throw FormatException(
+        'Prediction answer must be rubber_ball or metal_ball',
+      );
+    }
+    return PredictionSpec(answer: answer);
+  }
+}
+
+class CollectibleStarSpec {
+  final double x;
+  final double y;
+
+  const CollectibleStarSpec({required this.x, required this.y});
+
+  Map<String, dynamic> toJson() => {'x': x, 'y': y};
+
+  static CollectibleStarSpec fromJson(Map<String, dynamic> j) {
+    final x = j['x'];
+    final y = j['y'];
+    if (x is! num || y is! num) {
+      throw FormatException('Collectible star x and y must be numbers');
+    }
+    return CollectibleStarSpec(x: x.toDouble(), y: y.toDouble());
+  }
+}
+
+/// Optional mastery goals shown after the ordinary clear condition. Clearing
+/// always remains enough to unlock the next stage; these only add replay
+/// motivation and never gate progression.
+class ChallengeSpec {
+  final int partLimit;
+  final CollectibleStarSpec? collectibleStar;
+
+  const ChallengeSpec({required this.partLimit, this.collectibleStar});
+
+  Map<String, dynamic> toJson() => {
+    'part_limit': partLimit,
+    if (collectibleStar != null) 'collectible_star': collectibleStar!.toJson(),
+  };
+
+  static ChallengeSpec fromJson(Map<String, dynamic> j) {
+    final partLimit = j['part_limit'];
+    if (partLimit is! int || partLimit < 1) {
+      throw FormatException('Challenge part_limit must be an int >= 1');
+    }
+    final rawStar = j['collectible_star'];
+    if (rawStar != null && rawStar is! Map<String, dynamic>) {
+      throw FormatException('Challenge collectible_star must be an object');
+    }
+    return ChallengeSpec(
+      partLimit: partLimit,
+      collectibleStar: rawStar == null
+          ? null
+          : CollectibleStarSpec.fromJson(rawStar),
+    );
+  }
+}
+
 class StageData {
   final String id;
   final int world;
@@ -168,6 +251,9 @@ class StageData {
   final List<PresetObject> preset;
   final List<TrayEntry> tray;
   final List<Placement> solution;
+  final StageFeature? feature;
+  final PredictionSpec? prediction;
+  final ChallengeSpec? challenge;
 
   StageData({
     required this.id,
@@ -177,6 +263,9 @@ class StageData {
     required this.preset,
     required this.tray,
     required this.solution,
+    this.feature,
+    this.prediction,
+    this.challenge,
   });
 
   static StageData fromJson(Map<String, dynamic> j) {
@@ -263,6 +352,30 @@ class StageData {
         }
       }
 
+      final featureJson = j['feature'];
+      if (featureJson != null && featureJson is! String) {
+        throw FormatException('$id: feature must be a string');
+      }
+      final feature = featureJson == null
+          ? null
+          : stageFeatureFromJson(featureJson);
+
+      final predictionJson = j['prediction'];
+      if (predictionJson != null && predictionJson is! Map<String, dynamic>) {
+        throw FormatException('$id: prediction must be an object');
+      }
+      final prediction = predictionJson == null
+          ? null
+          : PredictionSpec.fromJson(predictionJson);
+
+      final challengeJson = j['challenge'];
+      if (challengeJson != null && challengeJson is! Map<String, dynamic>) {
+        throw FormatException('$id: challenge must be an object');
+      }
+      final challenge = challengeJson == null
+          ? null
+          : ChallengeSpec.fromJson(challengeJson);
+
       return StageData(
         id: id,
         world: world,
@@ -271,6 +384,9 @@ class StageData {
         preset: preset,
         tray: tray,
         solution: solution,
+        feature: feature,
+        prediction: prediction,
+        challenge: challenge,
       );
     } catch (e) {
       if (e is FormatException) {
@@ -281,12 +397,15 @@ class StageData {
   }
 
   Map<String, dynamic> toJson() => {
-        'id': id,
-        'world': world,
-        'index': index,
-        'goal': goal.toJson(),
-        'preset': preset.map((p) => p.toJson()).toList(),
-        'tray': tray.map((t) => t.toJson()).toList(),
-        'solution': solution.map((s) => s.toJson()).toList(),
-      };
+    'id': id,
+    'world': world,
+    'index': index,
+    'goal': goal.toJson(),
+    'preset': preset.map((p) => p.toJson()).toList(),
+    'tray': tray.map((t) => t.toJson()).toList(),
+    'solution': solution.map((s) => s.toJson()).toList(),
+    if (feature != null) 'feature': stageFeatureJsonIdOf(feature!),
+    if (prediction != null) 'prediction': prediction!.toJson(),
+    if (challenge != null) 'challenge': challenge!.toJson(),
+  };
 }

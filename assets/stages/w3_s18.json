@@ -1,0 +1,82 @@
+{
+  "id": "w3_s18",
+  "world": 3,
+  "index": 18,
+  "goal": {
+    "type": "ball_in_basket"
+  },
+  "preset": [
+    {
+      "type": "platform",
+      "x": 9.57,
+      "y": 5.35,
+      "angle": 0,
+      "w": 1.0
+    },
+    {
+      "type": "rubber_ball",
+      "x": 9.57,
+      "y": 4.85,
+      "angle": 0
+    },
+    {
+      "type": "basket",
+      "x": 11.77,
+      "y": 5.5,
+      "angle": 0
+    }
+  ],
+  "tray": [
+    {
+      "type": "paddle_gear",
+      "count": 2
+    },
+    {
+      "type": "trampoline",
+      "count": 1
+    },
+    {
+      "type": "motor_gear",
+      "count": 1
+    },
+    {
+      "type": "gear",
+      "count": 2
+    }
+  ],
+  "solution": [
+    {
+      "type": "motor_gear",
+      "x": 6.66,
+      "y": 4.0,
+      "angle": 0
+    },
+    {
+      "type": "gear",
+      "x": 7.63,
+      "y": 4,
+      "angle": 0
+    },
+    {
+      "type": "gear",
+      "x": 8.6,
+      "y": 4,
+      "angle": 0
+    },
+    {
+      "type": "paddle_gear",
+      "x": 9.57,
+      "y": 4.0,
+      "angle": 0
+    },
+    {
+      "type": "trampoline",
+      "x": 10.47,
+      "y": 6.2,
+      "angle": 0
+    }
+  ],
+  "challenge": {
+    "part_limit": 5
+  }
+}

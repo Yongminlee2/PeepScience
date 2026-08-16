@@ -3,6 +3,10 @@
   "world": 1,
   "index": 10,
   "goal": { "type": "press_button" },
+  "challenge": {
+    "part_limit": 3,
+    "collectible_star": { "x": 8.55, "y": 4.55 }
+  },
   "preset": [
     { "type": "platform", "x": 4.25, "y": 5.2, "angle": 0, "w": 6.5 },
     { "type": "platform", "x": 10.6, "y": 5.2, "angle": 0, "w": 2.0 },
