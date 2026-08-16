@@ -8,83 +8,95 @@
   "preset": [
     {
       "type": "balloon",
-      "x": 14,
-      "y": 7.0,
+      "x": 10.7,
+      "y": 3.7,
+      "angle": 0
+    },
+    {
+      "type": "platform",
+      "x": 10.7,
+      "y": 2.9,
+      "angle": 0,
+      "w": 2.6
+    },
+    {
+      "type": "platform",
+      "x": 12.0,
+      "y": 4.95,
+      "angle": 90,
+      "w": 1.9
+    },
+    {
+      "type": "platform",
+      "x": 14.35,
+      "y": 4.55,
+      "angle": 90,
+      "w": 4.1
+    },
+    {
+      "type": "platform",
+      "x": 13.4,
+      "y": 7.25,
+      "angle": 0,
+      "w": 4.4
+    },
+    {
+      "type": "tack",
+      "x": 11.85,
+      "y": 6.5,
       "angle": 0
     },
     {
       "type": "tack",
-      "x": 11.73,
-      "y": 0.35,
-      "angle": 0
-    },
-    {
-      "type": "balloon",
-      "x": 2,
-      "y": 7.0,
+      "x": 11.4,
+      "y": 5.85,
       "angle": 0
     },
     {
       "type": "tack",
-      "x": 4.27,
-      "y": 0.35,
+      "x": 12.25,
+      "y": 6.1,
+      "angle": 0
+    },
+    {
+      "type": "tack",
+      "x": 12.25,
+      "y": 5.45,
       "angle": 0
     }
   ],
   "tray": [
     {
       "type": "plank",
-      "count": 3
+      "count": 1
     },
     {
       "type": "fan",
-      "count": 2
-    },
-    {
-      "type": "gear",
-      "count": 2
+      "count": 3
     }
   ],
   "solution": [
     {
-      "type": "plank",
-      "x": 14,
-      "y": 5.0,
+      "type": "fan",
+      "x": 9.9,
+      "y": 3.55,
       "angle": 0
     },
     {
       "type": "fan",
-      "x": 15.65,
-      "y": 5.6,
-      "angle": 180
-    },
-    {
-      "type": "gear",
-      "x": 10.5,
-      "y": 5.1,
-      "angle": 0
+      "x": 13.55,
+      "y": 2.6,
+      "angle": 90
     },
     {
       "type": "plank",
-      "x": 2,
-      "y": 5.0,
-      "angle": 0
-    },
-    {
-      "type": "fan",
-      "x": 0.35,
-      "y": 5.6,
-      "angle": 0
-    },
-    {
-      "type": "gear",
-      "x": 5.5,
-      "y": 5.1,
-      "angle": 0
+      "x": 13.2,
+      "y": 6.05,
+      "angle": -50
     }
   ],
   "feature": "chain_reaction",
   "challenge": {
-    "part_limit": 6
+    "part_limit": 3
   }
 }

@@ -3,88 +3,110 @@
   "world": 4,
   "index": 20,
   "goal": {
-    "type": "pop_balloons"
+    "type": "ball_in_basket"
   },
   "feature": "chain_reaction",
   "preset": [
     {
-      "type": "balloon",
-      "x": 14,
-      "y": 6.85,
+      "type": "platform",
+      "x": 1.6,
+      "y": 2.15,
+      "angle": 0,
+      "w": 1.2
+    },
+    {
+      "type": "metal_ball",
+      "x": 1.9,
+      "y": 1.65,
       "angle": 0
     },
     {
-      "type": "tack",
-      "x": 11.73,
-      "y": 0.19999999999999998,
-      "angle": 0
+      "type": "platform",
+      "x": 2.65,
+      "y": 3.9,
+      "angle": 55,
+      "w": 1.4
     },
     {
-      "type": "balloon",
-      "x": 2,
-      "y": 6.85,
-      "angle": 0
+      "type": "platform",
+      "x": 4.9,
+      "y": 3.55,
+      "angle": -55,
+      "w": 2.2
     },
     {
-      "type": "tack",
-      "x": 4.27,
-      "y": 0.19999999999999998,
+      "type": "platform",
+      "x": 3.0,
+      "y": 5.6,
+      "angle": 90,
+      "w": 1.6
+    },
+    {
+      "type": "platform",
+      "x": 4.2,
+      "y": 4.8,
+      "angle": 90,
+      "w": 0.4
+    },
+    {
+      "type": "platform",
+      "x": 3.6,
+      "y": 6.0,
+      "angle": 0,
+      "w": 1.0
+    },
+    {
+      "type": "basket",
+      "x": 6.1,
+      "y": 7.05,
       "angle": 0
     }
   ],
   "tray": [
     {
-      "type": "plank",
-      "count": 3
+      "type": "motor_gear",
+      "count": 1
+    },
+    {
+      "type": "paddle_gear",
+      "count": 1
     },
     {
       "type": "fan",
       "count": 2
     },
     {
-      "type": "gear",
-      "count": 2
+      "type": "trampoline",
+      "count": 1
     }
   ],
   "solution": [
     {
-      "type": "plank",
-      "x": 14,
-      "y": 4.85,
+      "type": "motor_gear",
+      "x": 0.88,
+      "y": 0.8,
+      "angle": 0
+    },
+    {
+      "type": "paddle_gear",
+      "x": 1.85,
+      "y": 0.8,
       "angle": 0
     },
     {
       "type": "fan",
-      "x": 15.65,
-      "y": 5.449999999999999,
-      "angle": 180
-    },
-    {
-      "type": "gear",
-      "x": 10.5,
-      "y": 4.949999999999999,
+      "x": 1.35,
+      "y": 5.5,
       "angle": 0
     },
     {
-      "type": "plank",
-      "x": 2,
-      "y": 4.85,
-      "angle": 0
-    },
-    {
-      "type": "fan",
-      "x": 0.35,
-      "y": 5.449999999999999,
-      "angle": 0
-    },
-    {
-      "type": "gear",
-      "x": 5.5,
-      "y": 4.949999999999999,
+      "type": "trampoline",
+      "x": 4.85,
+      "y": 7.15,
       "angle": 0
     }
   ],
   "challenge": {
-    "part_limit": 6
+    "part_limit": 4
   }
 }

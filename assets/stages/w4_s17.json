@@ -7,15 +7,29 @@
   },
   "preset": [
     {
-      "type": "rubber_ball",
-      "x": 8.0,
-      "y": 4.07,
+      "type": "metal_ball",
+      "x": 12.4,
+      "y": 1.5,
       "angle": 0
     },
     {
+      "type": "platform",
+      "x": 11.9,
+      "y": 2.0,
+      "angle": 0,
+      "w": 2.6
+    },
+    {
+      "type": "platform",
+      "x": 5.3,
+      "y": 5.5,
+      "angle": 90,
+      "w": 2.4
+    },
+    {
       "type": "basket",
-      "x": 3.6,
-      "y": 4.5,
+      "x": 5.85,
+      "y": 7.05,
       "angle": 0
     }
   ],
@@ -25,32 +39,32 @@
       "count": 2
     },
     {
-      "type": "trampoline",
+      "type": "seesaw",
       "count": 1
     },
     {
-      "type": "seesaw",
+      "type": "plank",
       "count": 1
     }
   ],
   "solution": [
     {
       "type": "fan",
-      "x": 10.3,
-      "y": 4.3,
-      "angle": 178
-    },
-    {
-      "type": "trampoline",
-      "x": 5.4,
-      "y": 6.3,
-      "angle": 0
+      "x": 13.9,
+      "y": 1.5,
+      "angle": 180
     },
     {
       "type": "seesaw",
-      "x": 8.0,
-      "y": 4.5,
+      "x": 10.2,
+      "y": 3.6,
       "angle": 0
+    },
+    {
+      "type": "plank",
+      "x": 7.6,
+      "y": 5.5,
+      "angle": -30
     }
   ],
   "challenge": {
