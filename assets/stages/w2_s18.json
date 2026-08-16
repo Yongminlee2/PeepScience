@@ -8,63 +8,45 @@
   "preset": [
     {
       "type": "balloon",
-      "x": 4.0,
-      "y": 7,
+      "x": 12.8,
+      "y": 6.9,
       "angle": 0
     },
     {
       "type": "tack",
-      "x": 6.0,
-      "y": 0.5,
-      "angle": 0
-    },
-    {
-      "type": "balloon",
-      "x": 12.0,
-      "y": 7,
-      "angle": 0
-    },
-    {
-      "type": "tack",
-      "x": 10.0,
-      "y": 0.5,
+      "x": 8.05,
+      "y": 0.42,
       "angle": 0
     }
   ],
   "tray": [
     {
       "type": "plank",
-      "count": 5
+      "count": 4
     }
   ],
   "solution": [
     {
       "type": "plank",
-      "x": 3.5,
-      "y": 4.5,
-      "angle": -45
+      "x": 12.4,
+      "y": 5.4,
+      "angle": 42
     },
     {
       "type": "plank",
-      "x": 4.5,
-      "y": 2,
-      "angle": 0
+      "x": 11.4,
+      "y": 3.4,
+      "angle": 42
     },
     {
       "type": "plank",
-      "x": 12.5,
-      "y": 4.5,
-      "angle": 45
-    },
-    {
-      "type": "plank",
-      "x": 11.5,
-      "y": 2,
-      "angle": 0
+      "x": 9.7,
+      "y": 1.7,
+      "angle": 42
     }
   ],
   "challenge": {
-    "part_limit": 4
+    "part_limit": 3
   },
   "feature": "chain_reaction"
 }

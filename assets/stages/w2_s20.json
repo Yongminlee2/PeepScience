@@ -7,58 +7,67 @@
   },
   "preset": [
     {
-      "type": "rubber_ball",
-      "x": 6.55,
-      "y": 5.57,
+      "type": "metal_ball",
+      "x": 4.5,
+      "y": 1.4,
       "angle": 0
     },
     {
-      "type": "metal_ball",
-      "x": 9.05,
-      "y": 4.8,
-      "angle": 0
+      "type": "platform",
+      "x": 11.0,
+      "y": 5.3,
+      "angle": 90,
+      "w": 2.2
     },
     {
       "type": "basket",
-      "x": 3.75,
-      "y": 5.5,
+      "x": 10.35,
+      "y": 6.53,
       "angle": 0
+    },
+    {
+      "type": "platform",
+      "x": 10.3,
+      "y": 7.15,
+      "angle": 0,
+      "w": 1.6
     }
   ],
   "tray": [
     {
       "type": "seesaw",
-      "count": 2
+      "count": 1
     },
     {
       "type": "trampoline",
+      "count": 1
+    },
+    {
+      "type": "plank",
       "count": 2
     }
   ],
   "solution": [
     {
       "type": "seesaw",
-      "x": 7.75,
-      "y": 6,
+      "x": 3.6,
+      "y": 3.4,
       "angle": 0
     },
     {
       "type": "trampoline",
-      "x": 5.52,
-      "y": 6.85,
+      "x": 6.1,
+      "y": 6.0,
       "angle": 0
     },
     {
-      "type": "trampoline",
-      "x": 4,
-      "y": 6.9,
-      "angle": 0
+      "type": "plank",
+      "x": 8.6,
+      "y": 5.6,
+      "angle": 25
     }
   ],
   "challenge": {
     "part_limit": 3
-  },
-  "prediction": {
-    "answer": "metal_ball"
   }
 }

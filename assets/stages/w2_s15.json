@@ -3,59 +3,102 @@
   "world": 2,
   "index": 15,
   "goal": {
-    "type": "ball_in_basket"
+    "type": "press_button"
   },
-  "challenge": {
-    "part_limit": 3
+  "prediction": {
+    "answer": "rubber_ball"
   },
   "preset": [
     {
-      "type": "rubber_ball",
-      "x": 7.3,
-      "y": 5.57,
+      "type": "platform",
+      "x": 1.5,
+      "y": 2.6,
+      "angle": 18,
+      "w": 2.2
+    },
+    {
+      "type": "platform",
+      "x": 9.0,
+      "y": 5.9,
+      "angle": 0,
+      "w": 2.2
+    },
+    {
+      "type": "platform",
+      "x": 11.8,
+      "y": 5.3,
+      "angle": 0,
+      "w": 3.2
+    },
+    {
+      "type": "platform",
+      "x": 11.3,
+      "y": 3.2,
+      "angle": 0,
+      "w": 5.4
+    },
+    {
+      "type": "platform",
+      "x": 14.2,
+      "y": 4.24,
+      "angle": 20,
+      "w": 2.2
+    },
+    {
+      "type": "platform",
+      "x": 14.2,
+      "y": 5.86,
+      "angle": 0,
+      "w": 2.0
+    },
+    {
+      "type": "button",
+      "x": 13.85,
+      "y": 5.55,
       "angle": 0
     },
     {
-      "type": "metal_ball",
-      "x": 9.8,
-      "y": 4.8,
-      "angle": 0
-    },
-    {
-      "type": "basket",
-      "x": 4.5,
-      "y": 5.5,
+      "type": "button",
+      "x": 14.65,
+      "y": 5.55,
       "angle": 0
     }
   ],
   "tray": [
     {
-      "type": "seesaw",
+      "type": "rubber_ball",
+      "count": 1
+    },
+    {
+      "type": "plank",
       "count": 2
     },
     {
-      "type": "trampoline",
-      "count": 2
+      "type": "metal_ball",
+      "count": 1
     }
   ],
   "solution": [
     {
-      "type": "seesaw",
-      "x": 8.5,
-      "y": 6,
+      "type": "rubber_ball",
+      "x": 0.7,
+      "y": 1.74,
       "angle": 0
     },
     {
-      "type": "trampoline",
-      "x": 6.27,
-      "y": 6.85,
+      "type": "plank",
+      "x": 3.9,
+      "y": 3.6,
       "angle": 0
     },
     {
-      "type": "trampoline",
-      "x": 4.75,
-      "y": 6.9,
+      "type": "plank",
+      "x": 6.1,
+      "y": 3.75,
       "angle": 0
     }
-  ]
+  ],
+  "challenge": {
+    "part_limit": 3
+  }
 }

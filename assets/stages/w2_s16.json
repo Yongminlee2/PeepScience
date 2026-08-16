@@ -2,60 +2,22 @@
   "id": "w2_s16",
   "world": 2,
   "index": 16,
-  "goal": {
-    "type": "ball_in_basket"
-  },
+  "goal": { "type": "ball_in_basket" },
   "preset": [
-    {
-      "type": "rubber_ball",
-      "x": 8.05,
-      "y": 5.57,
-      "angle": 0
-    },
-    {
-      "type": "metal_ball",
-      "x": 10.55,
-      "y": 4.8,
-      "angle": 0
-    },
-    {
-      "type": "basket",
-      "x": 5.25,
-      "y": 5.5,
-      "angle": 0
-    }
+    { "type": "seesaw", "x": 12.6, "y": 2.9, "angle": 0 },
+    { "type": "metal_ball", "x": 11.5, "y": 2.38, "angle": 0 },
+    { "type": "platform", "x": 3.6, "y": 5.9, "angle": 90, "w": 2.6 },
+    { "type": "basket", "x": 4.2, "y": 6.53, "angle": 0 },
+    { "type": "platform", "x": 4.25, "y": 7.15, "angle": 0, "w": 1.6 }
   ],
   "tray": [
-    {
-      "type": "seesaw",
-      "count": 2
-    },
-    {
-      "type": "trampoline",
-      "count": 2
-    }
+    { "type": "plank", "count": 3 },
+    { "type": "trampoline", "count": 1 }
   ],
   "solution": [
-    {
-      "type": "seesaw",
-      "x": 9.25,
-      "y": 6,
-      "angle": 0
-    },
-    {
-      "type": "trampoline",
-      "x": 7.02,
-      "y": 6.85,
-      "angle": 0
-    },
-    {
-      "type": "trampoline",
-      "x": 5.5,
-      "y": 6.9,
-      "angle": 0
-    }
+    { "type": "plank", "x": 10.9, "y": 4.25, "angle": -12 },
+    { "type": "trampoline", "x": 8.6, "y": 6.0, "angle": 0 },
+    { "type": "plank", "x": 5.8, "y": 5.5, "angle": -12 }
   ],
-  "challenge": {
-    "part_limit": 3
-  }
+  "challenge": { "part_limit": 3 }
 }

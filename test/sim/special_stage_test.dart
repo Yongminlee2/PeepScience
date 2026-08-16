@@ -71,7 +71,13 @@ void main() {
     final masteryIds = stageOrder.where(
       (id) => int.parse(id.substring(id.length - 2)) >= 11,
     );
+    // 무게·재질 함정 판은 예외: 트레이에 정답 재질과 오답 재질 공을 나란히
+    // 지급하는 것(쇠공↔고무공 선택)이 퍼즐의 핵심이다. 목표 지점이 지붕·통로
+    // 안쪽에 있어 공을 위에서 떨어뜨리는 직행 해법은 성립하지 않음을 전 지점
+    // 낙하 스윕 시뮬레이션(양 재질 각 500여 지점, 클리어 0건)으로 확인했다.
+    const materialTrapIds = {'w2_s12', 'w2_s15'};
     for (final id in masteryIds) {
+      if (materialTrapIds.contains(id)) continue;
       final stage = _load(id);
       final trayTypes = stage.tray.map((entry) => entry.type).toSet();
       final forbidden = switch (stage.goal.type) {
