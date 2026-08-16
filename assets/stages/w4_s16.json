@@ -8,55 +8,51 @@
   "preset": [
     {
       "type": "platform",
-      "x": 9.97,
-      "y": 6.35,
+      "x": 4.0,
+      "y": 5.0,
       "angle": 0,
-      "w": 1.0
+      "w": 1.4
     },
     {
       "type": "rubber_ball",
-      "x": 9.97,
-      "y": 5.85,
+      "x": 4.6,
+      "y": 4.5,
       "angle": 0
     },
     {
       "type": "basket",
-      "x": 12,
-      "y": 6.75,
+      "x": 9.6,
+      "y": 4.8,
       "angle": 0
     }
   ],
   "tray": [
     {
-      "type": "paddle_gear",
-      "count": 2
-    },
-    {
-      "type": "motor_gear",
-      "count": 1
-    },
-    {
       "type": "fan",
       "count": 1
+    },
+    {
+      "type": "trampoline",
+      "count": 3
     }
   ],
   "solution": [
     {
-      "type": "motor_gear",
-      "x": 9,
-      "y": 5.0,
-      "angle": 0
-    },
-    {
-      "type": "paddle_gear",
-      "x": 9.97,
-      "y": 5.0,
-      "angle": 0
-    },
-    {
       "type": "fan",
-      "x": 11,
-      "y": 7.0,
+      "x": 2.3,
+      "y": 4.5,
+      "angle": 0
+    },
+    {
+      "type": "trampoline",
+      "x": 6.0,
+      "y": 6.2,
+      "angle": 0
+    },
+    {
+      "type": "trampoline",
+      "x": 8.0,
+      "y": 5.7,
       "angle": 0
     }
   ],
