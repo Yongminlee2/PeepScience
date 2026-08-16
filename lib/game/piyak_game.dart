@@ -197,6 +197,7 @@ class PiyakGame extends FlameGame with DragCallbacks {
     2 => const Color(0xFFD8E4D1),
     3 => const Color(0xFFD8D2CC),
     4 => const Color(0xFF18244A),
+    5 => const Color(0xFF9F9080),
     _ => const Color(0xFFFFFBF0),
   };
 

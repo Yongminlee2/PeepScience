@@ -98,8 +98,8 @@ void main() {
     AppLang().value = 'system';
   });
 
-  testWidgets('홈 화면에 월드 카드 4개가 렌더된다', (t) async {
-    await _setSize(t, const Size(2000, 900));
+  testWidgets('홈 화면에 월드 카드 5개가 렌더된다', (t) async {
+    await _setSize(t, const Size(2200, 900));
     await t.pumpWidget(const PiyakScienceApp());
     await t.pumpAndSettle();
 
@@ -107,6 +107,7 @@ void main() {
     expect(find.text(S.t('world2')), findsOneWidget);
     expect(find.text(S.t('world3')), findsOneWidget);
     expect(find.text(S.t('world4')), findsOneWidget);
+    expect(find.text(S.t('world5')), findsOneWidget);
   });
 
   testWidgets('잠긴 스테이지 칸을 탭해도 화면이 전환되지 않는다', (t) async {

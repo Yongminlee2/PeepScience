@@ -12,7 +12,7 @@ import 'theme.dart';
 
 const int _stagesPerWorld = 20;
 const int _stagesPerPage = 10;
-const int _worldCount = 4;
+const int _worldCount = 5;
 
 /// Device-QA hook. It is false (and tree-shaken) in every ordinary build;
 /// a temporary release build can opt in with
