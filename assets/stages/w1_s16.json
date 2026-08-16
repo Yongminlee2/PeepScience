@@ -8,78 +8,65 @@
   "preset": [
     {
       "type": "rubber_ball",
-      "x": 2,
-      "y": 1,
+      "x": 1.65,
+      "y": 3.6,
       "angle": 0
     },
     {
       "type": "platform",
-      "x": 2.97,
-      "y": 5.2,
+      "x": 4.6,
+      "y": 5.35,
       "angle": 0,
-      "w": 3.95
+      "w": 3.4
     },
     {
       "type": "platform",
-      "x": 7.52,
-      "y": 5.2,
-      "angle": 0,
-      "w": 0.95
+      "x": 8.0,
+      "y": 2.0,
+      "angle": 90,
+      "w": 4.4
     },
     {
       "type": "platform",
-      "x": 10.57,
-      "y": 5.2,
+      "x": 9.35,
+      "y": 5.35,
       "angle": 0,
-      "w": 0.95
-    },
-    {
-      "type": "platform",
-      "x": 14.67,
-      "y": 5.2,
-      "angle": 0,
-      "w": 3.05
+      "w": 2.0
     },
     {
       "type": "button",
-      "x": 15.6,
-      "y": 5,
+      "x": 13.9,
+      "y": 6.55,
       "angle": 0
     }
   ],
   "tray": [
     {
       "type": "plank",
-      "count": 5
+      "count": 4
     }
   ],
   "solution": [
     {
       "type": "plank",
-      "x": 2,
-      "y": 2.3,
-      "angle": 26
+      "x": 1.9,
+      "y": 4.83,
+      "angle": 27
     },
     {
       "type": "plank",
-      "x": 6,
-      "y": 5.12,
+      "x": 7.325,
+      "y": 5.27,
       "angle": 0
     },
     {
       "type": "plank",
-      "x": 9.05,
-      "y": 5.12,
-      "angle": 0
-    },
-    {
-      "type": "plank",
-      "x": 12.1,
-      "y": 5.12,
-      "angle": 0
+      "x": 11.38,
+      "y": 5.49,
+      "angle": 8
     }
   ],
   "challenge": {
-    "part_limit": 4
+    "part_limit": 3
   }
 }

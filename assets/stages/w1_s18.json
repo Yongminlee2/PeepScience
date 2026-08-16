@@ -3,47 +3,40 @@
   "world": 1,
   "index": 18,
   "goal": {
-    "type": "press_button"
+    "type": "ball_in_basket"
   },
   "preset": [
     {
       "type": "rubber_ball",
-      "x": 2,
-      "y": 1,
+      "x": 15.35,
+      "y": 1.05,
       "angle": 0
     },
     {
       "type": "platform",
-      "x": 2.97,
-      "y": 5.2,
+      "x": 12.85,
+      "y": 2.9,
       "angle": 0,
-      "w": 3.95
+      "w": 2.2
     },
     {
       "type": "platform",
-      "x": 7.52,
-      "y": 5.2,
+      "x": 8.65,
+      "y": 2.9,
       "angle": 0,
-      "w": 0.95
+      "w": 2.1
     },
     {
       "type": "platform",
-      "x": 10.57,
-      "y": 5.2,
-      "angle": 0,
-      "w": 0.95
+      "x": 4.3,
+      "y": 3.5,
+      "angle": 3,
+      "w": 3.5
     },
     {
-      "type": "platform",
-      "x": 14.67,
-      "y": 5.2,
-      "angle": 0,
-      "w": 3.05
-    },
-    {
-      "type": "button",
-      "x": 15.6,
-      "y": 5,
+      "type": "basket",
+      "x": 1.45,
+      "y": 4.1,
       "angle": 0
     }
   ],
@@ -56,27 +49,27 @@
   "solution": [
     {
       "type": "plank",
-      "x": 2,
-      "y": 2.3,
-      "angle": 26
+      "x": 14.95,
+      "y": 2.06,
+      "angle": -22
     },
     {
       "type": "plank",
-      "x": 6,
-      "y": 5.12,
+      "x": 10.725,
+      "y": 2.82,
       "angle": 0
     },
     {
       "type": "plank",
-      "x": 9.05,
-      "y": 5.12,
-      "angle": 0
+      "x": 6.57,
+      "y": 2.93,
+      "angle": -8
     },
     {
       "type": "plank",
-      "x": 12.1,
-      "y": 5.12,
-      "angle": 0
+      "x": 0.55,
+      "y": 3.0,
+      "angle": -80
     }
   ],
   "challenge": {

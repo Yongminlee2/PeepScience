@@ -5,81 +5,87 @@
   "goal": {
     "type": "press_button"
   },
+  "feature": "chain_reaction",
   "preset": [
     {
       "type": "rubber_ball",
-      "x": 14,
-      "y": 1,
+      "x": 15.45,
+      "y": 0.55,
       "angle": 0
     },
     {
       "type": "platform",
-      "x": 13.03,
-      "y": 5.2,
+      "x": 13.5,
+      "y": 2.6,
       "angle": 0,
-      "w": 3.95
+      "w": 1.4
     },
     {
       "type": "platform",
-      "x": 8.48,
-      "y": 5.2,
+      "x": 10.05,
+      "y": 2.6,
       "angle": 0,
-      "w": 0.95
+      "w": 1.4
     },
     {
       "type": "platform",
-      "x": 5.43,
-      "y": 5.2,
+      "x": 6.075,
+      "y": 3.3,
       "angle": 0,
-      "w": 0.95
+      "w": 1.75
     },
     {
-      "type": "platform",
-      "x": 1.33,
-      "y": 5.2,
-      "angle": 0,
-      "w": 3.05
+      "type": "domino",
+      "x": 6.65,
+      "y": 2.65,
+      "angle": 0
+    },
+    {
+      "type": "domino",
+      "x": 6.05,
+      "y": 2.65,
+      "angle": 0
+    },
+    {
+      "type": "domino",
+      "x": 5.45,
+      "y": 2.65,
+      "angle": 0
     },
     {
       "type": "button",
-      "x": 0.4,
-      "y": 5,
+      "x": 4.9,
+      "y": 5.2,
       "angle": 0
     }
   ],
   "tray": [
     {
       "type": "plank",
-      "count": 5
+      "count": 4
     }
   ],
   "solution": [
     {
       "type": "plank",
-      "x": 14,
-      "y": 2.3,
-      "angle": -26
+      "x": 15.1,
+      "y": 1.62,
+      "angle": -38
     },
     {
       "type": "plank",
-      "x": 10,
-      "y": 5.12,
+      "x": 11.775,
+      "y": 2.52,
       "angle": 0
     },
     {
       "type": "plank",
-      "x": 6.95,
-      "y": 5.12,
-      "angle": 0
-    },
-    {
-      "type": "plank",
-      "x": 3.9,
-      "y": 5.12,
+      "x": 8.325,
+      "y": 2.52,
       "angle": 0
     }
   ],
   "challenge": {
-    "part_limit": 4
+    "part_limit": 3
   }
 }
