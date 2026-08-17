@@ -11,8 +11,8 @@ import 'theme.dart';
 /// takes effect immediately, without waiting for a restart.
 const String soundEnabledPrefKey = 'sound_enabled';
 
-/// Sound on/off switch (persists a bool only) + 3-way language choice
-/// (system/ko/en, backed by [AppLang]).
+/// Sound on/off switch (persists a bool only) + language choice: "system"
+/// plus every table in [kLanguageOrder], backed by [AppLang].
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
 
@@ -90,18 +90,24 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 onChanged: (v) => AppLang().value = v ?? 'system',
                 child: Column(
                   children: [
+                    // dense: 15 rows on a landscape-locked phone. Dense
+                    // ListTile is 48dp tall - still the minimum touch
+                    // target, and the list scrolls for the rest.
                     RadioListTile<String>(
+                      dense: true,
                       title: Text(S.t('langSystem')),
                       value: 'system',
                     ),
-                    RadioListTile<String>(
-                      title: Text(S.t('langKo')),
-                      value: 'ko',
-                    ),
-                    RadioListTile<String>(
-                      title: Text(S.t('langEn')),
-                      value: 'en',
-                    ),
+                    // Each language is labelled in itself (kLanguageNames),
+                    // not translated 14x14 - a reader picks out their own
+                    // writing without being able to read the current one.
+                    for (final code in kLanguageOrder)
+                      RadioListTile<String>(
+                        key: ValueKey('lang_$code'),
+                        dense: true,
+                        title: Text(kLanguageNames[code]!),
+                        value: code,
+                      ),
                   ],
                 ),
               ),

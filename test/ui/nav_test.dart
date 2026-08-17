@@ -283,7 +283,8 @@ void main() {
     await t.tap(find.byIcon(Icons.settings_rounded));
     await t.pumpAndSettle();
 
-    await t.tap(find.text(S.t('langKo')));
+    // 언어 항목은 그 언어 자신의 이름으로 표시된다 - 현재 표시 언어와 무관하게 '한국어'.
+    await t.tap(find.text(kLanguageNames['ko']!));
     await t.pumpAndSettle();
 
     await t.pageBack();

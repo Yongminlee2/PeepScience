@@ -13,10 +13,38 @@ void main() {
       expect(S.t('nonExistentKey'), equals('nonExistentKey'));
     });
 
-    test('en and ko key sets are identical', () {
+    test('every language carries exactly the English key set', () {
       final enKeys = S.strings['en']!.keys.toSet();
-      final koKeys = S.strings['ko']!.keys.toSet();
-      expect(enKeys, equals(koKeys));
+      for (final entry in S.strings.entries) {
+        expect(
+          entry.value.keys.toSet(),
+          equals(enKeys),
+          reason: '"${entry.key}" key set drifted from en',
+        );
+      }
+    });
+
+    test('no language has an empty value', () {
+      for (final lang in S.strings.entries) {
+        for (final entry in lang.value.entries) {
+          expect(entry.value.trim(), isNotEmpty,
+              reason: '${lang.key}/${entry.key} is empty');
+        }
+      }
+    });
+
+    test('every language keeps the {n} placeholder in stageN', () {
+      for (final entry in S.strings.entries) {
+        expect(entry.value['stageN'], contains('{n}'),
+            reason: '${entry.key}/stageN lost its {n} placeholder');
+      }
+    });
+
+    test('kLanguageOrder and kLanguageNames cover every table', () {
+      expect(kLanguageOrder.toSet(), equals(kStrings.keys.toSet()));
+      expect(kLanguageOrder.length, equals(kStrings.length),
+          reason: 'kLanguageOrder has a duplicate');
+      expect(kLanguageNames.keys.toSet(), equals(kStrings.keys.toSet()));
     });
 
     test('ko values contain Hangul characters', () {
@@ -44,6 +72,18 @@ void main() {
         expect(hasHangul, isFalse,
             reason: 'En value for key "${entry.key}" should not contain Hangul');
       }
+    });
+  });
+
+  group('S.codeForLocale - device locale to table', () {
+    test('Chinese splits on script, then on country', () {
+      expect(S.codeForLocale('zh', 'Hant', null), 'zh_Hant');
+      expect(S.codeForLocale('zh', null, 'TW'), 'zh_Hant');
+      expect(S.codeForLocale('zh', null, 'CN'), 'zh');
+    });
+
+    test('a language we do not carry resolves to null', () {
+      expect(S.codeForLocale('xx', null, null), isNull);
     });
   });
 
