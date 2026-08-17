@@ -9,55 +9,55 @@
   "preset": [
     {
       "type": "platform",
-      "x": 1.6,
+      "x": 6.6,
       "y": 2.15,
       "angle": 0,
       "w": 1.2
     },
     {
       "type": "metal_ball",
-      "x": 1.9,
+      "x": 6.9,
       "y": 1.65,
       "angle": 0
     },
     {
       "type": "platform",
-      "x": 2.65,
+      "x": 7.65,
       "y": 3.9,
       "angle": 55,
       "w": 1.4
     },
     {
       "type": "platform",
-      "x": 4.9,
+      "x": 9.9,
       "y": 3.55,
       "angle": -55,
       "w": 2.2
     },
     {
       "type": "platform",
-      "x": 3.0,
+      "x": 8.0,
       "y": 5.6,
       "angle": 90,
       "w": 1.6
     },
     {
       "type": "platform",
-      "x": 4.2,
+      "x": 9.2,
       "y": 4.8,
       "angle": 90,
       "w": 0.4
     },
     {
       "type": "platform",
-      "x": 3.6,
+      "x": 8.6,
       "y": 6.0,
       "angle": 0,
       "w": 1.0
     },
     {
       "type": "basket",
-      "x": 6.1,
+      "x": 11.1,
       "y": 7.05,
       "angle": 0
     }
@@ -83,25 +83,25 @@
   "solution": [
     {
       "type": "motor_gear",
-      "x": 0.88,
+      "x": 5.88,
       "y": 0.8,
       "angle": 0
     },
     {
       "type": "paddle_gear",
-      "x": 1.85,
+      "x": 6.85,
       "y": 0.8,
       "angle": 0
     },
     {
       "type": "fan",
-      "x": 1.35,
+      "x": 6.35,
       "y": 5.5,
       "angle": 0
     },
     {
       "type": "trampoline",
-      "x": 4.85,
+      "x": 9.85,
       "y": 7.15,
       "angle": 0
     }

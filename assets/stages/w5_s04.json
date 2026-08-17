@@ -39,10 +39,10 @@
     },
     {
       "type": "platform",
-      "x": 14.05,
+      "x": 14.0,
       "y": 3.9,
       "angle": 0,
-      "w": 4.1
+      "w": 4.0
     },
     {
       "type": "domino",
@@ -80,19 +80,19 @@
   "solution": [
     {
       "type": "metal_ball",
-      "x": 0.7,
+      "x": 1.5,
       "y": 1.0,
       "angle": 0
     },
     {
       "type": "plank",
-      "x": 1.5,
+      "x": 2.3,
       "y": 2.0,
       "angle": 24
     },
     {
       "type": "plank",
-      "x": 3.6,
+      "x": 4.4,
       "y": 3.3,
       "angle": 18
     }

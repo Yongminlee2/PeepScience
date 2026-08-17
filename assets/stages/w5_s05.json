@@ -8,33 +8,33 @@
   "preset": [
     {
       "type": "platform",
-      "x": 13.4,
+      "x": 11.9,
       "y": 2.9,
       "angle": 0,
       "w": 1.2
     },
     {
       "type": "metal_ball",
-      "x": 13.8,
+      "x": 12.3,
       "y": 2.4,
       "angle": 0
     },
     {
       "type": "platform",
-      "x": 12.9,
+      "x": 11.4,
       "y": 7.55,
       "angle": 0,
       "w": 6.2
     },
     {
       "type": "button",
-      "x": 14.0,
+      "x": 12.5,
       "y": 7.24,
       "angle": 0
     },
     {
       "type": "platform",
-      "x": 15.5,
+      "x": 14.0,
       "y": 6.65,
       "angle": 90,
       "w": 1.6
@@ -61,25 +61,25 @@
   "solution": [
     {
       "type": "paddle_gear",
-      "x": 13.95,
+      "x": 12.45,
       "y": 1.55,
       "angle": 0
     },
     {
       "type": "gear",
-      "x": 12.98,
+      "x": 11.48,
       "y": 1.55,
       "angle": 0
     },
     {
       "type": "motor_gear",
-      "x": 12.01,
+      "x": 10.51,
       "y": 1.55,
       "angle": 0
     },
     {
       "type": "seesaw",
-      "x": 11.1,
+      "x": 9.6,
       "y": 4.6,
       "angle": 0
     }

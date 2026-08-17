@@ -8,68 +8,68 @@
   "preset": [
     {
       "type": "platform",
-      "x": 3.07,
-      "y": 1.35,
+      "x": 2.07,
+      "y": 1.8,
       "angle": 90,
-      "w": 2.0
+      "w": 1.1
     },
     {
       "type": "platform",
-      "x": 3.07,
+      "x": 2.07,
       "y": 5.55,
       "angle": 90,
       "w": 3.1
     },
     {
       "type": "platform",
-      "x": 5.15,
+      "x": 4.15,
       "y": 4.55,
       "angle": 0,
       "w": 1.4
     },
     {
       "type": "metal_ball",
-      "x": 4.72,
+      "x": 3.72,
       "y": 4.05,
       "angle": 0
     },
     {
       "type": "platform",
-      "x": 6.9,
+      "x": 5.9,
       "y": 5.15,
       "angle": 20,
       "w": 2.2
     },
     {
       "type": "platform",
-      "x": 8.6,
+      "x": 7.6,
       "y": 6.2,
       "angle": 0,
       "w": 1.4
     },
     {
       "type": "platform",
-      "x": 13.3,
+      "x": 12.05,
       "y": 6.9,
       "angle": 15,
       "w": 1.6
     },
     {
       "type": "platform",
-      "x": 15.1,
+      "x": 13.75,
       "y": 7.35,
       "angle": 0,
-      "w": 1.9
+      "w": 1.7
     },
     {
       "type": "domino",
-      "x": 14.55,
+      "x": 13.3,
       "y": 6.7,
       "angle": 0
     },
     {
       "type": "button",
-      "x": 15.35,
+      "x": 14.1,
       "y": 7.04,
       "angle": 0
     }
@@ -95,31 +95,31 @@
   "solution": [
     {
       "type": "motor_gear",
-      "x": 1.66,
+      "x": 0.66,
       "y": 3.2,
       "angle": 0
     },
     {
       "type": "gear",
-      "x": 2.63,
+      "x": 1.63,
       "y": 3.2,
       "angle": 0
     },
     {
       "type": "gear",
-      "x": 3.6,
+      "x": 2.6,
       "y": 3.2,
       "angle": 0
     },
     {
       "type": "paddle_gear",
-      "x": 4.57,
+      "x": 3.57,
       "y": 3.2,
       "angle": 0
     },
     {
       "type": "plank",
-      "x": 10.8,
+      "x": 9.8,
       "y": 6.13,
       "angle": -4
     }
