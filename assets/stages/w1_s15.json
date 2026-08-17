@@ -9,7 +9,7 @@
   "preset": [
     {
       "type": "rubber_ball",
-      "x": 1.15,
+      "x": 1.05,
       "y": 2.0,
       "angle": 0
     },
