@@ -8,34 +8,34 @@
   "preset": [
     {
       "type": "rubber_ball",
-      "x": 14,
+      "x": 14.35,
       "y": 1,
       "angle": 0
     },
     {
       "type": "platform",
-      "x": 11.75,
+      "x": 12.1,
       "y": 5.2,
       "angle": 0,
       "w": 6.5
     },
     {
       "type": "platform",
-      "x": 5.4,
+      "x": 5.75,
       "y": 5.2,
       "angle": 0,
       "w": 2
     },
     {
       "type": "platform",
-      "x": 1.55,
+      "x": 1.9,
       "y": 5.2,
       "angle": 0,
       "w": 1.5
     },
     {
       "type": "basket",
-      "x": 0.4,
+      "x": 0.75,
       "y": 5.4,
       "angle": 0
     }
@@ -49,19 +49,19 @@
   "solution": [
     {
       "type": "plank",
-      "x": 14,
+      "x": 14.35,
       "y": 2.3,
       "angle": -28
     },
     {
       "type": "plank",
-      "x": 7.45,
+      "x": 7.8,
       "y": 5.12,
       "angle": 0
     },
     {
       "type": "plank",
-      "x": 3.35,
+      "x": 3.7,
       "y": 5.12,
       "angle": 0
     }
