@@ -6,6 +6,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:piyak_science/game/input.dart';
 import 'package:piyak_science/game/piyak_game.dart';
 import 'package:piyak_science/sim/catalog.dart';
+import 'package:piyak_science/sim/placement_rules.dart';
 import 'package:piyak_science/sim/stage_data.dart';
 
 import '../sim/helpers.dart';
@@ -264,6 +265,31 @@ void main() {
 
     expect(game.placements, isEmpty);
     expect(game.selectedIndex, isNull);
+  });
+
+  // 실기기 검수 회귀 방지: 널빤지를 세우면(80도) 부품이 위아래로 1m라
+  // 삭제 X를 "중심 위 0.6m" 고정으로 두면 X가 널빤지 몸통 안에 들어앉아,
+  // 옮기려고 몸통 위쪽을 잡는 드래그가 전부 삭제로 먹혔다.
+  testWidgets('세운 널빤지의 삭제 X는 부품 몸통 바깥에 있다', (t) async {
+    final s = stage('', '', '{"type":"plank","x":0,"y":0,"angle":0}');
+    final game = await _pumpGame(t, s);
+    game.addPlacement(Placement(type: PartType.plank, x: 8, y: 4, angleDeg: 80));
+    await t.pump();
+
+    final p = game.placements[0];
+    final del = deleteButtonWorldPos(p);
+    final halfHeight = boxForPart(p.type, p.x, p.y, p.angleDeg).halfY;
+
+    // X의 히트 원 아래 끝이 부품 윗변보다 위에 있어야 겹치지 않는다.
+    expect(del.y + kDeleteHitRadiusM, lessThan(p.y - halfHeight));
+
+    // 눕힌 널빤지는 기존 0.6m 그대로 - 작은 부품까지 멀어지면 손이 더 간다.
+    final flat = Placement(type: PartType.plank, x: 8, y: 4, angleDeg: 0);
+    expect(
+      deleteButtonWorldPos(flat).y,
+      closeTo(4 - kDeleteButtonOffsetM, 1e-6), // Vector2는 32비트 float
+
+    );
   });
 
   // 리뷰 Critical 1 회귀 방지: 손가락 A가 부품을 불법 위치로 옮기는 도중

@@ -166,8 +166,13 @@ class _GameScreenState extends State<GameScreen> {
             fit: StackFit.expand,
             children: [
               GameWidget(game: game),
+              // 하단 정렬: 이 두 버튼은 게임 캔버스 위에 떠 있는 Flutter
+              // 위젯이라 어디에 놓든 놓인 자리의 필드를 가린다. 화면 아래
+              // 150px 띠는 트레이 바가 이미 차지해 어떤 스테이지도 쓰지
+              // 않는 유일한 공간이라, 여기 두면 부품·공을 절대 덮지 않는다.
+              // (위쪽에 두었을 때 시작 공이 통째로 가려지는 판이 있었다.)
               Positioned(
-                top: 14,
+                bottom: 14,
                 right: 16,
                 child: SafeArea(
                   child: _RoundHudButton(
@@ -180,7 +185,7 @@ class _GameScreenState extends State<GameScreen> {
                 ),
               ),
               Positioned(
-                top: 14,
+                bottom: 14,
                 right: 82,
                 child: SafeArea(
                   child: _RoundHudButton(

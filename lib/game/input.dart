@@ -179,11 +179,18 @@ Iterable<rules.PlacementBox> _existingBoxes(
 /// get its selection ring radius.
 const double kSelectionRingPadding = 0.18;
 
-/// Fixed world-space offset (meters, straight up i.e. smaller y) from a
+/// Minimum world-space offset (meters, straight up i.e. smaller y) from a
 /// placement's center to its delete-X button center. Shared contract:
 /// "삭제 X는 부품 위 0.6m" - unlike the rotate handle, this does NOT turn
-/// with the part's own angle.
+/// with the part's own angle. A part tall enough to reach past this pushes
+/// the button further out, see [deleteButtonWorldPos].
 const double kDeleteButtonOffsetM = 0.6;
+
+/// Gap (meters) kept between a part's own top edge and the delete-X button
+/// when the part is too tall for [kDeleteButtonOffsetM] to clear it - a
+/// stood-up plank is 1m tall, so a fixed 0.6m put the X *inside* the plank
+/// and stole the drags meant to move it.
+const double kDeleteButtonClearanceM = 0.34;
 
 /// Hit-test radius (meters) for the delete-X button.
 const double kDeleteHitRadiusM = 0.28;
@@ -237,8 +244,16 @@ Vector2 rotateHandleWorldPos(Placement p) {
 /// placement, and 0.3-0.6=-0.3 is not on screen at all. The single shared
 /// spot both [handleEditTapUp]'s hit-test and [SelectionOverlay]'s render
 /// call, so the tappable and visible positions can never drift apart.
-Vector2 deleteButtonWorldPos(Placement p) =>
-    Vector2(p.x, max(p.y - kDeleteButtonOffsetM, kDeleteHitRadiusM));
+Vector2 deleteButtonWorldPos(Placement p) {
+  // boxForPart already accounts for rotation (and the paddle gear's bar), so
+  // the button clears the part at every angle without a second geometry rule.
+  final halfHeight = rules.boxForPart(p.type, p.x, p.y, p.angleDeg).halfY;
+  final offset = max(
+    kDeleteButtonOffsetM,
+    halfHeight + kDeleteButtonClearanceM,
+  );
+  return Vector2(p.x, max(p.y - offset, kDeleteHitRadiusM));
+}
 
 /// Index of the topmost `game.placements` entry whose AABB (the same
 /// conservative box canPlaceAt/placement_rules.dart's `boxForPart` use)
