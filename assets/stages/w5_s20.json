@@ -1,0 +1,141 @@
+{
+  "id": "w5_s20",
+  "world": 5,
+  "index": 20,
+  "goal": {
+    "type": "press_button"
+  },
+  "feature": "chain_reaction",
+  "preset": [
+    {
+      "type": "platform",
+      "x": 1.6,
+      "y": 5.35,
+      "angle": 90,
+      "w": 1.8
+    },
+    {
+      "type": "platform",
+      "x": 2.75,
+      "y": 4.25,
+      "angle": 0,
+      "w": 2.5
+    },
+    {
+      "type": "platform",
+      "x": 2.45,
+      "y": 5.75,
+      "angle": 4,
+      "w": 0.6
+    },
+    {
+      "type": "platform",
+      "x": 2.95,
+      "y": 5.75,
+      "angle": -4,
+      "w": 0.6
+    },
+    {
+      "type": "balloon",
+      "x": 2.05,
+      "y": 4.85,
+      "angle": 0
+    },
+    {
+      "type": "metal_ball",
+      "x": 2.7,
+      "y": 5.3,
+      "angle": 0
+    },
+    {
+      "type": "platform",
+      "x": 3.85,
+      "y": 5.8,
+      "angle": 0,
+      "w": 0.9
+    },
+    {
+      "type": "platform",
+      "x": 5.3,
+      "y": 2.95,
+      "angle": 0,
+      "w": 2.6
+    },
+    {
+      "type": "platform",
+      "x": 8.2,
+      "y": 1.65,
+      "angle": 0,
+      "w": 3.2
+    },
+    {
+      "type": "platform",
+      "x": 4.7,
+      "y": 0.35,
+      "angle": 0,
+      "w": 3.4
+    },
+    {
+      "type": "platform",
+      "x": 9.5,
+      "y": 1.63,
+      "angle": 0,
+      "w": 1.2
+    },
+    {
+      "type": "button",
+      "x": 9.4,
+      "y": 1.32,
+      "angle": 0
+    }
+  ],
+  "tray": [
+    {
+      "type": "fan",
+      "count": 5
+    },
+    {
+      "type": "seesaw",
+      "count": 1
+    }
+  ],
+  "solution": [
+    {
+      "type": "fan",
+      "x": 0.5,
+      "y": 5.07,
+      "angle": 0
+    },
+    {
+      "type": "fan",
+      "x": 2.3,
+      "y": 3.6,
+      "angle": 0
+    },
+    {
+      "type": "fan",
+      "x": 10.1,
+      "y": 2.3,
+      "angle": 180
+    },
+    {
+      "type": "fan",
+      "x": 2.9,
+      "y": 1.0,
+      "angle": 0
+    },
+    {
+      "type": "seesaw",
+      "x": 8.3,
+      "y": 0.45,
+      "angle": 0
+    }
+  ],
+  "challenge": {
+    "part_limit": 5,
+    "collectible_star": {
+      "x": 5.05,
+      "y": 6.6
+    }
+  }
+}

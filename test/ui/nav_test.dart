@@ -353,9 +353,11 @@ void main() {
     // 5 world cards don't all fit in the 1600-wide viewport this test needs
     // for the later fixed-resolution game tap math (_runButtonCenter) - drag
     // the horizontal world-card row so the last world's cell is on screen
-    // before tapping it. The final stage (w5_s10) sits on world 5's FIRST
-    // page (1-10), so no page switch is needed.
+    // before tapping it. The final stage (w5_s20) sits on world 5's SECOND
+    // page (11-20), so flip the page before tapping the cell.
     await t.drag(find.byType(ListView), const Offset(-2400, 0));
+    await t.pump();
+    await t.tap(find.byKey(const ValueKey('stage_page_next_w5')));
     await t.pump();
 
     await t.tap(find.byKey(ValueKey('cell_$lastId')));

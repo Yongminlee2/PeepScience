@@ -1,0 +1,110 @@
+{
+  "id": "w5_s13",
+  "world": 5,
+  "index": 13,
+  "goal": {
+    "type": "pop_balloons"
+  },
+  "preset": [
+    {
+      "type": "platform",
+      "x": 4.3,
+      "y": 7.3,
+      "angle": 0,
+      "w": 6.6
+    },
+    {
+      "type": "balloon",
+      "x": 2.0,
+      "y": 6.65,
+      "angle": 0
+    },
+    {
+      "type": "platform",
+      "x": 2.35,
+      "y": 5.6,
+      "angle": 0,
+      "w": 2.7
+    },
+    {
+      "type": "platform",
+      "x": 8.6,
+      "y": 5.3,
+      "angle": 90,
+      "w": 3.2
+    },
+    {
+      "type": "platform",
+      "x": 7.65,
+      "y": 3.8,
+      "angle": 0,
+      "w": 1.9
+    },
+    {
+      "type": "platform",
+      "x": 3.6,
+      "y": 4.0,
+      "angle": 90,
+      "w": 3.0
+    },
+    {
+      "type": "platform",
+      "x": 8.35,
+      "y": 0.9,
+      "angle": 0,
+      "w": 3.3
+    },
+    {
+      "type": "platform",
+      "x": 10.1,
+      "y": 0.85,
+      "angle": 90,
+      "w": 1.1
+    },
+    {
+      "type": "tack",
+      "x": 9.5,
+      "y": 1.35,
+      "angle": 0
+    }
+  ],
+  "tray": [
+    {
+      "type": "fan",
+      "count": 3
+    },
+    {
+      "type": "plank",
+      "count": 2
+    }
+  ],
+  "solution": [
+    {
+      "type": "fan",
+      "x": 0.55,
+      "y": 6.2,
+      "angle": 0
+    },
+    {
+      "type": "fan",
+      "x": 10.35,
+      "y": 4.4,
+      "angle": 180
+    },
+    {
+      "type": "plank",
+      "x": 4.85,
+      "y": 2.2,
+      "angle": -20
+    },
+    {
+      "type": "fan",
+      "x": 6.2,
+      "y": 1.5,
+      "angle": 0
+    }
+  ],
+  "challenge": {
+    "part_limit": 4
+  }
+}

@@ -71,11 +71,12 @@ void main() {
 
   test('월드5는 목표 재료를 직행 투하할 수 있게 지급하지 않는다', () {
     // 재질 함정 판은 예외: 트레이에 정답 재질과 오답 재질 공을 나란히 주는
-    // 선택이 퍼즐의 본체다(w2_s12/s15와 같은 규약). 두 판 모두 전 지점 단독
+    // 선택이 퍼즐의 본체다(w2_s12/s15와 같은 규약). 네 판 모두 전 지점 단독
     // 낙하 스윕(0.4m 격자, 배치 규칙 통과 지점만)으로 직행 클리어 0건을
     // 시뮬레이션으로 확인했다: w5_s04 metal 0/554·rubber 0/554,
-    // w5_s08 rubber 0/588·metal 0/588.
-    const materialTrapIds = {'w5_s04', 'w5_s08'};
+    // w5_s08 rubber 0/588·metal 0/588, w5_s16 metal 0/581·rubber 0/581,
+    // w5_s17 metal 0/614·rubber 0/614.
+    const materialTrapIds = {'w5_s04', 'w5_s08', 'w5_s16', 'w5_s17'};
     for (final id in _world5Ids) {
       if (materialTrapIds.contains(id)) continue;
       final stage = _load(id);
@@ -107,6 +108,8 @@ void main() {
     const traps = {
       'w5_s04': (PartType.metalBall, PartType.rubberBall),
       'w5_s08': (PartType.rubberBall, PartType.metalBall),
+      'w5_s16': (PartType.metalBall, PartType.rubberBall),
+      'w5_s17': (PartType.metalBall, PartType.rubberBall),
     };
     traps.forEach((id, pair) {
       final stage = _load(id);

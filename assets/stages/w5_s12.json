@@ -1,0 +1,98 @@
+{
+  "id": "w5_s12",
+  "world": 5,
+  "index": 12,
+  "goal": {
+    "type": "topple_dominoes"
+  },
+  "preset": [
+    {
+      "type": "platform",
+      "x": 1.9,
+      "y": 1.4,
+      "angle": 0,
+      "w": 2.0
+    },
+    {
+      "type": "metal_ball",
+      "x": 1.6,
+      "y": 0.9,
+      "angle": 0
+    },
+    {
+      "type": "platform",
+      "x": 4.3,
+      "y": 4.6,
+      "angle": -15,
+      "w": 1.0
+    },
+    {
+      "type": "platform",
+      "x": 5.75,
+      "y": 6.85,
+      "angle": 0,
+      "w": 2.2
+    },
+    {
+      "type": "domino",
+      "x": 5.9,
+      "y": 6.2,
+      "angle": 0
+    },
+    {
+      "type": "domino",
+      "x": 6.35,
+      "y": 6.2,
+      "angle": 0
+    },
+    {
+      "type": "domino",
+      "x": 6.8,
+      "y": 6.2,
+      "angle": 0
+    }
+  ],
+  "tray": [
+    {
+      "type": "fan",
+      "count": 1
+    },
+    {
+      "type": "seesaw",
+      "count": 2
+    },
+    {
+      "type": "plank",
+      "count": 2
+    }
+  ],
+  "solution": [
+    {
+      "type": "fan",
+      "x": 0.5,
+      "y": 0.9,
+      "angle": 0
+    },
+    {
+      "type": "seesaw",
+      "x": 4.3,
+      "y": 2.9,
+      "angle": 0
+    },
+    {
+      "type": "seesaw",
+      "x": 1.4,
+      "y": 5.2,
+      "angle": 0
+    },
+    {
+      "type": "plank",
+      "x": 3.55,
+      "y": 6.77,
+      "angle": 0
+    }
+  ],
+  "challenge": {
+    "part_limit": 4
+  }
+}

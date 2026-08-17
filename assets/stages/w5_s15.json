@@ -1,0 +1,97 @@
+{
+  "id": "w5_s15",
+  "world": 5,
+  "index": 15,
+  "goal": {
+    "type": "press_button"
+  },
+  "preset": [
+    {
+      "type": "platform",
+      "x": 8.3,
+      "y": 2.7,
+      "angle": 0,
+      "w": 1.2
+    },
+    {
+      "type": "metal_ball",
+      "x": 8.7,
+      "y": 2.2,
+      "angle": 0
+    },
+    {
+      "type": "platform",
+      "x": 3.6,
+      "y": 5.6,
+      "angle": 90,
+      "w": 3.0
+    },
+    {
+      "type": "platform",
+      "x": 5.0,
+      "y": 5.9,
+      "angle": 90,
+      "w": 2.4
+    },
+    {
+      "type": "platform",
+      "x": 4.3,
+      "y": 7.35,
+      "angle": 0,
+      "w": 1.8
+    },
+    {
+      "type": "button",
+      "x": 4.15,
+      "y": 7.04,
+      "angle": 0
+    }
+  ],
+  "tray": [
+    {
+      "type": "motor_gear",
+      "count": 1
+    },
+    {
+      "type": "gear",
+      "count": 1
+    },
+    {
+      "type": "paddle_gear",
+      "count": 1
+    },
+    {
+      "type": "plank",
+      "count": 2
+    }
+  ],
+  "solution": [
+    {
+      "type": "motor_gear",
+      "x": 6.91,
+      "y": 1.35,
+      "angle": 0
+    },
+    {
+      "type": "gear",
+      "x": 7.88,
+      "y": 1.35,
+      "angle": 0
+    },
+    {
+      "type": "paddle_gear",
+      "x": 8.85,
+      "y": 1.35,
+      "angle": 0
+    },
+    {
+      "type": "plank",
+      "x": 6.9,
+      "y": 3.6,
+      "angle": -12
+    }
+  ],
+  "challenge": {
+    "part_limit": 4
+  }
+}

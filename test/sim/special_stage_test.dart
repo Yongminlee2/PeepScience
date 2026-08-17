@@ -25,11 +25,11 @@ void main() {
     expect(stage.challenge!.partLimit, 1);
   });
 
-  test('후반 40판은 목표 물체를 고정하고 긴 장치·여분 부품 도전을 제공한다', () {
+  test('후반 50판은 목표 물체를 고정하고 긴 장치·여분 부품 도전을 제공한다', () {
     final masteryIds = stageOrder.where(
       (id) => int.parse(id.substring(id.length - 2)) >= 11,
     );
-    expect(masteryIds.length, 40);
+    expect(masteryIds.length, 50);
     var stagesWithThreeParts = 0;
     var stagesWithTwoToolTypes = 0;
     final playerTools = <PartType>{};
@@ -51,8 +51,8 @@ void main() {
       playerTools.addAll(solutionTypes);
     }
 
-    expect(stagesWithThreeParts, greaterThanOrEqualTo(37));
-    expect(stagesWithTwoToolTypes, greaterThanOrEqualTo(26));
+    expect(stagesWithThreeParts, greaterThanOrEqualTo(47));
+    expect(stagesWithTwoToolTypes, greaterThanOrEqualTo(36));
     expect(
       playerTools,
       containsAll(const {
@@ -67,7 +67,7 @@ void main() {
     );
   });
 
-  test('후반 40판은 공·압정을 목표 바로 위에 놓는 직행 해법을 지급하지 않는다', () {
+  test('후반 50판은 공·압정을 목표 바로 위에 놓는 직행 해법을 지급하지 않는다', () {
     final masteryIds = stageOrder.where(
       (id) => int.parse(id.substring(id.length - 2)) >= 11,
     );
@@ -75,7 +75,9 @@ void main() {
     // 지급하는 것(쇠공↔고무공 선택)이 퍼즐의 핵심이다. 목표 지점이 지붕·통로
     // 안쪽에 있어 공을 위에서 떨어뜨리는 직행 해법은 성립하지 않음을 전 지점
     // 낙하 스윕 시뮬레이션(양 재질 각 500여 지점, 클리어 0건)으로 확인했다.
-    const materialTrapIds = {'w2_s12', 'w2_s15'};
+    // w5_s16(바운스 계측 대들보 갤러리) metal/rubber 0/581,
+    // w5_s17(맞바람 관문) metal/rubber 0/614.
+    const materialTrapIds = {'w2_s12', 'w2_s15', 'w5_s16', 'w5_s17'};
     for (final id in masteryIds) {
       if (materialTrapIds.contains(id)) continue;
       final stage = _load(id);
@@ -101,7 +103,7 @@ void main() {
     }
   });
 
-  test('후반 40판은 정답 부품을 하나라도 빼면 클리어되지 않는다', () {
+  test('후반 50판은 정답 부품을 하나라도 빼면 클리어되지 않는다', () {
     final masteryIds = stageOrder.where(
       (id) => int.parse(id.substring(id.length - 2)) >= 11,
     );
@@ -118,7 +120,7 @@ void main() {
     }
   });
 
-  for (final id in ['w1_s10', 'w1_s20', 'w3_s10', 'w3_s20', 'w5_s10']) {
+  for (final id in ['w1_s10', 'w1_s20', 'w3_s10', 'w3_s20', 'w5_s10', 'w5_s20']) {
     test('$id 정답 경로에서 수집 별을 실제로 얻을 수 있다', () {
       final stage = _load(id);
       final sim = SimWorld(stage, stage.solution);
