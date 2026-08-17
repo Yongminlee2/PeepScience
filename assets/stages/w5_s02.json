@@ -1,0 +1,90 @@
+{
+  "id": "w5_s02",
+  "world": 5,
+  "index": 2,
+  "goal": {
+    "type": "ball_in_basket"
+  },
+  "preset": [
+    {
+      "type": "platform",
+      "x": 5.0,
+      "y": 2.4,
+      "angle": 0,
+      "w": 5.6
+    },
+    {
+      "type": "metal_ball",
+      "x": 2.7,
+      "y": 1.9,
+      "angle": 0
+    },
+    {
+      "type": "platform",
+      "x": 8.3,
+      "y": 4.2,
+      "angle": 0,
+      "w": 1.8
+    },
+    {
+      "type": "platform",
+      "x": 9.5,
+      "y": 3.4,
+      "angle": 90,
+      "w": 1.6
+    },
+    {
+      "type": "platform",
+      "x": 4.6,
+      "y": 4.55,
+      "angle": 0,
+      "w": 1.2
+    },
+    {
+      "type": "platform",
+      "x": 3.2,
+      "y": 6.4,
+      "angle": 0,
+      "w": 1.4
+    },
+    {
+      "type": "basket",
+      "x": 3.2,
+      "y": 5.78,
+      "angle": 0
+    }
+  ],
+  "tray": [
+    {
+      "type": "fan",
+      "count": 2
+    },
+    {
+      "type": "plank",
+      "count": 2
+    }
+  ],
+  "solution": [
+    {
+      "type": "fan",
+      "x": 1.65,
+      "y": 1.9,
+      "angle": 0
+    },
+    {
+      "type": "fan",
+      "x": 10.25,
+      "y": 3.85,
+      "angle": 180
+    },
+    {
+      "type": "plank",
+      "x": 6.3,
+      "y": 4.33,
+      "angle": 0
+    }
+  ],
+  "challenge": {
+    "part_limit": 3
+  }
+}

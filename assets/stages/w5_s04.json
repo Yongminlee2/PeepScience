@@ -1,0 +1,103 @@
+{
+  "id": "w5_s04",
+  "world": 5,
+  "index": 4,
+  "goal": {
+    "type": "topple_dominoes"
+  },
+  "prediction": {
+    "answer": "metal_ball"
+  },
+  "preset": [
+    {
+      "type": "platform",
+      "x": 10.45,
+      "y": 6.1,
+      "angle": 0,
+      "w": 10.1
+    },
+    {
+      "type": "platform",
+      "x": 5.4,
+      "y": 4.9,
+      "angle": 90,
+      "w": 2.0
+    },
+    {
+      "type": "platform",
+      "x": 11.35,
+      "y": 5.0,
+      "angle": 0,
+      "w": 0.9
+    },
+    {
+      "type": "platform",
+      "x": 11.8,
+      "y": 4.0,
+      "angle": 90,
+      "w": 1.6
+    },
+    {
+      "type": "platform",
+      "x": 14.05,
+      "y": 3.9,
+      "angle": 0,
+      "w": 4.1
+    },
+    {
+      "type": "domino",
+      "x": 12.6,
+      "y": 5.45,
+      "angle": 0
+    },
+    {
+      "type": "domino",
+      "x": 13.7,
+      "y": 5.45,
+      "angle": 0
+    },
+    {
+      "type": "domino",
+      "x": 14.8,
+      "y": 5.45,
+      "angle": 0
+    }
+  ],
+  "tray": [
+    {
+      "type": "metal_ball",
+      "count": 1
+    },
+    {
+      "type": "rubber_ball",
+      "count": 1
+    },
+    {
+      "type": "plank",
+      "count": 2
+    }
+  ],
+  "solution": [
+    {
+      "type": "metal_ball",
+      "x": 0.7,
+      "y": 1.0,
+      "angle": 0
+    },
+    {
+      "type": "plank",
+      "x": 1.5,
+      "y": 2.0,
+      "angle": 24
+    },
+    {
+      "type": "plank",
+      "x": 3.6,
+      "y": 3.3,
+      "angle": 18
+    }
+  ],
+  "challenge": {
+    "part_limit": 3
+  }
+}

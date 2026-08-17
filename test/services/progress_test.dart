@@ -65,6 +65,22 @@ void main() {
       expect(stageOrder[2], equals('w1_s03'));
     });
 
+    test('월드5 첫 판은 월드4 마지막 판을 깨야 열린다', () async {
+      final store = await ProgressStore.init();
+
+      // w4_s20 직전까지 전부 깨도 w5_s01은 잠김.
+      final w5Start = stageOrder.indexOf('w5_s01');
+      expect(w5Start, greaterThan(0));
+      expect(stageOrder[w5Start - 1], 'w4_s20');
+      final allButLast = stageOrder.sublist(0, w5Start - 1).toSet();
+      expect(store.isUnlocked('w5_s01', allButLast), isFalse);
+
+      // w4_s20까지 깨면 열린다 - 월드 체인이 5번째 월드로 이어진다.
+      final throughW4 = stageOrder.sublist(0, w5Start).toSet();
+      expect(store.isUnlocked('w5_s01', throughW4), isTrue);
+      expect(store.isUnlocked('w5_s02', throughW4), isFalse);
+    });
+
     test('별 기록은 최고 점수만 저장한다', () async {
       final store = await ProgressStore.init();
       await store.markStars('w1_s01', 2);

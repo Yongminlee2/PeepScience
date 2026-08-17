@@ -1,0 +1,94 @@
+{
+  "id": "w5_s07",
+  "world": 5,
+  "index": 7,
+  "goal": {
+    "type": "ball_in_basket"
+  },
+  "preset": [
+    {
+      "type": "platform",
+      "x": 2.7,
+      "y": 2.6,
+      "angle": 0,
+      "w": 3.0
+    },
+    {
+      "type": "metal_ball",
+      "x": 1.7,
+      "y": 2.1,
+      "angle": 0
+    },
+    {
+      "type": "platform",
+      "x": 4.75,
+      "y": 4.1,
+      "angle": 0,
+      "w": 0.3
+    },
+    {
+      "type": "platform",
+      "x": 6.2,
+      "y": 3.2,
+      "angle": 0,
+      "w": 2.5
+    },
+    {
+      "type": "platform",
+      "x": 10.85,
+      "y": 6.3,
+      "angle": 0,
+      "w": 1.6
+    },
+    {
+      "type": "basket",
+      "x": 10.85,
+      "y": 5.68,
+      "angle": 0
+    },
+    {
+      "type": "platform",
+      "x": 11.55,
+      "y": 5.0,
+      "angle": 90,
+      "w": 1.6
+    }
+  ],
+  "tray": [
+    {
+      "type": "fan",
+      "count": 1
+    },
+    {
+      "type": "domino",
+      "count": 2
+    },
+    {
+      "type": "plank",
+      "count": 1
+    }
+  ],
+  "solution": [
+    {
+      "type": "fan",
+      "x": 0.75,
+      "y": 2.1,
+      "angle": 0
+    },
+    {
+      "type": "domino",
+      "x": 4.75,
+      "y": 3.42,
+      "angle": 0
+    },
+    {
+      "type": "plank",
+      "x": 8.5,
+      "y": 3.65,
+      "angle": 18
+    }
+  ],
+  "challenge": {
+    "part_limit": 3
+  }
+}

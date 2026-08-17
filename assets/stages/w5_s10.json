@@ -1,0 +1,117 @@
+{
+  "id": "w5_s10",
+  "world": 5,
+  "index": 10,
+  "goal": {
+    "type": "topple_dominoes"
+  },
+  "feature": "chain_reaction",
+  "preset": [
+    {
+      "type": "platform",
+      "x": 2.3,
+      "y": 2.35,
+      "angle": 0,
+      "w": 1.2
+    },
+    {
+      "type": "metal_ball",
+      "x": 2.55,
+      "y": 1.85,
+      "angle": 0
+    },
+    {
+      "type": "platform",
+      "x": 11.9,
+      "y": 6.85,
+      "angle": 0,
+      "w": 5.6
+    },
+    {
+      "type": "domino",
+      "x": 12.4,
+      "y": 6.2,
+      "angle": 0
+    },
+    {
+      "type": "domino",
+      "x": 13.2,
+      "y": 6.2,
+      "angle": 0
+    },
+    {
+      "type": "domino",
+      "x": 14.0,
+      "y": 6.2,
+      "angle": 0
+    },
+    {
+      "type": "platform",
+      "x": 8.9,
+      "y": 3.85,
+      "angle": 0,
+      "w": 2.0
+    }
+  ],
+  "tray": [
+    {
+      "type": "motor_gear",
+      "count": 1
+    },
+    {
+      "type": "paddle_gear",
+      "count": 1
+    },
+    {
+      "type": "seesaw",
+      "count": 1
+    },
+    {
+      "type": "trampoline",
+      "count": 2
+    },
+    {
+      "type": "plank",
+      "count": 1
+    }
+  ],
+  "solution": [
+    {
+      "type": "paddle_gear",
+      "x": 2.4,
+      "y": 1.0,
+      "angle": 0
+    },
+    {
+      "type": "motor_gear",
+      "x": 1.43,
+      "y": 1.0,
+      "angle": 0
+    },
+    {
+      "type": "seesaw",
+      "x": 3.6,
+      "y": 4.2,
+      "angle": 0
+    },
+    {
+      "type": "trampoline",
+      "x": 6.2,
+      "y": 7.0,
+      "angle": 0
+    },
+    {
+      "type": "plank",
+      "x": 7.1,
+      "y": 4.75,
+      "angle": -30
+    }
+  ],
+  "challenge": {
+    "part_limit": 5,
+    "collectible_star": {
+      "x": 8.6,
+      "y": 5.65
+    }
+  }
+}

@@ -350,17 +350,13 @@ void main() {
     );
     await t.pumpAndSettle();
 
-    // 4 world cards don't all fit in the 1600-wide viewport this test needs
+    // 5 world cards don't all fit in the 1600-wide viewport this test needs
     // for the later fixed-resolution game tap math (_runButtonCenter) - drag
     // the horizontal world-card row so the last world's cell is on screen
-    // before tapping it.
-    await t.drag(find.byType(ListView), const Offset(-2000, 0));
+    // before tapping it. The final stage (w5_s10) sits on world 5's FIRST
+    // page (1-10), so no page switch is needed.
+    await t.drag(find.byType(ListView), const Offset(-2400, 0));
     await t.pump();
-
-    // Each world keeps phone-sized 5x2 cells by paging stages 1-10/11-20.
-    // The final stage now lives on world 4's second page.
-    await t.tap(find.byKey(const ValueKey('stage_page_next_w4')));
-    await t.pumpAndSettle();
 
     await t.tap(find.byKey(ValueKey('cell_$lastId')));
     await _pumpBounded(t);

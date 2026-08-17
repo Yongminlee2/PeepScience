@@ -1,0 +1,90 @@
+{
+  "id": "w5_s05",
+  "world": 5,
+  "index": 5,
+  "goal": {
+    "type": "press_button"
+  },
+  "preset": [
+    {
+      "type": "platform",
+      "x": 13.4,
+      "y": 2.9,
+      "angle": 0,
+      "w": 1.2
+    },
+    {
+      "type": "metal_ball",
+      "x": 13.8,
+      "y": 2.4,
+      "angle": 0
+    },
+    {
+      "type": "platform",
+      "x": 12.9,
+      "y": 7.55,
+      "angle": 0,
+      "w": 6.2
+    },
+    {
+      "type": "button",
+      "x": 14.0,
+      "y": 7.24,
+      "angle": 0
+    },
+    {
+      "type": "platform",
+      "x": 15.5,
+      "y": 6.65,
+      "angle": 90,
+      "w": 1.6
+    }
+  ],
+  "tray": [
+    {
+      "type": "motor_gear",
+      "count": 1
+    },
+    {
+      "type": "gear",
+      "count": 2
+    },
+    {
+      "type": "paddle_gear",
+      "count": 1
+    },
+    {
+      "type": "seesaw",
+      "count": 1
+    }
+  ],
+  "solution": [
+    {
+      "type": "paddle_gear",
+      "x": 13.95,
+      "y": 1.55,
+      "angle": 0
+    },
+    {
+      "type": "gear",
+      "x": 12.98,
+      "y": 1.55,
+      "angle": 0
+    },
+    {
+      "type": "motor_gear",
+      "x": 12.01,
+      "y": 1.55,
+      "angle": 0
+    },
+    {
+      "type": "seesaw",
+      "x": 11.1,
+      "y": 4.6,
+      "angle": 0
+    }
+  ],
+  "challenge": {
+    "part_limit": 4
+  }
+}

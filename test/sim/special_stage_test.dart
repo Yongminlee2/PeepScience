@@ -118,7 +118,7 @@ void main() {
     }
   });
 
-  for (final id in ['w1_s10', 'w1_s20', 'w3_s10', 'w3_s20']) {
+  for (final id in ['w1_s10', 'w1_s20', 'w3_s10', 'w3_s20', 'w5_s10']) {
     test('$id 정답 경로에서 수집 별을 실제로 얻을 수 있다', () {
       final stage = _load(id);
       final sim = SimWorld(stage, stage.solution);
