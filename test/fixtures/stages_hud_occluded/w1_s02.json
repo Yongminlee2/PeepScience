@@ -1,0 +1,12 @@
+{
+  "id": "w1_s02",
+  "world": 1,
+  "index": 2,
+  "goal": { "type": "pop_balloons" },
+  "preset": [
+    { "type": "tack", "x": 8.1, "y": -0.5, "angle": 0 },
+    { "type": "balloon", "x": 8.1, "y": 6.0, "angle": 0 }
+  ],
+  "tray": [ { "type": "plank", "count": 1 } ],
+  "solution": [ { "type": "plank", "x": 5.0, "y": 4.0, "angle": 0 } ]
+}

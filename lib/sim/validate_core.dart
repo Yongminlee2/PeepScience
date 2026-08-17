@@ -67,12 +67,14 @@ class ValidationReport {
 /// the solution must be PLACEABLE under the game's own canPlaceAt rules (see
 /// [solutionPlacementIssue]) and fit inside the stage's own tray counts - a
 /// solution that only clears because the JSON put a part somewhere a player
-/// could never actually drop it isn't a real solution, and (f) every preset
+/// could never actually drop it isn't a real solution, (f) every preset
 /// object must be VISIBLE above the bottom tray bar in edit mode (see
 /// [_visibilityIssue]) - a goal object the player can never see isn't a real
-/// puzzle either, even if the physics clears fine. (e) and (f) are checked
-/// before any physics runs (cheapest checks, and the most fundamental - an
-/// unplaceable or invisible solution isn't worth 1800 simulated steps).
+/// puzzle either, even if the physics clears fine - and (g) nothing may hide
+/// under the rest of the HUD or off the canvas edge (see
+/// [_hudOcclusionIssue]). (e)-(g) are checked before any physics runs
+/// (cheapest checks, and the most fundamental - an unplaceable or invisible
+/// solution isn't worth 1800 simulated steps).
 ValidationReport validateAllStages(String dir, {int maxSteps = 1800}) {
   final directory = Directory(dir);
   final fileIds = directory.existsSync()
@@ -145,7 +147,7 @@ StageValidation _validateOne(String dir, String id, int maxSteps) {
     );
   }
 
-  final visibilityIssue = _visibilityIssue(data);
+  final visibilityIssue = _visibilityIssue(data) ?? _hudOcclusionIssue(data);
   if (visibilityIssue != null) {
     return StageValidation(
       id: id,
@@ -250,6 +252,97 @@ String? _visibilityIssue(StageData data) {
     if (bottomY > kTrayVisibleMaxY) {
       return 'hidden behind tray: ${p.type} y=${p.y}';
     }
+  }
+  return null;
+}
+
+/// HUD furniture the play field has to stay clear of, in metres (the game's
+/// logical 1600x900 canvas / 100, y down). Mirrors the component positions in
+/// lib/game/hud.dart; the top-right entry is gone on purpose - the home and
+/// help buttons were moved down into the tray band precisely so they stop
+/// eating field.
+const _kGoalBadgeRect = (l: 0.20, t: 0.20, r: 1.16, b: 1.16);
+const _kChainRibbonRect = (l: 1.36, t: 0.20, r: 4.56, b: 1.16);
+const _kChallengeAloneRect = (l: 1.36, t: 0.20, r: 4.96, b: 1.16);
+const _kChallengeUnderChainRect = (l: 1.36, t: 1.24, r: 4.96, b: 2.20);
+const _kChallengeUnderPredRect = (l: 4.70, t: 1.36, r: 8.30, b: 2.32);
+const _kPredictionRect = (l: 4.70, t: 0.11, r: 11.30, b: 1.28);
+const _kRunButtonRect = (l: 14.60, t: 6.10, r: 15.80, b: 7.30);
+
+/// How much of an object's own footprint may sit under HUD furniture before
+/// it counts as buried. A few percent is a corner touch; a third of a ball
+/// is a ball the player cannot read.
+const double kHudOverlapLimit = 0.12;
+
+double _overlapFraction(PlacementBox box, ({double l, double t, double r, double b}) hud) {
+  final dx =
+      (box.cx + box.halfX < hud.r ? box.cx + box.halfX : hud.r) -
+      (box.cx - box.halfX > hud.l ? box.cx - box.halfX : hud.l);
+  final dy =
+      (box.cy + box.halfY < hud.b ? box.cy + box.halfY : hud.b) -
+      (box.cy - box.halfY > hud.t ? box.cy - box.halfY : hud.t);
+  if (dx <= 0 || dy <= 0) return 0;
+  return (dx * dy) / (4 * box.halfX * box.halfY);
+}
+
+/// Rule (g): nothing the player has to see or aim at may sit under the HUD,
+/// and nothing but scenery may run off the canvas.
+///
+/// Rule (f) only ever guarded the bottom tray bar. A device pass found a
+/// stage whose start ball was 100% behind the chain-reaction ribbon, and two
+/// balloon stages whose target tack sat above the top edge entirely - both
+/// pass every physics check and are unplayable all the same.
+String? _hudOcclusionIssue(StageData data) {
+  final huds = <(String, ({double l, double t, double r, double b}))>[
+    ('goal badge', _kGoalBadgeRect),
+    if (data.feature == StageFeature.chainReaction)
+      ('chain ribbon', _kChainRibbonRect),
+    if (data.challenge != null)
+      (
+        'challenge ribbon',
+        data.feature == StageFeature.chainReaction
+            ? _kChallengeUnderChainRect
+            : data.prediction != null
+            ? _kChallengeUnderPredRect
+            : _kChallengeAloneRect,
+      ),
+    if (data.prediction != null) ('prediction panel', _kPredictionRect),
+    ('run button', _kRunButtonRect),
+  ];
+
+  String? check(String what, PlacementBox box, {required bool scenery}) {
+    for (final (name, hud) in huds) {
+      final frac = _overlapFraction(box, hud);
+      if (frac >= kHudOverlapLimit) {
+        return 'buried under $name: $what '
+            '(${(frac * 100).round()}% covered)';
+      }
+    }
+    // Platforms are terrain and may run off the sides like scenery; a ball,
+    // a tack or a basket drawn half off-canvas is just missing.
+    if (scenery) return null;
+    if (box.cy - box.halfY < 0 || box.cx - box.halfX < 0 ||
+        box.cx + box.halfX > 16.0) {
+      return 'off canvas: $what';
+    }
+    return null;
+  }
+
+  for (final p in data.preset) {
+    final issue = check(
+      '${p.type} at (${p.x}, ${p.y})',
+      boxForPreset(p),
+      scenery: p.type == 'platform',
+    );
+    if (issue != null) return issue;
+  }
+  for (final p in data.solution) {
+    final issue = check(
+      'solution ${p.type.name} at (${p.x}, ${p.y})',
+      boxForPart(p.type, p.x, p.y, p.angleDeg),
+      scenery: false,
+    );
+    if (issue != null) return issue;
   }
   return null;
 }

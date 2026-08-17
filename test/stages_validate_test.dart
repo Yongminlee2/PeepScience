@@ -87,4 +87,34 @@ void main() {
       expect(s.failReason, isNot(contains('hidden behind tray')));
     });
   });
+
+  // 실기기 검수에서 나온 계열 결함: 규칙 (f)는 아래 트레이 바만 봤고,
+  // 위쪽 안내 리본·목표 배지·실행 버튼과 화면 밖은 아무도 검사하지 않아
+  // 시작 공이 리본 뒤에 100% 숨은 판과 압정이 화면 위 바깥에 있는 판이
+  // 물리 검증을 전부 통과한 채 배포 직전까지 살아 있었다.
+  group('rule (g): HUD 뒤나 화면 밖에 숨은 물체가 있으면 안 된다', () {
+    final report = validateAllStages('test/fixtures/stages_hud_occluded');
+
+    test('연쇄 리본 뒤에 완전히 숨은 시작 공은 물리 없이 즉시 실패한다', () {
+      final s = report.stages.firstWhere((s) => s.id == 'w1_s01');
+      expect(s.ok, isFalse);
+      expect(s.failReason, contains('chain ribbon'));
+      expect(s.failReason, contains('rubber_ball'));
+      expect(s.stepsToClear, isNull);
+      expect(s.jitterStepsToClear, isEmpty);
+    });
+
+    test('화면 위 바깥(y=-0.5)에 놓인 압정은 실패한다', () {
+      final s = report.stages.firstWhere((s) => s.id == 'w1_s02');
+      expect(s.ok, isFalse);
+      expect(s.failReason, contains('off canvas'));
+      expect(s.failReason, contains('tack'));
+    });
+
+    test('같은 판이라도 공을 리본 아래(y=2.0)로 내리면 가림 사유가 사라진다', () {
+      final s = report.stages.firstWhere((s) => s.id == 'w1_s03');
+      expect(s.failReason, isNot(contains('buried under')));
+      expect(s.failReason, isNot(contains('off canvas')));
+    });
+  });
 }

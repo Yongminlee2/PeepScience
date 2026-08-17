@@ -1,0 +1,13 @@
+{
+  "id": "w1_s03",
+  "world": 1,
+  "index": 3,
+  "goal": { "type": "ball_in_basket" },
+  "feature": "chain_reaction",
+  "preset": [
+    { "type": "rubber_ball", "x": 2.5, "y": 2.0, "angle": 0 },
+    { "type": "basket", "x": 8.0, "y": 6.5, "angle": 0 }
+  ],
+  "tray": [ { "type": "plank", "count": 1 } ],
+  "solution": [ { "type": "plank", "x": 5.0, "y": 4.0, "angle": 0 } ]
+}
