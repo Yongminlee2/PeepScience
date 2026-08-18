@@ -32,7 +32,7 @@ const Map<String, String> kPt = {
   'playStage': 'Jogar fase',
   'predictionQuestion': 'Qual bola vai funcionar melhor?',
   'predictionHint': 'Escolha primeiro e depois teste!',
-  'predictionCorrect': 'Seu palpite acertou!',
+  'predictionCorrect': 'Sua previsão acertou!',
   'predictionWrong': 'Resultado surpresa: teste o outro material!',
   'chainReaction': 'REAÇÃO EM CADEIA',
   'challengeTitle': 'DESAFIO ESTRELA',
@@ -52,7 +52,7 @@ const Map<String, String> kPt = {
       'Toque na sua tábua e arraste a alça amarela para montar o caminho da bola.',
   'tutorialRunTitle': '4. Teste e observe',
   'tutorialRunBody':
-      'Aperte o botão verde ▶. Errar também ajuda: suas peças ficam no lugar, então ajuste e teste de novo!',
+      'Aperte o botão de play. Errar também ajuda: suas peças ficam no lugar, então ajuste e teste de novo!',
   'tutorialSkip': 'Agora não',
   'tutorialBack': 'Voltar',
   'tutorialNext': 'Próximo',

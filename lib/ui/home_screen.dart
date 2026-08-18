@@ -310,15 +310,26 @@ class _WorldCardState extends State<_WorldCard> {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
+                      // 제목 칸은 별을 모을수록 좁아진다(진행 칩이 넓어지므로).
+                      // 그래서 자르지 않고 줄여서 넣는다 - 잘린 이름은 어느
+                      // 월드인지 알 수 없게 만드는데, 긴 이름을 쓰는 언어가
+                      // 여럿이라(독일어 Kinderzimmer, 태국어 등) 번역을
+                      // 짧게 다듬는 것만으로는 다음 언어에서 또 터진다.
                       Expanded(
-                        child: Text(
-                          S.t('world$world'),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(
-                            fontSize: 20,
-                            fontWeight: FontWeight.bold,
-                            color: kChocolateOutline,
+                        child: Align(
+                          alignment: Alignment.centerLeft,
+                          child: FittedBox(
+                            fit: BoxFit.scaleDown,
+                            alignment: Alignment.centerLeft,
+                            child: Text(
+                              S.t('world$world'),
+                              maxLines: 1,
+                              style: const TextStyle(
+                                fontSize: 20,
+                                fontWeight: FontWeight.bold,
+                                color: kChocolateOutline,
+                              ),
+                            ),
                           ),
                         ),
                       ),

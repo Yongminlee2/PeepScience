@@ -52,7 +52,7 @@ const Map<String, String> kIt = {
       'Tocca la tua tavola e trascina la maniglia gialla per creare la strada della palla.',
   'tutorialRunTitle': '4. Prova e osserva',
   'tutorialRunBody':
-      'Premi il pulsante verde ▶. Sbagliare aiuta: i pezzi restano lì, quindi aggiustali e riprova!',
+      'Premi il tasto play. Sbagliare aiuta: i pezzi restano lì, quindi aggiustali e riprova!',
   'tutorialSkip': 'Non ora',
   'tutorialBack': 'Indietro',
   'tutorialNext': 'Avanti',

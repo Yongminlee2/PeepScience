@@ -52,7 +52,7 @@ const Map<String, String> kFr = {
       'Touche ta planche, puis fais glisser sa poignée jaune pour tracer le chemin de la balle.',
   'tutorialRunTitle': '4. Lance et observe',
   'tutorialRunBody':
-      'Appuie sur le bouton vert ▶. Rater aide aussi : tes pièces restent en place, corrige-les et réessaie !',
+      'Appuie sur le bouton lecture. Rater aide aussi : tes pièces restent en place, corrige-les et réessaie !',
   'tutorialSkip': 'Pas maintenant',
   'tutorialBack': 'Retour',
   'tutorialNext': 'Suite',

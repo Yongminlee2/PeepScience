@@ -25,7 +25,7 @@ const Map<String, String> kEs = {
   'clearMessage': '¡Tu invento cobró vida!',
   'scienceNote': 'OBSERVA',
   'factBasket': 'Rampas y rebotes cambian el camino de la pelota.',
-  'factButton': 'Una fuerza puede mover un objeto o empujarlo abajo.',
+  'factButton': 'Una fuerza puede mover un objeto o empujarlo hacia abajo.',
   'factBalloons': 'Los globos son ligeros y el aire los mueve mucho.',
   'factDominoes': 'El movimiento pasa de un objeto al siguiente.',
   'home': 'Inicio',
@@ -52,7 +52,7 @@ const Map<String, String> kEs = {
       'Toca tu tabla y arrastra su mango amarillo para trazar el camino de la pelota.',
   'tutorialRunTitle': '4. Lanza y observa',
   'tutorialRunBody':
-      'Pulsa el botón verde ▶. Fallar también sirve: tus piezas siguen ahí, ¡ajústalas y prueba otra vez!',
+      'Pulsa el botón de play. Fallar también sirve: tus piezas siguen ahí, ¡ajústalas y prueba otra vez!',
   'tutorialSkip': 'Ahora no',
   'tutorialBack': 'Atrás',
   'tutorialNext': 'Sigue',

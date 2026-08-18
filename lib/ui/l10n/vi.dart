@@ -4,9 +4,9 @@ library;
 const Map<String, String> kVi = {
   'appTitle': 'Peep Science',
   'homeTagline': 'Lắp · Thử · Khám phá',
-  'world1': 'Phòng của bé',
+  'world1': 'Phòng bé',
   'world2': 'Sân sau',
-  'world3': 'Xưởng đồ chơi',
+  'world3': 'Nhà máy',
   'world4': 'Vũ trụ',
   'world5': 'Lab Peep',
   'stageN': 'Màn {n}',
@@ -52,7 +52,7 @@ const Map<String, String> kVi = {
       'Chạm vào tấm ván của bé, rồi kéo tay cầm vàng để mở đường cho quả bóng.',
   'tutorialRunTitle': '4. Chạy thử và quan sát',
   'tutorialRunBody':
-      'Nhấn nút ▶ màu xanh. Trượt cũng có ích: các mảnh ghép vẫn nằm nguyên, chỉnh lại rồi thử tiếp nhé!',
+      'Nhấn nút chạy. Trượt cũng có ích: các mảnh ghép vẫn nằm nguyên, chỉnh lại rồi thử tiếp nhé!',
   'tutorialSkip': 'Để lát nữa',
   'tutorialBack': 'Quay lại',
   'tutorialNext': 'Tiếp',

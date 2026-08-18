@@ -42,7 +42,8 @@ const Map<String, String> kKo = {
   'tutorialTitle': '삐약 박사의 실험 수첩',
   'tutorialSubtitle': '네 가지만 알면 이제 나도 꼬마 과학자!',
   'tutorialGoalTitle': '1. 미션 카드를 확인해요',
-  'tutorialGoalBody': '스테이지마다 목표가 달라요. 미션 카드를 누르면 바구니·버튼·풍선·도미노 중 목표물이 콩콩 움직여요.',
+  'tutorialGoalBody':
+      '스테이지마다 목표가 달라요. 미션 카드를 누르면 바구니·버튼·풍선·도미노 중 목표물이 콩콩 움직여요.',
   'tutorialDragTitle': '2. 부품을 끌어 놓아요',
   'tutorialDragBody': '아래 부품을 손가락으로 끌어 빈 곳에 놓아요. 노란 안내선이 보이면 놓을 수 있어요.',
   'tutorialRotateTitle': '3. 노란 손잡이로 돌려요',
