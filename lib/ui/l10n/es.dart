@@ -19,7 +19,7 @@ const Map<String, String> kEs = {
   'langSystem': 'Sistema',
   'goalBasket': '¡La pelota a la cesta!',
   'goalButton': '¡Pulsa el botón!',
-  'goalBalloons': '¡Explota los globos!',
+  'goalBalloons': '¡Explota todos los globos!',
   'goalDominoes': '¡Tira todos los dominós!',
   'dragHint': 'Arrastra una pieza, gira el mango amarillo y pulsa ▶.',
   'clearMessage': '¡Tu invento cobró vida!',
@@ -40,7 +40,7 @@ const Map<String, String> kEs = {
   'starsEarned': 'Estrellas',
   'tutorialHelp': 'Guía del experimento',
   'tutorialTitle': 'El cuaderno del profesor Peep',
-  'tutorialSubtitle': '¡Cuatro pasos y ya eres científico!',
+  'tutorialSubtitle': '¡Cuatro pasos y ya haces ciencia!',
   'tutorialGoalTitle': '1. Mira la tarjeta de misión',
   'tutorialGoalBody':
       'Cada nivel tiene una meta distinta. Toca la tarjeta de misión y la cesta, el botón, el globo o el dominó darán saltitos.',

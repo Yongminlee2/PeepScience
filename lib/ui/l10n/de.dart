@@ -26,7 +26,7 @@ const Map<String, String> kDe = {
   'scienceNote': 'SIEH HIN',
   'factBasket': 'Schräge und Abprall lenken den rollenden Ball um.',
   'factButton': 'Eine Kraft kann Dinge bewegen oder herunterdrücken.',
-  'factBalloons': 'Leichte Ballons reagieren stark auf Luftkräfte.',
+  'factBalloons': 'Leichte Ballons reagieren stark auf die Kraft der Luft.',
   'factDominoes': 'Bewegung überträgt sich von Ding zu Ding.',
   'home': 'Startseite',
   'playStage': 'Stufe spielen',

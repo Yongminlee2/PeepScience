@@ -19,8 +19,8 @@ const Map<String, String> kFr = {
   'langSystem': 'Système',
   'goalBasket': 'La balle dans le panier !',
   'goalButton': 'Appuie sur le bouton !',
-  'goalBalloons': 'Éclate les ballons !',
-  'goalDominoes': 'Fais tomber les dominos !',
+  'goalBalloons': 'Éclate tous les ballons !',
+  'goalDominoes': 'Fais tomber tous les dominos !',
   'dragHint': 'Glisse une pièce, tourne la poignée jaune, puis ▶.',
   'clearMessage': 'Ta machine a pris vie !',
   'scienceNote': 'OBSERVE',
@@ -40,10 +40,10 @@ const Map<String, String> kFr = {
   'starsEarned': 'Étoiles',
   'tutorialHelp': "Guide d'expérience",
   'tutorialTitle': 'Le carnet du professeur Peep',
-  'tutorialSubtitle': 'Quatre étapes et tu es un scientifique !',
+  'tutorialSubtitle': 'Quatre étapes et te voilà scientifique !',
   'tutorialGoalTitle': '1. Regarde la carte mission',
   'tutorialGoalBody':
-      'Chaque niveau a un but différent. Touche la carte mission : le panier, le bouton, le ballon ou le domino bougent et saluent.',
+      'Chaque niveau a un but différent. Touche la carte mission : le panier, le bouton, le ballon ou le domino sautillent.',
   'tutorialDragTitle': '2. Glisse une pièce',
   'tutorialDragBody':
       'Prends une pièce du plateau et pose-la dans un espace vide. Un repère jaune veut dire que la place est libre.',
