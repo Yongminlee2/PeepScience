@@ -22,9 +22,10 @@ const double kFieldMaxY = 7.3;
 /// be dropped - this bounds where a PRESET's rendered edge may sit.
 const double kTrayVisibleMaxY = 7.45;
 
-/// Minimum gap (meters) required between a candidate's AABB and any existing
-/// preset/placement AABB - except gear-family pairs, which are allowed to
-/// overlap because they mesh instead (see [snapGearPosition]).
+/// Minimum gap (meters) required between a candidate's real footprint and
+/// any existing preset/placement footprint (see [overlaps]) - except
+/// gear-family pairs, which are allowed to overlap because they mesh
+/// instead (see [snapGearPosition]).
 const double kOverlapMargin = 0.02;
 
 /// Gear-family center-distance snap target: r1+r2 minus this slack, so the
@@ -40,9 +41,21 @@ const double kGearSnapCatchRange = 0.15;
 bool isGearFamily(PartType t) =>
     t == PartType.motorGear || t == PartType.gear || t == PartType.paddleGear;
 
-/// A conservative axis-aligned footprint for overlap checks: ([cx],[cy]) +
-/// ([halfX],[halfY]) half-extents in meters. [gearRadius] is the catalog
-/// gear radius (not the AABB half-extent) for gear-family members, used by
+/// A part's footprint at ([cx],[cy]), in meters.
+///
+/// Two footprints live here on purpose:
+///
+/// * ([halfX],[halfY]) - the conservative axis-aligned box. Used where a
+///   rough "how much screen does this eat" answer is what's wanted: the
+///   validator's visibility/HUD rules (f)+(g), input.dart's tap hit-test and
+///   delete-X clearance, and [overlaps]'s own cheap first pass.
+/// * [shapeRadius] (a circle around the center) and/or [shapeHalfW]/
+///   [shapeHalfH] rotated by [shapeAngleRad] - the REAL shape, which is what
+///   [overlaps] actually decides on. Exactly one of the two is set for every
+///   part except the paddle gear, which has both and counts as their union
+///   (a gear body with a bar through it).
+///
+/// [gearRadius] is the catalog gear radius for gear-family members, used by
 /// the snap-distance math in [snapGearPosition]; null for everything else.
 class PlacementBox {
   const PlacementBox(
@@ -51,6 +64,10 @@ class PlacementBox {
     this.halfX,
     this.halfY, {
     this.gearRadius,
+    this.shapeRadius,
+    this.shapeHalfW,
+    this.shapeHalfH,
+    this.shapeAngleRad = 0,
   });
 
   final double cx;
@@ -58,6 +75,10 @@ class PlacementBox {
   final double halfX;
   final double halfY;
   final double? gearRadius;
+  final double? shapeRadius;
+  final double? shapeHalfW;
+  final double? shapeHalfH;
+  final double shapeAngleRad;
   bool get isGearFamily => gearRadius != null;
 }
 
@@ -92,6 +113,10 @@ PlacementBox boxForPart(PartType type, double cx, double cy, double angleDeg) {
     halfX,
     halfY,
     gearRadius: isGearFamily(type) ? s.radius : null,
+    shapeRadius: s.radius,
+    shapeHalfW: s.w == null ? null : s.w! / 2,
+    shapeHalfH: s.h == null ? null : s.h! / 2,
+    shapeAngleRad: angleRad,
   );
 }
 
@@ -101,22 +126,107 @@ PlacementBox boxForPart(PartType type, double cx, double cy, double angleDeg) {
 PlacementBox boxForPreset(PresetObject p) {
   switch (p.type) {
     case 'platform':
-      final (hx, hy) = rotatedHalfExtents(p.w! / 2, 0.2, p.angleDeg * pi / 180);
-      return PlacementBox(p.x, p.y, hx, hy);
+      final angleRad = p.angleDeg * pi / 180;
+      final (hx, hy) = rotatedHalfExtents(p.w! / 2, 0.2, angleRad);
+      return PlacementBox(
+        p.x,
+        p.y,
+        hx,
+        hy,
+        shapeHalfW: p.w! / 2,
+        shapeHalfH: 0.2,
+        shapeAngleRad: angleRad,
+      );
     case 'basket':
       // Matches PartView's basket footprint (floor + two walls envelope).
-      return PlacementBox(p.x, p.y, 0.5, 0.36);
+      // Hand-fitted and axis-aligned, so its real shape IS the box.
+      return PlacementBox(p.x, p.y, 0.5, 0.36,
+          shapeHalfW: 0.5, shapeHalfH: 0.36);
     case 'button':
-      return PlacementBox(p.x, p.y, 0.4, 0.11);
+      return PlacementBox(p.x, p.y, 0.4, 0.11,
+          shapeHalfW: 0.4, shapeHalfH: 0.11);
     default:
       return boxForPart(partTypeFromJson(p.type), p.x, p.y, p.angleDeg);
   }
 }
 
-bool aabbOverlaps(PlacementBox a, PlacementBox b, double margin) {
-  final dx = (a.cx - b.cx).abs();
-  final dy = (a.cy - b.cy).abs();
-  return dx < a.halfX + b.halfX + margin && dy < a.halfY + b.halfY + margin;
+/// True if [a] and [b]'s REAL footprints (see [PlacementBox]) come within
+/// [margin] of each other. A part that has both a circle and a bar (the
+/// paddle gear) counts as their union: touching either one is touching it.
+///
+/// Judging the real shape instead of the AABB matters most for the two
+/// parts whose box lies about them: a gear's 1x1m box juts 0.2m past the
+/// round body at each corner, and a plank turned 45 degrees claims a
+/// 1.58x1.58m square instead of a 2.0x0.24m slat. Both used to block
+/// visibly empty spots.
+bool overlaps(PlacementBox a, PlacementBox b, double margin) {
+  // Cheap first pass on the boxes. Every real shape is contained in its own
+  // AABB, so a pair the boxes already clear can never be touching - which
+  // also makes this strictly more permissive than the old box-only rule.
+  if ((a.cx - b.cx).abs() >= a.halfX + b.halfX + margin) return false;
+  if ((a.cy - b.cy).abs() >= a.halfY + b.halfY + margin) return false;
+
+  if (a.shapeRadius != null) {
+    if (b.shapeRadius != null && _circlesOverlap(a, b, margin)) return true;
+    if (b.shapeHalfW != null && _circleRectOverlap(a, b, margin)) return true;
+  }
+  if (a.shapeHalfW != null) {
+    if (b.shapeRadius != null && _circleRectOverlap(b, a, margin)) return true;
+    if (b.shapeHalfW != null && _rectsOverlap(a, b, margin)) return true;
+  }
+  return false;
+}
+
+bool _circlesOverlap(PlacementBox a, PlacementBox b, double margin) {
+  final reach = a.shapeRadius! + b.shapeRadius! + margin;
+  final dx = a.cx - b.cx;
+  final dy = a.cy - b.cy;
+  return dx * dx + dy * dy < reach * reach;
+}
+
+/// [c]'s circle vs [r]'s rectangle: measure to the closest point of the
+/// rectangle, in the rectangle's own (unrotated) frame.
+bool _circleRectOverlap(PlacementBox c, PlacementBox r, double margin) {
+  final cs = cos(r.shapeAngleRad);
+  final sn = sin(r.shapeAngleRad);
+  final dx = c.cx - r.cx;
+  final dy = c.cy - r.cy;
+  final localX = (dx * cs + dy * sn).abs();
+  final localY = (-dx * sn + dy * cs).abs();
+  final gapX = max(localX - r.shapeHalfW!, 0.0);
+  final gapY = max(localY - r.shapeHalfH!, 0.0);
+  final reach = c.shapeRadius! + margin;
+  return gapX * gapX + gapY * gapY < reach * reach;
+}
+
+/// Separating-axis test on the two rectangles' four edge normals. For
+/// unrotated pairs this is exactly the old box test, so every hand-fitted
+/// preset footprint keeps behaving as before.
+bool _rectsOverlap(PlacementBox a, PlacementBox b, double margin) =>
+    !_separatedAlong(a, b, a.shapeAngleRad, margin) &&
+    !_separatedAlong(a, b, a.shapeAngleRad + pi / 2, margin) &&
+    !_separatedAlong(a, b, b.shapeAngleRad, margin) &&
+    !_separatedAlong(a, b, b.shapeAngleRad + pi / 2, margin);
+
+bool _separatedAlong(
+  PlacementBox a,
+  PlacementBox b,
+  double axisAngle,
+  double margin,
+) {
+  final ax = cos(axisAngle);
+  final ay = sin(axisAngle);
+  final centerGap = ((b.cx - a.cx) * ax + (b.cy - a.cy) * ay).abs();
+  return centerGap - _extentAlong(a, ax, ay) - _extentAlong(b, ax, ay) >=
+      margin;
+}
+
+/// Half-width of [r]'s rectangle projected onto the unit axis ([ax],[ay]).
+double _extentAlong(PlacementBox r, double ax, double ay) {
+  final cs = cos(r.shapeAngleRad);
+  final sn = sin(r.shapeAngleRad);
+  return (r.shapeHalfW! * (ax * cs + ay * sn)).abs() +
+      (r.shapeHalfH! * (-ax * sn + ay * cs)).abs();
 }
 
 /// Reason [type] at ([x],[y]) (its own center, rotated [angleDeg]) would be
@@ -138,7 +248,7 @@ String? placementRejectReason(
   final candidate = boxForPart(type, x, y, angleDeg);
   for (final other in existingBoxes) {
     if (candidate.isGearFamily && other.isGearFamily) continue;
-    if (aabbOverlaps(candidate, other, kOverlapMargin)) {
+    if (overlaps(candidate, other, kOverlapMargin)) {
       return 'overlaps existing box at (${other.cx}, ${other.cy})';
     }
   }

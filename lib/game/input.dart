@@ -615,10 +615,10 @@ class SelectionOverlay extends Component {
   bool _showHandle = false;
   bool _invalid = false;
   late Offset _center;
-  late double _partWidthPx;
-  late double _partHeightPx;
+  late double _bodyRadiusPx;
+  late double _barWidthPx;
+  late double _barHeightPx;
   late double _partAngleRad;
-  late bool _roundOutline;
   late Offset _handlePos;
   late Offset _deleteCenter;
 
@@ -635,11 +635,13 @@ class SelectionOverlay extends Component {
     final p = game.placements[idx];
     _center = _px(p.x, p.y);
     final spec = Catalog.of(p.type);
-    final diameter = (spec.radius ?? 0) * 2;
-    _partWidthPx = max(spec.w ?? 0, diameter) * kPpm;
-    _partHeightPx = max(spec.h ?? 0, diameter) * kPpm;
+    // Trace exactly the shapes placement_rules.dart judges: a round body, a
+    // rectangular body, or - for the paddle gear alone - both, drawn as the
+    // union they are judged as. 0 means "this part has no such body".
+    _bodyRadiusPx = (spec.radius ?? 0) * kPpm;
+    _barWidthPx = (spec.w ?? 0) * kPpm;
+    _barHeightPx = (spec.h ?? 0) * kPpm;
     _partAngleRad = p.angleDeg * pi / 180;
-    _roundOutline = spec.w == null && spec.h == null && spec.radius != null;
     _showHandle = Catalog.of(p.type).rotatable;
     if (_showHandle) {
       final h = rotateHandleWorldPos(p);
@@ -668,14 +670,10 @@ class SelectionOverlay extends Component {
       ..color = ringColor
       ..style = PaintingStyle.stroke
       ..strokeWidth = 6;
-    if (_roundOutline) {
-      _drawDashedCircle(
-        canvas,
-        _center,
-        max(_partWidthPx, _partHeightPx) / 2 + 12,
-        outlinePaint,
-      );
-    } else {
+    if (_bodyRadiusPx > 0) {
+      _drawDashedCircle(canvas, _center, _bodyRadiusPx + 12, outlinePaint);
+    }
+    if (_barWidthPx > 0) {
       // A long plank inside its old enclosing circle looked like a debug
       // gizmo: the circle had to be as tall as the entire plank was wide.
       // Show the selected physical footprint instead, while keeping the
@@ -685,8 +683,8 @@ class SelectionOverlay extends Component {
       canvas.rotate(_partAngleRad);
       final rect = Rect.fromCenter(
         center: Offset.zero,
-        width: _partWidthPx + 24,
-        height: _partHeightPx + 24,
+        width: _barWidthPx + 24,
+        height: _barHeightPx + 24,
       );
       canvas.drawRRect(
         RRect.fromRectAndRadius(rect, const Radius.circular(14)),
