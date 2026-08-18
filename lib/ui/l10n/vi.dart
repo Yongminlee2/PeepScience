@@ -22,6 +22,7 @@ const Map<String, String> kVi = {
   'goalBalloons': 'Làm nổ hết bóng bay!',
   'goalDominoes': 'Xô đổ hết quân domino!',
   'dragHint': 'Kéo một mảnh ghép vào, xoay tay cầm vàng rồi nhấn ▶.',
+  'dragHintNoTurn': 'Kéo một mảnh ghép vào rồi nhấn ▶.',
   'clearMessage': 'Cỗ máy của bé đã chạy rồi!',
   'scienceNote': 'QUAN SÁT',
   'factBasket': 'Độ dốc và độ nảy làm đổi đường đi của quả bóng.',

@@ -22,6 +22,7 @@ const Map<String, String> kPt = {
   'goalBalloons': 'Estoure todos os balões!',
   'goalDominoes': 'Derrube todos os dominós!',
   'dragHint': 'Arraste uma peça, gire a alça amarela e aperte ▶.',
+  'dragHintNoTurn': 'Arraste uma peça e aperte ▶.',
   'clearMessage': 'Sua invenção ganhou vida!',
   'scienceNote': 'OBSERVE',
   'factBasket': 'Rampas e pulos mudam o caminho da bola.',

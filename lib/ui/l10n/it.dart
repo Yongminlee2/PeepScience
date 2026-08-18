@@ -22,6 +22,7 @@ const Map<String, String> kIt = {
   'goalBalloons': 'Buca tutti i palloncini!',
   'goalDominoes': 'Fai cadere tutti i domino!',
   'dragHint': 'Trascina un pezzo, gira la maniglia gialla e premi ▶.',
+  'dragHintNoTurn': 'Trascina un pezzo e premi ▶.',
   'clearMessage': 'Il tuo aggeggio ha preso vita!',
   'scienceNote': 'OSSERVA',
   'factBasket': 'Rampe e rimbalzi cambiano il percorso della palla.',

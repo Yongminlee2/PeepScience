@@ -30,6 +30,7 @@ const Map<String, String> kEn = {
   'goalBalloons': 'Pop all balloons!',
   'goalDominoes': 'Topple all dominoes!',
   'dragHint': 'Drag a part in, turn the yellow handle, then press play.',
+  'dragHintNoTurn': 'Drag a part in, then press play.',
   'clearMessage': 'Your contraption came to life!',
   'scienceNote': 'OBSERVE',
   'factBasket': 'Slopes and rebounds change the path of a moving ball.',

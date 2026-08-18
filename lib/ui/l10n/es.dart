@@ -22,6 +22,7 @@ const Map<String, String> kEs = {
   'goalBalloons': '¡Explota todos los globos!',
   'goalDominoes': '¡Tira todos los dominós!',
   'dragHint': 'Arrastra una pieza, gira el mango amarillo y pulsa ▶.',
+  'dragHintNoTurn': 'Arrastra una pieza y pulsa ▶.',
   'clearMessage': '¡Tu invento cobró vida!',
   'scienceNote': 'OBSERVA',
   'factBasket': 'Rampas y rebotes cambian el camino de la pelota.',

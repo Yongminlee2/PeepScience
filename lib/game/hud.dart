@@ -124,9 +124,13 @@ class TrayBar extends PositionComponent {
         ),
       ),
     );
+    // 회전 손잡이는 회전 가능한 부품(널빤지·선풍기)에만 생긴다. 트레이에
+    // 그런 부품이 없는 판이 100판 중 39판인데, 거기서도 "노란 손잡이로
+    // 돌린 뒤"라고 안내하면 아이가 있지도 않은 손잡이를 찾게 된다.
+    final canTurn = game.stage.tray.any((e) => Catalog.of(e.type).rotatable);
     add(
       TextComponent(
-        text: S.t('dragHint'),
+        text: S.t(canTurn ? 'dragHint' : 'dragHintNoTurn'),
         position: Vector2(infoX, 91),
         anchor: Anchor.centerLeft,
         textRenderer: TextPaint(

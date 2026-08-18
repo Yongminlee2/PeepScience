@@ -22,6 +22,7 @@ const Map<String, String> kZh = {
   'goalBalloons': '戳破所有气球！',
   'goalDominoes': '推倒所有骨牌！',
   'dragHint': '把零件拖进来，转动黄色把手，再按▶。',
+  'dragHintNoTurn': '把零件拖进来，再按▶。',
   'clearMessage': '你的装置动起来啦！',
   'scienceNote': '观察一下',
   'factBasket': '坡度和弹力会改变球滚动的路线。',

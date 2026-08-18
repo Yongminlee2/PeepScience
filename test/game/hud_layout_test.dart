@@ -7,6 +7,7 @@ import 'package:piyak_science/game/hud.dart';
 import 'package:piyak_science/game/piyak_game.dart';
 import 'package:piyak_science/sim/catalog.dart';
 import 'package:piyak_science/sim/stage_data.dart';
+import 'package:piyak_science/ui/strings.dart';
 
 import '../sim/helpers.dart';
 
@@ -156,6 +157,40 @@ void main() {
       game.camera.viewport.children.whereType<ChainReactionRibbon>(),
       isEmpty,
     );
+  });
+
+  // 실기기 검수 회귀 방지: 회전 손잡이는 널빤지·선풍기에만 붙는데, 트레이에
+  // 그런 부품이 없는 판(100판 중 39판)에서도 "노란 손잡이로 돌린 뒤"라고
+  // 안내하고 있었다. 아이가 있지도 않은 손잡이를 찾게 된다.
+  List<String> trayTexts(PiyakGame game) => game.camera.viewport.children
+      .whereType<TrayBar>()
+      .single
+      .children
+      .whereType<TextComponent>()
+      .map((c) => c.text)
+      .toList();
+
+  testWidgets('회전 가능한 부품이 없는 판은 손잡이를 언급하지 않는 힌트를 쓴다', (t) async {
+    final s = stage(
+      '{"type":"basket","x":8,"y":6,"angle":0}',
+      '{"type":"trampoline","count":1}', // 트램펄린은 회전 불가
+      '{"type":"rubber_ball","x":8,"y":2,"angle":0}',
+    );
+    final game = await _pumpGame(t, s);
+
+    expect(trayTexts(game), contains(S.t('dragHintNoTurn')));
+    expect(trayTexts(game), isNot(contains(S.t('dragHint'))));
+  });
+
+  testWidgets('회전 가능한 부품이 있으면 손잡이 안내를 그대로 쓴다', (t) async {
+    final s = stage(
+      '{"type":"basket","x":8,"y":6,"angle":0}',
+      '{"type":"plank","count":1}',
+      '{"type":"rubber_ball","x":8,"y":2,"angle":0}',
+    );
+    final game = await _pumpGame(t, s);
+
+    expect(trayTexts(game), contains(S.t('dragHint')));
   });
 }
 

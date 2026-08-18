@@ -22,6 +22,7 @@ const Map<String, String> kKo = {
   'goalBalloons': '풍선을 모두 터뜨려라!',
   'goalDominoes': '도미노를 모두 쓰러뜨려라!',
   'dragHint': '부품을 끌어 놓고 노란 손잡이로 돌린 뒤 ▶를 눌러 보세요.',
+  'dragHintNoTurn': '부품을 끌어 놓고 ▶를 눌러 보세요.',
   'clearMessage': '멋진 장치가 움직였어요!',
   'scienceNote': '관찰해 봐요',
   'factBasket': '경사와 반발을 바꾸면 움직이는 공의 길이 달라져요.',

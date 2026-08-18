@@ -22,6 +22,7 @@ const Map<String, String> kId = {
   'goalBalloons': 'Pecahkan semua balon!',
   'goalDominoes': 'Jatuhkan semua domino!',
   'dragHint': 'Seret satu bagian, putar pegangan kuning, lalu tekan ▶.',
+  'dragHintNoTurn': 'Seret satu bagian, lalu tekan ▶.',
   'clearMessage': 'Mesin buatanmu hidup!',
   'scienceNote': 'AMATI',
   'factBasket': 'Kemiringan dan pantulan mengubah jalur bola.',

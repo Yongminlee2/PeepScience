@@ -22,6 +22,7 @@ const Map<String, String> kRu = {
   'goalBalloons': 'Лопни все шарики!',
   'goalDominoes': 'Урони все домино!',
   'dragHint': 'Перетащи деталь, поверни жёлтую ручку и нажми ▶.',
+  'dragHintNoTurn': 'Перетащи деталь и нажми ▶.',
   'clearMessage': 'Твоя машина ожила!',
   'scienceNote': 'НАБЛЮДАЙ',
   'factBasket': 'Наклон и отскок меняют путь катящегося мяча.',

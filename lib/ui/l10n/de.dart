@@ -22,6 +22,7 @@ const Map<String, String> kDe = {
   'goalBalloons': 'Lass alle Ballons platzen!',
   'goalDominoes': 'Wirf alle Dominos um!',
   'dragHint': 'Zieh ein Teil rein, dreh am gelben Griff, dann drücke ▶.',
+  'dragHintNoTurn': 'Zieh ein Teil rein, dann drücke ▶.',
   'clearMessage': 'Deine Erfindung ist zum Leben erwacht!',
   'scienceNote': 'SIEH HIN',
   'factBasket': 'Schräge und Abprall lenken den rollenden Ball um.',

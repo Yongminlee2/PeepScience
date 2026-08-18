@@ -22,6 +22,7 @@ const Map<String, String> kJa = {
   'goalBalloons': 'ふうせんを全部わろう!',
   'goalDominoes': 'ドミノを全部たおそう!',
   'dragHint': 'パーツを置いて、黄色いハンドルで回したら▶を押してみましょう。',
+  'dragHintNoTurn': 'パーツを置いて、▶を押してみましょう。',
   'clearMessage': 'すてきなしかけが動きました!',
   'scienceNote': 'かんさつ',
   'factBasket': 'かたむきやはねかえりで、ボールの通る道が変わります。',

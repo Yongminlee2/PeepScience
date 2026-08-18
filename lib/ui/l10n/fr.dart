@@ -22,6 +22,7 @@ const Map<String, String> kFr = {
   'goalBalloons': 'Éclate tous les ballons !',
   'goalDominoes': 'Fais tomber tous les dominos !',
   'dragHint': 'Glisse une pièce, tourne la poignée jaune, puis ▶.',
+  'dragHintNoTurn': 'Glisse une pièce, puis ▶.',
   'clearMessage': 'Ta machine a pris vie !',
   'scienceNote': 'OBSERVE',
   'factBasket': 'Pentes et rebonds changent le chemin de la balle.',
