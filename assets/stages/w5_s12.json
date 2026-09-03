@@ -3,7 +3,7 @@
   "world": 5,
   "index": 12,
   "goal": {
-    "type": "topple_dominoes"
+    "type": "ball_in_basket"
   },
   "preset": [
     {
@@ -34,21 +34,9 @@
       "w": 2.2
     },
     {
-      "type": "domino",
-      "x": 5.9,
-      "y": 6.2,
-      "angle": 0
-    },
-    {
-      "type": "domino",
-      "x": 6.35,
-      "y": 6.2,
-      "angle": 0
-    },
-    {
-      "type": "domino",
-      "x": 6.8,
-      "y": 6.2,
+      "type": "basket",
+      "x": 7.6,
+      "y": 7.05,
       "angle": 0
     }
   ],
