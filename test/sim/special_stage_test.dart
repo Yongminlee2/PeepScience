@@ -77,6 +77,9 @@ void main() {
     // 낙하 스윕 시뮬레이션(양 재질 각 500여 지점, 클리어 0건)으로 확인했다.
     // w5_s16(바운스 계측 대들보 갤러리) metal/rubber 0/581,
     // w5_s17(맞바람 관문) metal/rubber 0/614.
+    // w2_s12(천장 밑 바구니)는 바구니를 천장 바로 아래로 올려, 바구니 위쪽에
+    // 공을 놓을 수 있는 자리 자체가 없어졌다: 0.2m 격자 전 지점 스윕에서
+    // metal 0/2359 · rubber 0/2359 · 널빤지(16각) 0/35122.
     const materialTrapIds = {'w2_s12', 'w2_s15', 'w5_s16', 'w5_s17'};
     for (final id in masteryIds) {
       if (materialTrapIds.contains(id)) continue;
