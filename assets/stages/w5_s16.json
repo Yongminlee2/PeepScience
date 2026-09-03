@@ -66,25 +66,21 @@
       "count": 1
     },
     {
-      "type": "fan",
-      "count": 1
-    },
-    {
       "type": "plank",
-      "count": 2
+      "count": 3
     }
   ],
   "solution": [
     {
-      "type": "metal_ball",
-      "x": 1.4,
-      "y": 1.47,
-      "angle": 0
+      "type": "plank",
+      "x": 2.0,
+      "y": 1.25,
+      "angle": 15
     },
     {
-      "type": "fan",
-      "x": 0.35,
-      "y": 1.5,
+      "type": "metal_ball",
+      "x": 1.634,
+      "y": 0.686,
       "angle": 0
     },
     {

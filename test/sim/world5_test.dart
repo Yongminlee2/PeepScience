@@ -74,8 +74,8 @@ void main() {
     // 선택이 퍼즐의 본체다(w2_s12/s15와 같은 규약). 네 판 모두 전 지점 단독
     // 낙하 스윕(0.4m 격자, 배치 규칙 통과 지점만)으로 직행 클리어 0건을
     // 시뮬레이션으로 확인했다: w5_s04 metal 0/554·rubber 0/554,
-    // w5_s08 rubber 0/588·metal 0/588, w5_s16 metal 0/581·rubber 0/581,
-    // w5_s17 metal 0/614·rubber 0/614.
+    // w5_s08 rubber 0/588·metal 0/588, w5_s16 metal 0/583·rubber 0/583,
+    // w5_s17 metal 0/596·rubber 0/596.
     const materialTrapIds = {'w5_s04', 'w5_s08', 'w5_s16', 'w5_s17'};
     for (final id in _world5Ids) {
       if (materialTrapIds.contains(id)) continue;
