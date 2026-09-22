@@ -5,6 +5,7 @@ import '../editor/editor_screen.dart';
 import '../services/progress.dart';
 import '../services/stage_loader.dart';
 import '../sim/stage_data.dart';
+import 'ad_banner.dart';
 import 'game_screen.dart';
 import 'settings_screen.dart';
 import 'strings.dart';
@@ -202,20 +203,29 @@ class _HomeScreenState extends State<HomeScreen> {
               colors: [kHomeCanvasTop, kHomeCanvasBottom],
             ),
           ),
-          child: ListView(
-            scrollDirection: Axis.horizontal,
-            padding: scrollPadding(context),
-            children: List.generate(
-              _worldCount,
-              (i) => _WorldCard(
-                world: i + 1,
-                cleared: _cleared,
-                stars: _stars,
-                broken: _broken,
-                isUnlocked: _isUnlocked,
-                onTapStage: _openStage,
+          child: Column(
+            children: [
+              Expanded(
+                child: ListView(
+                  scrollDirection: Axis.horizontal,
+                  padding: scrollPadding(context),
+                  children: List.generate(
+                    _worldCount,
+                    (i) => _WorldCard(
+                      world: i + 1,
+                      cleared: _cleared,
+                      stars: _stars,
+                      broken: _broken,
+                      isUnlocked: _isUnlocked,
+                      onTapStage: _openStage,
+                    ),
+                  ),
+                ),
               ),
-            ),
+              // 띠 광고는 카드 아래 여백에만 놓는다. 광고가 없으면 높이 0이라
+              // 홈 화면이 예전과 똑같이 보인다.
+              const AdBanner(),
+            ],
           ),
         ),
       ),

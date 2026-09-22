@@ -24,6 +24,10 @@ class Ads {
   static const _testInterstitialAndroid =
       'ca-app-pub-3940256099942544/1033173712';
 
+  /// 홈 화면 맨 아래 띠 광고. 게임 화면에는 절대 붙이지 않는다.
+  static const _realBannerAndroid = 'ca-app-pub-0000000000000000/0000000000';
+  static const _testBannerAndroid = 'ca-app-pub-3940256099942544/6300978111';
+
   /// 몇 판마다 한 번 띄울지. 3판은 흔한 캐주얼 퍼즐 간격이고, 1~2판으로
   /// 줄이면 아이가 못 참는다.
   static const _stagesPerAd = 3;
@@ -35,6 +39,14 @@ class Ads {
 
   static String get _interstitialUnitId =>
       kReleaseMode ? _realInterstitialAndroid : _testInterstitialAndroid;
+
+  static String get bannerUnitId =>
+      kReleaseMode ? _realBannerAndroid : _testBannerAndroid;
+
+  /// 홈 화면 띠 광고를 요청해도 되는 상태인지. 초기화 전(테스트 포함)이거나
+  /// 실제 ID를 안 넣은 정식 빌드에서는 false라 광고 코드가 전혀 돌지 않는다.
+  static bool get bannerEnabled =>
+      _ready && (!kReleaseMode || !_realBannerAndroid.contains('pub-0000'));
 
   /// 실제 ID를 아직 안 넣은 채로 정식 빌드를 올리는 사고를 막는다. 그런
   /// 빌드는 광고를 아예 요청하지 않으므로, 잘못된 ID로 구글에 요청을 보내는
