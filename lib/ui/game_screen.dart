@@ -7,6 +7,7 @@ import 'package:flame/game.dart' hide Route;
 import 'package:flutter/material.dart';
 
 import '../game/piyak_game.dart';
+import '../services/ads.dart';
 import '../services/progress.dart';
 import '../services/stage_loader.dart';
 import '../sim/registry.dart';
@@ -110,7 +111,11 @@ class _GameScreenState extends State<GameScreen> {
     widget.onProgressChanged?.call();
   }
 
-  void _handleNext() {
+  Future<void> _handleNext() async {
+    // 광고는 판이 바뀌는 이 순간에만 낀다. 받아 둔 광고가 없거나 차례가
+    // 아니면 곧바로 돌아오므로 다음 판이 늦게 열리지 않는다.
+    await Ads.maybeShowOnStageAdvance();
+    if (!mounted) return;
     final i = stageOrder.indexOf(widget.stageId);
     final hasNext = i != -1 && i + 1 < stageOrder.length;
     if (!hasNext) {

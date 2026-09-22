@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import 'services/ads.dart';
 import 'services/sound.dart';
 import 'ui/home_screen.dart';
 import 'ui/settings_screen.dart' show soundEnabledPrefKey;
@@ -21,6 +22,8 @@ Future<void> main() async {
   // 안전하게 물러난다.
   unawaited(Sound.init());
   unawaited(_loadSoundPref());
+  // 광고 SDK도 시작을 막지 않는다. 실패하면 광고 없이 게임만 돌아간다.
+  unawaited(Ads.init());
   runApp(const PiyakScienceApp());
 }
 
