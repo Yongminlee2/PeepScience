@@ -6,7 +6,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import 'services/ads.dart';
 import 'services/sound.dart';
-import 'ui/home_screen.dart';
+import 'ui/title_screen.dart';
 import 'ui/settings_screen.dart' show soundEnabledPrefKey;
 import 'ui/theme.dart';
 
@@ -43,6 +43,6 @@ class PiyakScienceApp extends StatelessWidget {
   Widget build(BuildContext context) => MaterialApp(
     debugShowCheckedModeBanner: false,
     theme: piyakTheme(),
-    home: const HomeScreen(),
+    home: const TitleScreen(),
   );
 }

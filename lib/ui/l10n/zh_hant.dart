@@ -13,6 +13,7 @@ const Map<String, String> kZhHant = {
   'clear': '過關囉！',
   'next': '下一關',
   'retry': '再試一次',
+  'play': '開始',
   'settings': '設定',
   'sound': '聲音',
   'language': '語言',

@@ -13,6 +13,7 @@ const Map<String, String> kId = {
   'clear': 'BERHASIL!',
   'next': 'Lanjut',
   'retry': 'Ulangi',
+  'play': 'Main',
   'settings': 'Pengaturan',
   'sound': 'Suara',
   'language': 'Bahasa',

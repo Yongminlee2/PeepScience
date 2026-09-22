@@ -119,7 +119,9 @@ class _GameScreenState extends State<GameScreen> {
     final i = stageOrder.indexOf(widget.stageId);
     final hasNext = i != -1 && i + 1 < stageOrder.length;
     if (!hasNext) {
-      Navigator.of(context).popUntil((r) => r.isFirst);
+      // 한 판씩 pushReplacement로 갈아끼우므로 게임 route는 늘 하나다.
+      // 한 번 pop하면 월드 목록으로 돌아간다(메인 화면까지 가면 안 된다).
+      Navigator.of(context).pop();
       return;
     }
     Navigator.of(context).pushReplacement(

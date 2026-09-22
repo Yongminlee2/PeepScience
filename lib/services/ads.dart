@@ -20,12 +20,12 @@ class Ads {
   /// 디버그 빌드는 항상 구글 테스트 ID를 쓰므로, 개발 중 광고를 눌러도
   /// 계정이 무효 트래픽으로 걸리지 않는다.
   static const _realInterstitialAndroid =
-      'ca-app-pub-0000000000000000/0000000000';
+      'ca-app-pub-6583185616347720/4585125107';
   static const _testInterstitialAndroid =
       'ca-app-pub-3940256099942544/1033173712';
 
   /// 홈 화면 맨 아래 띠 광고. 게임 화면에는 절대 붙이지 않는다.
-  static const _realBannerAndroid = 'ca-app-pub-0000000000000000/0000000000';
+  static const _realBannerAndroid = 'ca-app-pub-6583185616347720/8709956961';
   static const _testBannerAndroid = 'ca-app-pub-3940256099942544/6300978111';
 
   /// 몇 판마다 한 번 띄울지. 3판은 흔한 캐주얼 퍼즐 간격이고, 1~2판으로
@@ -33,6 +33,18 @@ class Ads {
   static const _stagesPerAd = 3;
 
   static bool _ready = false;
+  static final Completer<void> _initDone = Completer<void>();
+
+  /// 초기화가 끝나면 완료된다. 띠 광고 위젯은 이걸 기다렸다가 요청한다 -
+  /// 홈 화면이 광고 SDK보다 먼저 뜨는 것이 보통이라, 기다리지 않으면
+  /// "아직 준비 안 됨"으로 한 번 튕기고 영영 다시 요청하지 않는다.
+  /// init()을 부르지 않는 곳(테스트)에서는 영영 완료되지 않으므로 광고
+  /// 코드가 한 줄도 돌지 않는다.
+  static Future<void> get initialized => _initDone.future;
+
+  static void _markInitDone() {
+    if (!_initDone.isCompleted) _initDone.complete();
+  }
   static int _advances = 0;
   static InterstitialAd? _ad;
   static bool _loading = false;
@@ -54,6 +66,9 @@ class Ads {
   static bool get _configured =>
       !kReleaseMode || !_realInterstitialAndroid.contains('pub-0000');
 
+  /// 광고가 켜져 있는 빌드인지. 게임 화면은 이 값이 true일 때만 띠 자리를
+  /// 비워 둔다 - 광고를 안 쓰는 빌드에서 판이 괜히 작아지면 안 된다.
+
   /// 앱 시작 때 한 번. 광고 SDK를 깨우고, 유럽 이용자 동의 창이 필요하면
   /// 먼저 띄운 뒤 첫 광고를 미리 받아 둔다.
   static Future<void> init() async {
@@ -69,6 +84,8 @@ class Ads {
       unawaited(_load());
     } catch (_) {
       // 광고 없이 그냥 게임만 돌아간다.
+    } finally {
+      _markInitDone();
     }
   }
 

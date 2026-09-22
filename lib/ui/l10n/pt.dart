@@ -13,6 +13,7 @@ const Map<String, String> kPt = {
   'clear': 'BOA!',
   'next': 'Próxima',
   'retry': 'De novo',
+  'play': 'Jogar',
   'settings': 'Ajustes',
   'sound': 'Som',
   'language': 'Idioma',

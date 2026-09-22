@@ -13,6 +13,7 @@ const Map<String, String> kTh = {
   'clear': 'ผ่านแล้ว!',
   'next': 'ต่อไป',
   'retry': 'ลองใหม่',
+  'play': 'เล่น',
   'settings': 'ตั้งค่า',
   'sound': 'เสียง',
   'language': 'ภาษา',

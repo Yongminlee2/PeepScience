@@ -13,6 +13,7 @@ const Map<String, String> kJa = {
   'clear': 'クリア!',
   'next': 'つぎへ',
   'retry': 'もういちど',
+  'play': 'はじめる',
   'settings': '設定',
   'sound': 'おと',
   'language': '言語',

@@ -13,6 +13,7 @@ const Map<String, String> kIt = {
   'clear': 'EVVIVA!',
   'next': 'Avanti',
   'retry': 'Ancora',
+  'play': 'Gioca',
   'settings': 'Impostazioni',
   'sound': 'Suono',
   'language': 'Lingua',

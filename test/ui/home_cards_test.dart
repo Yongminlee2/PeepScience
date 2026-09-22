@@ -4,7 +4,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-import 'package:piyak_science/main.dart';
+
+import 'pump_app.dart';
 import 'package:piyak_science/sim/registry.dart';
 import 'package:piyak_science/sim/stage_data.dart';
 import 'package:piyak_science/ui/game_screen.dart';
@@ -45,8 +46,7 @@ void main() {
       'cleared_v1': ['w1_s01', 'w1_s02', 'w1_s03'],
     });
     await _setSize(t, const Size(2200, 900));
-    await t.pumpWidget(const PiyakScienceApp());
-    await t.pumpAndSettle();
+    await pumpAppToHome(t);
 
     expect(find.text('3/20'), findsOneWidget); // world1: 3개 클리어
     expect(find.text('0/20'), findsNWidgets(4)); // world2~5: 0개
@@ -55,8 +55,7 @@ void main() {
   testWidgets('월드 카드 화살표로 11~20단계 페이지를 열 수 있다', (t) async {
     SharedPreferences.setMockInitialValues({});
     await _setSize(t, const Size(2000, 900));
-    await t.pumpWidget(const PiyakScienceApp());
-    await t.pumpAndSettle();
+    await pumpAppToHome(t);
 
     expect(find.byKey(const ValueKey('cell_w1_s01')), findsOneWidget);
     expect(find.byKey(const ValueKey('cell_w1_s11')), findsNothing);
@@ -72,8 +71,7 @@ void main() {
   testWidgets('짧은 가로형 휴대폰에서도 20단계 전환기가 넘치지 않는다', (t) async {
     SharedPreferences.setMockInitialValues({});
     await _setSize(t, const Size(780, 360));
-    await t.pumpWidget(const PiyakScienceApp());
-    await t.pumpAndSettle();
+    await pumpAppToHome(t);
 
     await t.tap(find.byKey(const ValueKey('stage_page_next_w1')));
     await t.pumpAndSettle();
@@ -122,8 +120,7 @@ void main() {
   testWidgets('배경 썸네일 로드가 실패하면 errorBuilder가 월드 고유색 컨테이너로 조용히 대체한다', (t) async {
     SharedPreferences.setMockInitialValues({});
     await _setSize(t, const Size(2200, 900));
-    await t.pumpWidget(const PiyakScienceApp());
-    await t.pumpAndSettle();
+    await pumpAppToHome(t);
 
     // 월드 카드 5장 각자 헤더 썸네일(Image.asset) 하나씩 - 실제 asset
     // 로딩 성공/실패 타이밍(진짜 PNG 디코드라 runAsync 없인 test 안에서

@@ -13,6 +13,7 @@ const Map<String, String> kRu = {
   'clear': 'ПОЛУЧИЛОСЬ!',
   'next': 'Дальше',
   'retry': 'Ещё раз',
+  'play': 'Играть',
   'settings': 'Настройки',
   'sound': 'Звук',
   'language': 'Язык',

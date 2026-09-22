@@ -13,6 +13,7 @@ const Map<String, String> kFr = {
   'clear': 'BRAVO !',
   'next': 'Suite',
   'retry': 'Encore',
+  'play': 'Jouer',
   'settings': 'Réglages',
   'sound': 'Son',
   'language': 'Langue',

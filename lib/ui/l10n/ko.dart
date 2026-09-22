@@ -13,6 +13,7 @@ const Map<String, String> kKo = {
   'clear': '클리어!',
   'next': '다음',
   'retry': '다시',
+  'play': '시작하기',
   'settings': '설정',
   'sound': '소리',
   'language': '언어',

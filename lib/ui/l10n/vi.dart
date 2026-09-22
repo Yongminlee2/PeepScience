@@ -13,6 +13,7 @@ const Map<String, String> kVi = {
   'clear': 'XONG RỒI!',
   'next': 'Tiếp',
   'retry': 'Thử lại',
+  'play': 'Chơi',
   'settings': 'Cài đặt',
   'sound': 'Âm thanh',
   'language': 'Ngôn ngữ',

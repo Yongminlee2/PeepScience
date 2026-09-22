@@ -13,6 +13,7 @@ const Map<String, String> kEs = {
   'clear': '¡BIEN!',
   'next': 'Sigue',
   'retry': 'Repite',
+  'play': 'Jugar',
   'settings': 'Ajustes',
   'sound': 'Sonido',
   'language': 'Idioma',

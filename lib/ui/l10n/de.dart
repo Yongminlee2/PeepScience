@@ -13,6 +13,7 @@ const Map<String, String> kDe = {
   'clear': 'GESCHAFFT!',
   'next': 'Weiter',
   'retry': 'Nochmal',
+  'play': 'Spielen',
   'settings': 'Einstellungen',
   'sound': 'Ton',
   'language': 'Sprache',

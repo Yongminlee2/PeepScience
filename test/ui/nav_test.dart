@@ -7,7 +7,8 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:piyak_science/game/hud.dart';
 import 'package:piyak_science/game/piyak_game.dart';
-import 'package:piyak_science/main.dart';
+
+import 'pump_app.dart';
 import 'package:piyak_science/services/progress.dart';
 import 'package:piyak_science/services/stage_loader.dart';
 import 'package:piyak_science/sim/registry.dart';
@@ -100,8 +101,7 @@ void main() {
 
   testWidgets('홈 화면에 월드 카드 5개가 렌더된다', (t) async {
     await _setSize(t, const Size(2200, 900));
-    await t.pumpWidget(const PiyakScienceApp());
-    await t.pumpAndSettle();
+    await pumpAppToHome(t);
 
     expect(find.text(S.t('world1')), findsOneWidget);
     expect(find.text(S.t('world2')), findsOneWidget);
@@ -112,8 +112,7 @@ void main() {
 
   testWidgets('잠긴 스테이지 칸을 탭해도 화면이 전환되지 않는다', (t) async {
     await _setSize(t, const Size(2000, 900));
-    await t.pumpWidget(const PiyakScienceApp());
-    await t.pumpAndSettle();
+    await pumpAppToHome(t);
 
     // w1_s02: 아무것도 클리어되지 않았고 첫 스테이지도 아니므로 잠김.
     await t.tap(find.byKey(const ValueKey('cell_w1_s02')));
@@ -277,8 +276,7 @@ void main() {
 
   testWidgets('설정에서 언어를 한국어로 바꾸면 홈 화면 문구가 한국어로 바뀐다', (t) async {
     await _setSize(t, const Size(2000, 900));
-    await t.pumpWidget(const PiyakScienceApp());
-    await t.pumpAndSettle();
+    await pumpAppToHome(t);
 
     await t.tap(find.byIcon(Icons.settings_rounded));
     await t.pumpAndSettle();
