@@ -243,6 +243,43 @@ class ChallengeSpec {
   }
 }
 
+/// 공(고무공·쇠공)을 놓을 수 있는 자리. 없으면 제한이 없다.
+///
+/// 공은 트레이에서 꺼내 아무 데나 놓을 수 있어서, 중력으로 목표에 닿는 판은
+/// 장치를 만들지 않고 공을 목표 근처에 떨궈 버리면 그냥 깨진다. 판마다 공을
+/// 놓을 구역을 정해 그 구멍을 막는다. 널빤지·톱니 같은 나머지 부품은 이
+/// 제한을 받지 않는다.
+class BallZone {
+  /// 구역 중심과 크기(월드 단위 m).
+  final double x, y, w, h;
+
+  const BallZone({
+    required this.x,
+    required this.y,
+    required this.w,
+    required this.h,
+  });
+
+  bool contains(double px, double py) =>
+      (px - x).abs() <= w / 2 && (py - y).abs() <= h / 2;
+
+  Map<String, dynamic> toJson() => {'x': x, 'y': y, 'w': w, 'h': h};
+
+  static BallZone fromJson(Map<String, dynamic> j) {
+    double num_(String k) {
+      final v = j[k];
+      if (v is! num) throw FormatException('ballZone.$k must be a number');
+      return v.toDouble();
+    }
+
+    final zone = BallZone(x: num_('x'), y: num_('y'), w: num_('w'), h: num_('h'));
+    if (zone.w <= 0 || zone.h <= 0) {
+      throw const FormatException('ballZone w/h must be positive');
+    }
+    return zone;
+  }
+}
+
 class StageData {
   final String id;
   final int world;
@@ -254,6 +291,7 @@ class StageData {
   final StageFeature? feature;
   final PredictionSpec? prediction;
   final ChallengeSpec? challenge;
+  final BallZone? ballZone;
 
   StageData({
     required this.id,
@@ -266,6 +304,7 @@ class StageData {
     this.feature,
     this.prediction,
     this.challenge,
+    this.ballZone,
   });
 
   static StageData fromJson(Map<String, dynamic> j) {
@@ -376,6 +415,14 @@ class StageData {
           ? null
           : ChallengeSpec.fromJson(challengeJson);
 
+      final ballZoneJson = j['ballZone'];
+      if (ballZoneJson != null && ballZoneJson is! Map<String, dynamic>) {
+        throw FormatException('$id: ballZone must be an object');
+      }
+      final ballZone = ballZoneJson == null
+          ? null
+          : BallZone.fromJson(ballZoneJson);
+
       return StageData(
         id: id,
         world: world,
@@ -387,6 +434,7 @@ class StageData {
         feature: feature,
         prediction: prediction,
         challenge: challenge,
+        ballZone: ballZone,
       );
     } catch (e) {
       if (e is FormatException) {
@@ -407,5 +455,6 @@ class StageData {
     if (feature != null) 'feature': stageFeatureJsonIdOf(feature!),
     if (prediction != null) 'prediction': prediction!.toJson(),
     if (challenge != null) 'challenge': challenge!.toJson(),
+    if (ballZone != null) 'ballZone': ballZone!.toJson(),
   };
 }

@@ -220,7 +220,11 @@ String? _placementIssue(StageData data) {
           'only has $allowed';
     }
   }
-  return solutionPlacementIssue(data.preset, data.solution);
+  return solutionPlacementIssue(
+    data.preset,
+    data.solution,
+    ballZone: data.ballZone,
+  );
 }
 
 /// Rule (f) - null if every entry of [data.preset] is visible above the

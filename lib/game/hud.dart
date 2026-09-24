@@ -25,6 +25,7 @@ import 'package:flutter/widgets.dart'
 
 import '../services/sound.dart';
 import '../sim/catalog.dart';
+import '../sim/placement_rules.dart' show isBallType;
 import '../sim/stage_data.dart';
 import '../ui/strings.dart';
 import 'input.dart';
@@ -83,6 +84,39 @@ void _drawStickerCard(Canvas canvas, Rect rect, double radius, Color fill) {
 /// it always sits at the bottom of the visible canvas regardless of
 /// letterboxing or any future camera pan/zoom (see camera_component.dart's
 /// own doc comment: viewport children are unaffected by the viewfinder).
+/// 공을 끌 때만 잠깐 보이는 "여기에 놓으세요" 자리 표시.
+///
+/// 공을 아무 데나 놓으면 장치를 안 만들고도 깨지는 판이 있어서, 그런 판은
+/// 공을 놓을 구역을 정해 두었다([StageData.ballZone]). 구역을 안 보여 주면
+/// 아이는 왜 빨간 테두리가 뜨는지 모른다.
+class BallZoneHint extends PositionComponent {
+  BallZoneHint(BallZone zone)
+    : super(
+        position: Vector2(
+          (zone.x - zone.w / 2) * kPpm,
+          (zone.y - zone.h / 2) * kPpm,
+        ),
+        size: Vector2(zone.w * kPpm, zone.h * kPpm),
+        priority: -1,
+      );
+
+  static final Paint _fill = Paint()..color = const Color(0x2243A047);
+  static final Paint _stroke = Paint()
+    ..color = const Color(0x9943A047)
+    ..style = PaintingStyle.stroke
+    ..strokeWidth = 5;
+
+  @override
+  void render(Canvas canvas) {
+    final rect = RRect.fromRectAndRadius(
+      size.toRect(),
+      const Radius.circular(20),
+    );
+    canvas.drawRRect(rect, _fill);
+    canvas.drawRRect(rect, _stroke);
+  }
+}
+
 class TrayBar extends PositionComponent {
   // 1600x900 matches PiyakGame's fixed-resolution camera (16x9m * kPpm) -
   // see piyak_game.dart's CameraComponent.withFixedResolution call.
@@ -504,6 +538,7 @@ class _TraySlot extends PositionComponent with DragCallbacks {
   // active (either never started, or already ended/cleaned up).
   PartView? _ghost;
   bool? _ghostValid;
+  BallZoneHint? _zoneHint;
   ({Vector2 pos, bool valid})? _lastResult;
   // Running canvas-space pointer position for the drag in progress - see
   // onDragUpdate's doc comment for why this is tracked incrementally
@@ -599,6 +634,12 @@ class _TraySlot extends PositionComponent with DragCallbacks {
     super.onDragStart(event);
     if (game.mode != GameMode.edit || _remaining <= 0) return;
     _lastCanvasPos = event.canvasPosition;
+    final zone = game.stage.ballZone;
+    if (zone != null && isBallType(entry.type)) {
+      final hint = BallZoneHint(zone);
+      _zoneHint = hint;
+      game.world.add(hint);
+    }
     _track(event.canvasPosition);
   }
 
@@ -668,6 +709,8 @@ class _TraySlot extends PositionComponent with DragCallbacks {
     _lastResult = null;
     _lastCanvasPos = null;
     ghost?.removeFromParent();
+    _zoneHint?.removeFromParent();
+    _zoneHint = null;
     if (result != null && result.valid) {
       game.addPlacement(
         Placement(
@@ -691,6 +734,8 @@ class _TraySlot extends PositionComponent with DragCallbacks {
   // committing a placement.
   void _cancelDrag() {
     _ghost?.removeFromParent();
+    _zoneHint?.removeFromParent();
+    _zoneHint = null;
     _ghost = null;
     _ghostValid = null;
     _lastResult = null;

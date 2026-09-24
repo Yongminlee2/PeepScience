@@ -7,15 +7,18 @@ import 'package:piyak_science/sim/registry.dart';
 import 'package:piyak_science/sim/sim_world.dart';
 import 'package:piyak_science/sim/stage_data.dart';
 
-/// Searches the mastery half for obvious one-part bypasses at a deterministic
-/// set of goal-adjacent, payload-adjacent and coarse whole-field placements.
-/// This complements (rather than replaces) the exact-solution removal tests.
+/// 부품 하나로 깨지는 판이 있는지 훑는다. 목표물 옆·시작물 옆, 그리고 판
+/// 전체를 성기게 찍어 본다.
+///
+/// 전에는 각 월드 11~20단계(숙달 구간)만 봤는데, 1~10단계에도 부품 하나로
+/// 뚫리는 판이 그대로 남아 있었다(23차). 이제 100판 전부 본다. 정답이 부품
+/// 한 개인 판은 한 부품으로 깨지는 게 정답이므로 건너뛴다.
 void main(List<String> args) {
   var shortcutCount = 0;
-  final ids = args.isEmpty ? stageOrder.where(_isExpertId) : args;
+  final ids = args.isEmpty ? stageOrder : args;
   for (final id in ids) {
-    if (!_isExpertId(id) || !stageOrder.contains(id)) {
-      stderr.writeln('Unknown expert stage id: $id');
+    if (!stageOrder.contains(id)) {
+      stderr.writeln('Unknown stage id: $id');
       exitCode = 2;
       return;
     }
@@ -23,6 +26,8 @@ void main(List<String> args) {
       jsonDecode(File('assets/stages/$id.json').readAsStringSync())
           as Map<String, dynamic>,
     );
+    // 정답이 부품 하나인 판은 한 부품으로 깨지는 게 정답이다.
+    if (stage.solution.length < 2) continue;
     final presetBoxes = [for (final p in stage.preset) boxForPreset(p)];
     final anchors = <(double, double)>{
       for (final p in stage.preset) (p.x, p.y),
@@ -43,7 +48,10 @@ void main(List<String> args) {
               final rawX = anchor.$1 + dx;
               final rawY = anchor.$2 + dy;
               final (x, y) = snapGearPosition(presetBoxes, type, rawX, rawY);
-              if (!canPlaceAt(presetBoxes, type, x, y, angle)) continue;
+              if (!canPlaceAt(presetBoxes, type, x, y, angle,
+                  ballZone: stage.ballZone)) {
+                continue;
+              }
               final placement = Placement(
                 type: type,
                 x: x,
@@ -73,11 +81,10 @@ void main(List<String> args) {
   }
 
   if (shortcutCount > 0) {
-    stderr.writeln('RESULT: $shortcutCount expert stage shortcut(s) found');
+    stderr.writeln('RESULT: $shortcutCount stage shortcut(s) found');
     exitCode = 1;
   } else {
-    stdout.writeln('RESULT: no sampled one-part expert shortcut');
+    stdout.writeln('RESULT: no sampled one-part shortcut');
   }
 }
 
-bool _isExpertId(String id) => int.parse(id.substring(id.length - 2)) >= 11;

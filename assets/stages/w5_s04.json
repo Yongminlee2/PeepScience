@@ -99,5 +99,11 @@
   ],
   "challenge": {
     "part_limit": 3
+  },
+  "ballZone": {
+    "x": 1.5,
+    "y": 1.0,
+    "w": 1.6,
+    "h": 1.2
   }
 }

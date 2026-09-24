@@ -239,8 +239,13 @@ String? placementRejectReason(
   PartType type,
   double x,
   double y,
-  double angleDeg,
-) {
+  double angleDeg, {
+  BallZone? ballZone,
+}) {
+  // 공은 판이 정한 구역 안에만 놓을 수 있다. 구역이 없는 판은 제한이 없다.
+  if (ballZone != null && isBallType(type) && !ballZone.contains(x, y)) {
+    return 'ball outside its drop zone';
+  }
   if (x < kFieldMinX || x > kFieldMaxX || y < kFieldMinY || y > kFieldMaxY) {
     return 'out of bounds: ($x, $y) not in x:[$kFieldMinX,$kFieldMaxX] '
         'y:[$kFieldMinY,$kFieldMaxY]';
@@ -265,8 +270,22 @@ bool canPlaceAt(
   PartType type,
   double x,
   double y,
-  double angleDeg,
-) => placementRejectReason(existingBoxes, type, x, y, angleDeg) == null;
+  double angleDeg, {
+  BallZone? ballZone,
+}) =>
+    placementRejectReason(
+      existingBoxes,
+      type,
+      x,
+      y,
+      angleDeg,
+      ballZone: ballZone,
+    ) ==
+    null;
+
+/// 트레이에서 꺼내 놓는 공인지. [BallZone]이 걸리는 부품은 이 둘뿐이다.
+bool isBallType(PartType type) =>
+    type == PartType.rubberBall || type == PartType.metalBall;
 
 /// If [type] is gear-family and a same-family neighbor in [existingBoxes]
 /// exists within r1+r2+[kGearSnapCatchRange] of ([rawX],[rawY]), returns the
@@ -322,8 +341,9 @@ bool canPlaceAt(
 /// validate_core.dart's stage-file validator layers both of those on top.
 String? solutionPlacementIssue(
   List<PresetObject> preset,
-  List<Placement> solution,
-) {
+  List<Placement> solution, {
+  BallZone? ballZone,
+}) {
   final boxes = [for (final p in preset) boxForPreset(p)];
   for (var i = 0; i < solution.length; i++) {
     final p = solution[i];
@@ -339,7 +359,14 @@ String? solutionPlacementIssue(
           '(${sx.toStringAsFixed(2)}, ${sy.toStringAsFixed(2)}) - author it '
           'at the snapped spot';
     }
-    final reason = placementRejectReason(boxes, p.type, sx, sy, p.angleDeg);
+    final reason = placementRejectReason(
+      boxes,
+      p.type,
+      sx,
+      sy,
+      p.angleDeg,
+      ballZone: ballZone,
+    );
     if (reason != null) {
       return 'solution[$i] (${jsonIdOf(p.type)} at (${p.x}, ${p.y})) '
           'rejected by placement rules: $reason';

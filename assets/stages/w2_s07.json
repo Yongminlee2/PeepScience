@@ -2,13 +2,53 @@
   "id": "w2_s07",
   "world": 2,
   "index": 7,
-  "goal": { "type": "ball_in_basket" },
+  "goal": {
+    "type": "ball_in_basket"
+  },
   "preset": [
-    { "type": "seesaw", "x": 9.0, "y": 6.0, "angle": 0 },
-    { "type": "rubber_ball", "x": 10.2, "y": 5.6, "angle": 0 },
-    { "type": "trampoline", "x": 11.13, "y": 7.05, "angle": 0 },
-    { "type": "basket", "x": 12.2, "y": 5.8, "angle": 0 }
+    {
+      "type": "seesaw",
+      "x": 9.0,
+      "y": 6.0,
+      "angle": 0
+    },
+    {
+      "type": "rubber_ball",
+      "x": 10.2,
+      "y": 5.6,
+      "angle": 0
+    },
+    {
+      "type": "trampoline",
+      "x": 11.13,
+      "y": 7.05,
+      "angle": 0
+    },
+    {
+      "type": "basket",
+      "x": 12.2,
+      "y": 5.8,
+      "angle": 0
+    }
   ],
-  "tray": [ { "type": "metal_ball", "count": 1 } ],
-  "solution": [ { "type": "metal_ball", "x": 7.80, "y": 4.80, "angle": 0 } ]
+  "tray": [
+    {
+      "type": "metal_ball",
+      "count": 1
+    }
+  ],
+  "solution": [
+    {
+      "type": "metal_ball",
+      "x": 7.8,
+      "y": 4.8,
+      "angle": 0
+    }
+  ],
+  "ballZone": {
+    "x": 7.8,
+    "y": 4.8,
+    "w": 1.6,
+    "h": 1.2
+  }
 }

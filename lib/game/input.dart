@@ -61,6 +61,7 @@ bool canPlaceAt(
     worldPos.x,
     worldPos.y,
     angleDeg,
+    ballZone: game.stage.ballZone,
   );
 }
 

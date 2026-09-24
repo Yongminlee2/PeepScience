@@ -75,7 +75,11 @@ class EditorState {
   /// mistakes between stages instead.
   String exportJson() {
     final data = _toStageData();
-    final placementIssue = solutionPlacementIssue(data.preset, data.solution);
+    final placementIssue = solutionPlacementIssue(
+      data.preset,
+      data.solution,
+      ballZone: data.ballZone,
+    );
     if (placementIssue != null) {
       throw FormatException(placementIssue);
     }
