@@ -39,6 +39,8 @@ class Ads {
   static int _advances = 0;
   static InterstitialAd? _ad;
   static bool _loading = false;
+  // 지금 받아 오는 중인 광고가 끝나면(성공이든 실패든) 완료된다.
+  static Completer<void>? _loadWait;
 
   static String get _interstitialUnitId =>
       kReleaseMode ? _realInterstitialAndroid : _testInterstitialAndroid;
@@ -95,6 +97,12 @@ class Ads {
   static Future<void> _load() async {
     if (_loading || _ad != null) return;
     _loading = true;
+    final wait = _loadWait = Completer<void>();
+    void done() {
+      _loading = false;
+      if (!wait.isCompleted) wait.complete();
+    }
+
     try {
       await InterstitialAd.load(
         adUnitId: _interstitialUnitId,
@@ -102,21 +110,22 @@ class Ads {
         adLoadCallback: InterstitialAdLoadCallback(
           onAdLoaded: (ad) {
             _ad = ad;
-            _loading = false;
+            done();
           },
-          onAdFailedToLoad: (_) {
-            _loading = false;
-          },
+          onAdFailedToLoad: (_) => done(),
         ),
       );
     } catch (_) {
-      _loading = false;
+      done();
     }
   }
 
-  /// 앱을 켜고 처음 스테이지를 열 때 한 번 띄운다. 첫 광고가 아직 안
-  /// 받아졌으면 이번엔 건너뛴다 - 광고를 기다리느라 판이 늦게 열리면 안 된다.
-  /// 초기화(동의 창 포함)가 끝나지 않았으면 잠깐 기다린다.
+  /// 앱을 켜고 처음 스테이지를 열 때 한 번 띄운다.
+  ///
+  /// 앱을 켜고 광고를 받아 오는 데 2~3초 걸려서, 빨리 판을 누르면 아직
+  /// 준비가 안 돼 있다. 그때는 받아 오는 중인 광고를 3초까지 기다리고,
+  /// 그래도 없으면 이번엔 넘어가되 "봤다"로 치지 않는다 - 다음에 판을 열 때
+  /// 다시 시도한다(전에는 한 번 놓치면 그 실행 내내 안 떴다).
   static Future<void> maybeShowOnSessionStart() async {
     // init()을 안 부른 곳(테스트·광고 없는 빌드)은 기다릴 것도 없다.
     if (_sessionAdShown || !_initStarted) return;
@@ -125,6 +134,14 @@ class Ads {
       onTimeout: () {},
     );
     if (!_ready || _sessionAdShown) return;
+    if (_ad == null) {
+      unawaited(_load());
+      await (_loadWait?.future ?? Future<void>.value()).timeout(
+        const Duration(seconds: 3),
+        onTimeout: () {},
+      );
+    }
+    if (_ad == null) return;
     _sessionAdShown = true;
     await _show();
   }
