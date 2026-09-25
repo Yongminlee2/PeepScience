@@ -10,4 +10,12 @@ void main() {
     await Ads.maybeShowOnStageAdvance().timeout(const Duration(seconds: 1));
     expect(Ads.advances, 0);
   });
+
+  // 월드 목록에서 판을 열 때마다 불린다. 광고 SDK를 안 깨운 곳에서 여기서
+  // 기다리면 판이 영영 안 열린다.
+  test('초기화 전에는 게임 시작 광고도 기다리지 않고 바로 돌아온다', () async {
+    await Ads.maybeShowOnSessionStart().timeout(
+      const Duration(milliseconds: 100),
+    );
+  });
 }

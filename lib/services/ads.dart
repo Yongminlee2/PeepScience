@@ -3,13 +3,12 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 
-/// 광고는 전면 광고 한 자리만 쓴다 - 스테이지를 [_stagesPerAd]판 넘길 때마다
-/// 한 번, 다음 판으로 넘어가는 순간에.
+/// 광고는 전면 광고 하나만 쓴다. 뜨는 때는 두 번뿐이다.
+///  * 앱을 켜고 처음 스테이지를 열 때 한 번
+///  * 그 뒤로 스테이지를 [_stagesPerAd]판 넘길 때마다 한 번
 ///
-/// 게임 화면과 홈 화면에는 배너를 두지 않는다. 이 게임은 가로 전체 화면에
-/// 장치를 놓는 구조라, 화면 어디에 띠를 붙여도 공·목표물·말풍선을 가리거나
-/// 부품을 끌어다 놓는 자리를 잡아먹는다(19~20차에서 고친 문제가 그대로
-/// 되살아난다). 실수로 누르기 쉬운 자리라는 점도 크다.
+/// 띠(배너) 광고는 쓰지 않는다. 게임 화면에 붙이면 판이 12~14% 작아지고,
+/// 메인·월드 목록에 붙이는 것은 이 게임에 비해 과하다고 판단해 뺐다.
 ///
 /// 광고는 어디까지나 부가 기능이다. 초기화·로드·표시가 모두 실패해도
 /// 게임은 평소처럼 돌아가야 하므로, 이 파일 안에서 모든 예외를 삼킨다.
@@ -24,10 +23,6 @@ class Ads {
   static const _testInterstitialAndroid =
       'ca-app-pub-3940256099942544/1033173712';
 
-  /// 홈 화면 맨 아래 띠 광고. 게임 화면에는 절대 붙이지 않는다.
-  static const _realBannerAndroid = 'ca-app-pub-6583185616347720/8709956961';
-  static const _testBannerAndroid = 'ca-app-pub-3940256099942544/6300978111';
-
   /// 몇 판마다 한 번 띄울지. 3판은 흔한 캐주얼 퍼즐 간격이고, 1~2판으로
   /// 줄이면 아이가 못 참는다.
   static const _stagesPerAd = 3;
@@ -35,16 +30,12 @@ class Ads {
   static bool _ready = false;
   static final Completer<void> _initDone = Completer<void>();
 
-  /// 초기화가 끝나면 완료된다. 띠 광고 위젯은 이걸 기다렸다가 요청한다 -
-  /// 홈 화면이 광고 SDK보다 먼저 뜨는 것이 보통이라, 기다리지 않으면
-  /// "아직 준비 안 됨"으로 한 번 튕기고 영영 다시 요청하지 않는다.
-  /// init()을 부르지 않는 곳(테스트)에서는 영영 완료되지 않으므로 광고
-  /// 코드가 한 줄도 돌지 않는다.
-  static Future<void> get initialized => _initDone.future;
-
   static void _markInitDone() {
     if (!_initDone.isCompleted) _initDone.complete();
   }
+
+  static bool _initStarted = false;
+  static bool _sessionAdShown = false;
   static int _advances = 0;
   static InterstitialAd? _ad;
   static bool _loading = false;
@@ -52,27 +43,17 @@ class Ads {
   static String get _interstitialUnitId =>
       kReleaseMode ? _realInterstitialAndroid : _testInterstitialAndroid;
 
-  static String get bannerUnitId =>
-      kReleaseMode ? _realBannerAndroid : _testBannerAndroid;
-
-  /// 홈 화면 띠 광고를 요청해도 되는 상태인지. 초기화 전(테스트 포함)이거나
-  /// 실제 ID를 안 넣은 정식 빌드에서는 false라 광고 코드가 전혀 돌지 않는다.
-  static bool get bannerEnabled =>
-      _ready && (!kReleaseMode || !_realBannerAndroid.contains('pub-0000'));
-
   /// 실제 ID를 아직 안 넣은 채로 정식 빌드를 올리는 사고를 막는다. 그런
   /// 빌드는 광고를 아예 요청하지 않으므로, 잘못된 ID로 구글에 요청을 보내는
   /// 일도 테스트 광고가 이용자에게 보이는 일도 없다.
   static bool get _configured =>
       !kReleaseMode || !_realInterstitialAndroid.contains('pub-0000');
 
-  /// 광고가 켜져 있는 빌드인지. 게임 화면은 이 값이 true일 때만 띠 자리를
-  /// 비워 둔다 - 광고를 안 쓰는 빌드에서 판이 괜히 작아지면 안 된다.
-
   /// 앱 시작 때 한 번. 광고 SDK를 깨우고, 유럽 이용자 동의 창이 필요하면
   /// 먼저 띄운 뒤 첫 광고를 미리 받아 둔다.
   static Future<void> init() async {
     if (!_configured) return;
+    _initStarted = true;
     try {
       await MobileAds.instance.initialize();
       // 그림체가 유아 친화적이라 전체이용가 등급 광고만 받는다.
@@ -133,12 +114,31 @@ class Ads {
     }
   }
 
+  /// 앱을 켜고 처음 스테이지를 열 때 한 번 띄운다. 첫 광고가 아직 안
+  /// 받아졌으면 이번엔 건너뛴다 - 광고를 기다리느라 판이 늦게 열리면 안 된다.
+  /// 초기화(동의 창 포함)가 끝나지 않았으면 잠깐 기다린다.
+  static Future<void> maybeShowOnSessionStart() async {
+    // init()을 안 부른 곳(테스트·광고 없는 빌드)은 기다릴 것도 없다.
+    if (_sessionAdShown || !_initStarted) return;
+    await _initDone.future.timeout(
+      const Duration(seconds: 3),
+      onTimeout: () {},
+    );
+    if (!_ready || _sessionAdShown) return;
+    _sessionAdShown = true;
+    await _show();
+  }
+
   /// 다음 판으로 넘어갈 때 호출한다. 차례가 아니거나 받아 둔 광고가 없으면
   /// 아무 일도 없이 바로 돌아간다 - 광고 때문에 다음 판이 늦게 열리면 안 된다.
   static Future<void> maybeShowOnStageAdvance() async {
     if (!_ready) return;
     _advances++;
     if (_advances % _stagesPerAd != 0) return;
+    await _show();
+  }
+
+  static Future<void> _show() async {
     final ad = _ad;
     if (ad == null) {
       unawaited(_load());
@@ -165,7 +165,7 @@ class Ads {
         onTimeout: () {},
       );
     } catch (_) {
-      // 표시에 실패하면 다음 판으로 그냥 넘어간다.
+      // 표시에 실패하면 그냥 넘어간다.
     }
   }
 

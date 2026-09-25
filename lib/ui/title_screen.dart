@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 
-import 'ad_banner.dart';
 import 'home_screen.dart';
 import 'settings_screen.dart';
 import 'strings.dart';
@@ -29,18 +28,14 @@ class TitleScreen extends StatelessWidget {
             ),
           ),
           child: SafeArea(
-            // 띠 광고가 시작 버튼을 덮지 않도록 세로로 나눠 놓는다. 겹쳐
-            // 놓으면 광고 높이만큼 버튼이 가려지고, 버튼을 누르려다 광고를
-            // 누르게 된다.
             child: Column(
               children: [
                 Expanded(
                   child: Stack(
                     children: [
                       Center(
-                        // 띠 광고가 붙으면 남는 높이가 줄어든다. 기기마다
-                        // 띠 높이가 달라 고정값으로는 못 맞추므로, 넘칠 때만
-                        // 통째로 조금 줄여 어디서든 다 보이게 한다.
+                        // 작은 가로 화면에서도 넘치지 않도록, 넘칠 때만 통째로
+                        // 조금 줄인다.
                         child: FittedBox(
                           fit: BoxFit.scaleDown,
                           child: Padding(
@@ -111,7 +106,6 @@ class TitleScreen extends StatelessWidget {
                     ],
                   ),
                 ),
-                const AdBanner(),
               ],
             ),
           ),
