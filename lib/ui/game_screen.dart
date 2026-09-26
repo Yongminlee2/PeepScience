@@ -109,12 +109,20 @@ class _GameScreenState extends State<GameScreen> {
     await p.markStars(id, stars);
     await p.markCleared(id);
     widget.onProgressChanged?.call();
+    Ads.onStageCleared();
+  }
+
+  /// 홈 버튼. 채워진 광고 차례가 있으면 나가기 전에 띄운다.
+  Future<void> _goHome() async {
+    await Ads.maybeShowPending();
+    if (!mounted) return;
+    Navigator.of(context).maybePop();
   }
 
   Future<void> _handleNext() async {
-    // 광고는 판이 바뀌는 이 순간에만 낀다. 받아 둔 광고가 없거나 차례가
+    // 광고는 판에서 나가는 이 순간에만 낀다. 받아 둔 광고가 없거나 차례가
     // 아니면 곧바로 돌아오므로 다음 판이 늦게 열리지 않는다.
-    await Ads.maybeShowOnStageAdvance();
+    await Ads.maybeShowPending();
     if (!mounted) return;
     final i = stageOrder.indexOf(widget.stageId);
     final hasNext = i != -1 && i + 1 < stageOrder.length;
@@ -187,7 +195,7 @@ class _GameScreenState extends State<GameScreen> {
                     tooltip: S.t('home'),
                     icon: Icons.home_rounded,
                     fillColor: kCandyCream,
-                    onPressed: () => Navigator.of(context).maybePop(),
+                    onPressed: _goHome,
                   ),
                 ),
               ),

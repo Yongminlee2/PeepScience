@@ -82,8 +82,10 @@ class _HomeScreenState extends State<HomeScreen> {
     if (!_isUnlocked(id)) return;
     try {
       final data = await widget.stageLoader(id);
-      // 앱을 켜고 처음 여는 판이면 여기서 광고를 한 번 띄운다.
+      // 앱을 켜고 처음 여는 판이면 여기서 광고를 한 번 띄운다. 뒤로 가기
+      // 제스처로 나와서 밀린 광고 차례가 있으면 그것도 여기서 띄운다.
       await Ads.maybeShowOnSessionStart();
+      await Ads.maybeShowPending();
       if (!mounted) return;
       await Navigator.of(context).push(
         fadeRoute(

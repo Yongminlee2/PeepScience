@@ -5,7 +5,7 @@ import 'package:google_mobile_ads/google_mobile_ads.dart';
 
 /// 광고는 전면 광고 하나만 쓴다. 뜨는 때는 두 번뿐이다.
 ///  * 앱을 켜고 처음 스테이지를 열 때 한 번
-///  * 그 뒤로 스테이지를 [_stagesPerAd]판 넘길 때마다 한 번
+///  * 그 뒤로 판을 [_stagesPerAd]개 깰 때마다 한 번, 판에서 나가는 순간
 ///
 /// 띠(배너) 광고는 쓰지 않는다. 게임 화면에 붙이면 판이 12~14% 작아지고,
 /// 메인·월드 목록에 붙이는 것은 이 게임에 비해 과하다고 판단해 뺐다.
@@ -36,7 +36,8 @@ class Ads {
 
   static bool _initStarted = false;
   static bool _sessionAdShown = false;
-  static int _advances = 0;
+  // 마지막 광고 뒤로 깬 판 수. [다음]을 눌렀든 홈으로 나갔든 깬 판은 센다.
+  static int _clearsSinceAd = 0;
   static InterstitialAd? _ad;
   static bool _loading = false;
   // 지금 받아 오는 중인 광고가 끝나면(성공이든 실패든) 완료된다.
@@ -143,23 +144,28 @@ class Ads {
     }
     if (_ad == null) return;
     _sessionAdShown = true;
-    await _show();
+    if (await _show()) _clearsSinceAd = 0;
   }
 
-  /// 다음 판으로 넘어갈 때 호출한다. 차례가 아니거나 받아 둔 광고가 없으면
-  /// 아무 일도 없이 바로 돌아간다 - 광고 때문에 다음 판이 늦게 열리면 안 된다.
-  static Future<void> maybeShowOnStageAdvance() async {
-    if (!_ready) return;
-    _advances++;
-    if (_advances % _stagesPerAd != 0) return;
-    await _show();
+  /// 판을 깰 때마다 부른다. 광고는 여기서 띄우지 않는다 - 클리어 화면
+  /// 위에 광고가 덮이면 아이가 결과를 못 본다. 판에서 나가는 순간
+  /// ([maybeShowPending])에 띄운다.
+  static void onStageCleared() => _clearsSinceAd++;
+
+  /// 판에서 나갈 때([다음]·홈) 부른다. [_stagesPerAd]판을 채웠으면 광고를
+  /// 띄운다. 받아 둔 광고가 없으면 기다리지 않고 넘어가되, 차례는 그대로
+  /// 남겨 두어 다음에 나갈 때 띄운다.
+  static Future<void> maybeShowPending() async {
+    if (!_ready || _clearsSinceAd < _stagesPerAd) return;
+    if (await _show()) _clearsSinceAd = 0;
   }
 
-  static Future<void> _show() async {
+  /// 광고를 실제로 띄웠으면 true.
+  static Future<bool> _show() async {
     final ad = _ad;
     if (ad == null) {
       unawaited(_load());
-      return;
+      return false;
     }
     _ad = null;
     final closed = Completer<void>();
@@ -181,12 +187,14 @@ class Ads {
         const Duration(seconds: 60),
         onTimeout: () {},
       );
+      return true;
     } catch (_) {
       // 표시에 실패하면 그냥 넘어간다.
+      return false;
     }
   }
 
-  /// 테스트에서 광고 경로를 건드리지 않았는지 확인할 때 쓴다.
+  /// 테스트에서 깬 판 수가 제대로 쌓이는지 볼 때 쓴다.
   @visibleForTesting
-  static int get advances => _advances;
+  static int get clearsSinceAd => _clearsSinceAd;
 }
