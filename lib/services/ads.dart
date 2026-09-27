@@ -25,7 +25,7 @@ class Ads {
 
   /// 힌트용 보상형 광고. 애드몹에서 "보상형" 광고 단위를 만들면 여기에 넣는다.
   /// 비어 있는(0000) 동안 정식 빌드는 광고 없이 힌트를 그냥 준다.
-  static const _realRewardedAndroid = 'ca-app-pub-0000000000000000/0000000000';
+  static const _realRewardedAndroid = 'ca-app-pub-6583185616347720/3250187667';
   static const _testRewardedAndroid = 'ca-app-pub-3940256099942544/5224354917';
 
   /// 몇 판마다 한 번 띄울지. 3판은 흔한 캐주얼 퍼즐 간격이고, 1~2판으로
