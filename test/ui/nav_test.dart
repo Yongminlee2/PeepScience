@@ -100,7 +100,7 @@ void main() {
   });
 
   testWidgets('홈 화면에 월드 카드 5개가 렌더된다', (t) async {
-    await _setSize(t, const Size(2200, 900));
+    await _setSize(t, const Size(2200, 380));
     await pumpAppToHome(t);
 
     expect(find.text(S.t('world1')), findsOneWidget);

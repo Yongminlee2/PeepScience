@@ -9,6 +9,7 @@ import 'package:flutter/material.dart';
 import '../game/piyak_game.dart';
 import '../services/ads.dart';
 import '../services/progress.dart';
+import '../services/sound.dart';
 import '../services/stage_loader.dart';
 import '../sim/registry.dart';
 import '../sim/stage_data.dart';
@@ -112,6 +113,42 @@ class _GameScreenState extends State<GameScreen> {
     Ads.onStageCleared();
   }
 
+  Future<void> _askHint(PiyakGame game) async {
+    if (!game.hasMoreHints) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          duration: const Duration(seconds: 2),
+          content: Text(S.t('hintNoMore')),
+        ),
+      );
+      return;
+    }
+    final watch = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(S.t('hint')),
+        content: Text(S.t('hintAsk')),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: Text(S.t('cancel')),
+          ),
+          FilledButton(
+            key: const ValueKey('hint_watch'),
+            onPressed: () => Navigator.of(context).pop(true),
+            child: Text(S.t('hintWatch')),
+          ),
+        ],
+      ),
+    );
+    if (watch != true || !mounted) return;
+    if (!await Ads.showRewardedForHint() || !mounted) return;
+    // 실행 중이었다면 편집으로 돌아와야 힌트 부품이 보인다.
+    if (game.mode == GameMode.run) game.resetToEdit();
+    game.revealHint();
+    Sound.play(Sfx.pop);
+  }
+
   /// 홈 버튼. 채워진 광고 차례가 있으면 나가기 전에 띄운다.
   Future<void> _goHome() async {
     await Ads.maybeShowPending();
@@ -207,9 +244,24 @@ class _GameScreenState extends State<GameScreen> {
                     key: const ValueKey('tutorial_help'),
                     semanticLabel: S.t('tutorialHelp'),
                     tooltip: S.t('tutorialHelp'),
+                    icon: Icons.help_rounded,
+                    fillColor: kCandyCream,
+                    onPressed: _openTutorial,
+                  ),
+                ),
+              ),
+              // 힌트: 짧은 보상형 광고를 보면 정답 부품 하나의 자리를 보여 준다.
+              Positioned(
+                bottom: 14,
+                right: 148,
+                child: SafeArea(
+                  child: _RoundHudButton(
+                    key: const ValueKey('hint_button'),
+                    semanticLabel: S.t('hint'),
+                    tooltip: S.t('hint'),
                     icon: Icons.lightbulb_rounded,
                     fillColor: kCandyGold,
-                    onPressed: _openTutorial,
+                    onPressed: () => _askHint(game),
                   ),
                 ),
               ),

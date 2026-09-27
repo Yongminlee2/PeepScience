@@ -201,6 +201,39 @@ class PiyakGame extends FlameGame with DragCallbacks {
     _ => const Color(0xFFFFFBF0),
   };
 
+  /// 힌트로 보여 준 정답 부품 수(이 판에 들어와 있는 동안만 유지).
+  int hintsShown = 0;
+  final List<PartView> _hintViews = [];
+
+  /// 힌트가 아직 남았는지 - 정답 부품을 다 보여 줬으면 false.
+  bool get hasMoreHints => hintsShown < stage.solution.length;
+
+  /// 정답 부품 하나의 자리를 반투명하게 더 보여 준다.
+  void revealHint() {
+    if (!hasMoreHints) return;
+    hintsShown++;
+    _rebuildViews();
+  }
+
+  // 힌트 부품은 편집 중에만 보인다. 실행 중에는 진짜 부품과 겹쳐 헷갈린다.
+  void _rebuildHintViews() {
+    for (final v in _hintViews) {
+      v.removeFromParent();
+    }
+    _hintViews.clear();
+    if (mode != GameMode.edit) return;
+    for (final p in stage.solution.take(hintsShown)) {
+      final v = PartView(
+        part: p.type,
+        posM: Vector2(p.x, p.y),
+        angleRad: p.angleDeg * pi / 180,
+        ghostColor: const Color(0x88FFCA28),
+      )..priority = -1;
+      world.add(v);
+      _hintViews.add(v);
+    }
+  }
+
   void startRun() {
     // Stale overlay/confetti from a previous run, if any (normally already
     // gone via the 다시/다음 buttons - see _removeWinOverlay's own doc
@@ -722,6 +755,7 @@ class PiyakGame extends FlameGame with DragCallbacks {
       world.add(view);
       _views.add(view);
     }
+    _rebuildHintViews();
   }
 
   List<_SceneEntry> _sceneEntries() {

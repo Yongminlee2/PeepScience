@@ -23,6 +23,11 @@ class Ads {
   static const _testInterstitialAndroid =
       'ca-app-pub-3940256099942544/1033173712';
 
+  /// 힌트용 보상형 광고. 애드몹에서 "보상형" 광고 단위를 만들면 여기에 넣는다.
+  /// 비어 있는(0000) 동안 정식 빌드는 광고 없이 힌트를 그냥 준다.
+  static const _realRewardedAndroid = 'ca-app-pub-0000000000000000/0000000000';
+  static const _testRewardedAndroid = 'ca-app-pub-3940256099942544/5224354917';
+
   /// 몇 판마다 한 번 띄울지. 3판은 흔한 캐주얼 퍼즐 간격이고, 1~2판으로
   /// 줄이면 아이가 못 참는다.
   static const _stagesPerAd = 3;
@@ -39,6 +44,9 @@ class Ads {
   // 마지막 광고 뒤로 깬 판 수. [다음]을 눌렀든 홈으로 나갔든 깬 판은 센다.
   static int _clearsSinceAd = 0;
   static InterstitialAd? _ad;
+  static RewardedAd? _rewarded;
+  static bool _rewardedLoading = false;
+  static Completer<void>? _rewardedWait;
   static bool _loading = false;
   // 지금 받아 오는 중인 광고가 끝나면(성공이든 실패든) 완료된다.
   static Completer<void>? _loadWait;
@@ -71,6 +79,7 @@ class Ads {
       await _requestConsent();
       _ready = true;
       unawaited(_load());
+      unawaited(_loadRewarded());
     } catch (_) {
       // 광고 없이 그냥 게임만 돌아간다.
     } finally {
@@ -150,6 +159,80 @@ class Ads {
     if (_ad == null) return;
     _sessionAdShown = true;
     if (await _show()) _clearsSinceAd = 0;
+  }
+
+  static bool get _rewardedConfigured =>
+      !kReleaseMode || !_realRewardedAndroid.contains('pub-0000');
+
+  static Future<void> _loadRewarded() async {
+    if (!_rewardedConfigured || _rewardedLoading || _rewarded != null) return;
+    _rewardedLoading = true;
+    final wait = _rewardedWait = Completer<void>();
+    void done() {
+      _rewardedLoading = false;
+      if (!wait.isCompleted) wait.complete();
+    }
+
+    try {
+      await RewardedAd.load(
+        adUnitId: kReleaseMode ? _realRewardedAndroid : _testRewardedAndroid,
+        request: const AdRequest(),
+        rewardedAdLoadCallback: RewardedAdLoadCallback(
+          onAdLoaded: (ad) {
+            _rewarded = ad;
+            done();
+          },
+          onAdFailedToLoad: (_) => done(),
+        ),
+      );
+    } catch (_) {
+      done();
+    }
+  }
+
+  /// 힌트를 줄지 정한다. 보상형 광고를 끝까지 보면 true, 도중에 닫으면 false.
+  ///
+  /// 광고를 못 띄우는 상황(인터넷 없음·광고 없음·광고 단위를 아직 안 넣음)
+  /// 이면 true다 - 광고가 없다고 막힌 아이가 계속 막혀 있으면 안 된다.
+  static Future<bool> showRewardedForHint() async {
+    if (!_ready || !_rewardedConfigured) return true;
+    if (_rewarded == null) {
+      unawaited(_loadRewarded());
+      await (_rewardedWait?.future ?? Future<void>.value()).timeout(
+        const Duration(seconds: 4),
+        onTimeout: () {},
+      );
+    }
+    final ad = _rewarded;
+    if (ad == null) return true;
+    _rewarded = null;
+    var earned = false;
+    final closed = Completer<void>();
+    ad.fullScreenContentCallback = FullScreenContentCallback(
+      onAdDismissedFullScreenContent: (ad) {
+        ad.dispose();
+        unawaited(_loadRewarded());
+        if (!closed.isCompleted) closed.complete();
+      },
+      onAdFailedToShowFullScreenContent: (ad, _) {
+        ad.dispose();
+        unawaited(_loadRewarded());
+        earned = true;
+        if (!closed.isCompleted) closed.complete();
+      },
+    );
+    try {
+      await ad.show(onUserEarnedReward: (_, _) => earned = true);
+      await closed.future.timeout(
+        const Duration(seconds: 90),
+        onTimeout: () {},
+      );
+    } catch (_) {
+      return true;
+    }
+    // 방금 광고를 봤으니 전면 광고 차례는 처음부터 다시 센다.
+    _clearsSinceAd = 0;
+    return earned;
   }
 
   /// 판을 깰 때마다 부른다. 광고는 여기서 띄우지 않는다 - 클리어 화면

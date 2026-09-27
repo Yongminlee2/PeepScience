@@ -45,7 +45,7 @@ void main() {
     SharedPreferences.setMockInitialValues({
       'cleared_v1': ['w1_s01', 'w1_s02', 'w1_s03'],
     });
-    await _setSize(t, const Size(2200, 900));
+    await _setSize(t, const Size(2200, 380));
     await pumpAppToHome(t);
 
     expect(find.text('3/20'), findsOneWidget); // world1: 3개 클리어
@@ -83,7 +83,7 @@ void main() {
   testWidgets('월드5 첫 칸은 월드4를 다 깨기 전엔 잠겨 있고, 다 깨면 열려서 게임으로 진입한다', (t) async {
     // 1) 초기 상태: w5_s01 잠김 - 탭해도 화면 전환 없음.
     SharedPreferences.setMockInitialValues({});
-    await _setSize(t, const Size(2200, 900));
+    await _setSize(t, const Size(2200, 380));
     await t.pumpWidget(
       MaterialApp(
         home: HomeScreen(stageLoader: (id) async => _trivialStage(id)),
@@ -119,7 +119,7 @@ void main() {
 
   testWidgets('배경 썸네일 로드가 실패하면 errorBuilder가 월드 고유색 컨테이너로 조용히 대체한다', (t) async {
     SharedPreferences.setMockInitialValues({});
-    await _setSize(t, const Size(2200, 900));
+    await _setSize(t, const Size(2200, 380));
     await pumpAppToHome(t);
 
     // 월드 카드 5장 각자 헤더 썸네일(Image.asset) 하나씩 - 실제 asset

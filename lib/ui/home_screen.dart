@@ -21,6 +21,10 @@ const int _worldCount = 5;
 /// testable on hardware without mutating a tester's saved progress.
 const bool _qaUnlockAll = bool.fromEnvironment('PIYAK_QA_UNLOCK_ALL');
 
+/// 월드 카드를 그리는 기준 크기(바깥 여백 12씩 포함). 실제 화면에서는 남는
+/// 높이에 맞춰 이 크기를 통째로 늘리거나 줄인다.
+const Size _kCardBox = Size(416, 317);
+
 String _stageId(int world, int index) =>
     'w${world}_s${index.toString().padLeft(2, '0')}';
 
@@ -131,47 +135,17 @@ class _HomeScreenState extends State<HomeScreen> {
     return ValueListenableBuilder<String>(
       valueListenable: AppLang(),
       builder: (context, _, _) => Scaffold(
+        // 제목·로고는 메인 화면에 있으므로 여기서는 얇은 줄에 뒤로 가기와
+        // 설정만 둔다. 남는 높이는 전부 월드 카드에 준다.
         appBar: AppBar(
-          toolbarHeight: 72,
-          titleSpacing: 20,
-          title: Row(
-            children: [
-              ClipRRect(
-                borderRadius: BorderRadius.circular(16),
-                child: Image.asset(
-                  'store/art/icon_6.png',
-                  width: 44,
-                  height: 44,
-                  fit: BoxFit.cover,
-                  excludeFromSemantics: true,
-                ),
-              ),
-              const SizedBox(width: 14),
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(
-                    S.t('appTitle'),
-                    style: const TextStyle(
-                      color: kChocolateOutline,
-                      fontWeight: FontWeight.w900,
-                      fontSize: 22,
-                      height: 1,
-                    ),
-                  ),
-                  const SizedBox(height: 5),
-                  Text(
-                    S.t('homeTagline'),
-                    style: TextStyle(
-                      color: kChocolateOutline.withAlpha(170),
-                      fontWeight: FontWeight.w700,
-                      fontSize: 12,
-                    ),
-                  ),
-                ],
-              ),
-            ],
+          toolbarHeight: 52,
+          title: Text(
+            S.t('appTitle'),
+            style: const TextStyle(
+              color: kChocolateOutline,
+              fontWeight: FontWeight.w900,
+              fontSize: 20,
+            ),
           ),
           actions: [
             // Debug-only stage editor entry - kDebugMode is a compile-time
@@ -187,8 +161,8 @@ class _HomeScreenState extends State<HomeScreen> {
                 ).push(MaterialPageRoute(builder: (_) => const EditorScreen())),
               ),
             Container(
-              width: 48,
-              height: 48,
+              width: 42,
+              height: 42,
               margin: const EdgeInsets.only(right: 18),
               decoration: BoxDecoration(
                 color: kCandyCream,
@@ -221,20 +195,39 @@ class _HomeScreenState extends State<HomeScreen> {
               colors: [kHomeCanvasTop, kHomeCanvasBottom],
             ),
           ),
-          child: ListView(
-            scrollDirection: Axis.horizontal,
-            padding: scrollPadding(context),
-            children: List.generate(
-              _worldCount,
-              (i) => _WorldCard(
-                world: i + 1,
-                cleared: _cleared,
-                stars: _stars,
-                broken: _broken,
-                isUnlocked: _isUnlocked,
-                onTapStage: _openStage,
-              ),
-            ),
+          // 카드는 기준 크기(_kCardBox)로 그린 뒤 남는 높이에 맞춰 통째로
+          // 키우거나 줄인다. 칸·글자가 같은 비율로 커져서 아이 손가락으로
+          // 누르기 쉬워지고, 작은 화면에서는 넘치지 않는다.
+          child: LayoutBuilder(
+            builder: (context, box) {
+              final pad = scrollPadding(context);
+              final avail = box.maxHeight - pad.vertical;
+              final scale = (avail / _kCardBox.height).clamp(0.6, 1.5);
+              return ListView(
+                scrollDirection: Axis.horizontal,
+                padding: pad,
+                children: List.generate(
+                  _worldCount,
+                  (i) => SizedBox(
+                    width: _kCardBox.width * scale,
+                    height: _kCardBox.height * scale,
+                    child: FittedBox(
+                      child: SizedBox.fromSize(
+                        size: _kCardBox,
+                        child: _WorldCard(
+                          world: i + 1,
+                          cleared: _cleared,
+                          stars: _stars,
+                          broken: _broken,
+                          isUnlocked: _isUnlocked,
+                          onTapStage: _openStage,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              );
+            },
           ),
         ),
       ),
