@@ -14,6 +14,7 @@ const Map<String, String> kId = {
   'next': 'Lanjut',
   'retry': 'Ulangi',
   'play': 'Main',
+  'continue': 'Lanjutkan',
   'settings': 'Pengaturan',
   'sound': 'Suara',
   'language': 'Bahasa',

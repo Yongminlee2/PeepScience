@@ -14,6 +14,7 @@ const Map<String, String> kKo = {
   'next': '다음',
   'retry': '다시',
   'play': '시작하기',
+  'continue': '이어하기',
   'settings': '설정',
   'sound': '소리',
   'language': '언어',

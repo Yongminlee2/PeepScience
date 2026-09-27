@@ -14,6 +14,7 @@ const Map<String, String> kJa = {
   'next': 'つぎへ',
   'retry': 'もういちど',
   'play': 'はじめる',
+  'continue': 'つづきから',
   'settings': '設定',
   'sound': 'おと',
   'language': '言語',

@@ -22,6 +22,7 @@ const Map<String, String> kEn = {
   'next': 'Next',
   'retry': 'Retry',
   'play': 'Play',
+  'continue': 'Continue',
   'settings': 'Settings',
   'sound': 'Sound',
   'language': 'Language',

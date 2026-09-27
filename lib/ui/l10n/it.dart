@@ -14,6 +14,7 @@ const Map<String, String> kIt = {
   'next': 'Avanti',
   'retry': 'Ancora',
   'play': 'Gioca',
+  'continue': 'Continua',
   'settings': 'Impostazioni',
   'sound': 'Suono',
   'language': 'Lingua',

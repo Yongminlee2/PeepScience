@@ -14,6 +14,7 @@ const Map<String, String> kZh = {
   'next': '下一关',
   'retry': '再试一次',
   'play': '开始',
+  'continue': '继续',
   'settings': '设置',
   'sound': '声音',
   'language': '语言',

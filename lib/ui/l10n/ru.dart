@@ -14,6 +14,7 @@ const Map<String, String> kRu = {
   'next': 'Дальше',
   'retry': 'Ещё раз',
   'play': 'Играть',
+  'continue': 'Продолжить',
   'settings': 'Настройки',
   'sound': 'Звук',
   'language': 'Язык',

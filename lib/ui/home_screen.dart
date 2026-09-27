@@ -28,7 +28,15 @@ String _stageId(int world, int index) =>
 /// own paged 20-stage grid (✓ cleared / number unlocked / lock locked / ⚠
 /// broken).
 class HomeScreen extends StatefulWidget {
-  const HomeScreen({super.key, this.stageLoader = StageLoader.load});
+  const HomeScreen({
+    super.key,
+    this.stageLoader = StageLoader.load,
+    this.openStageOnStart,
+  });
+
+  /// 메인 화면의 [이어하기]로 들어오면, 월드 목록이 뜨자마자 이 판을 연다.
+  /// 판에서 나오면 월드 목록으로 돌아오므로 흐름이 자연스럽다.
+  final String? openStageOnStart;
 
   /// Injectable for tests; production default reads real stage assets via
   /// [StageLoader.load]. A stage is loaded lazily - only the instant its
@@ -48,11 +56,15 @@ class _HomeScreenState extends State<HomeScreen> {
   Set<String> _cleared = {};
   Map<String, int> _stars = {};
   final Set<String> _broken = {};
+  bool _devUnlock = false;
 
   @override
   void initState() {
     super.initState();
-    _refresh();
+    final autoOpen = widget.openStageOnStart;
+    _refresh().then((_) {
+      if (autoOpen != null && mounted) _openStage(autoOpen);
+    });
   }
 
   Future<void> _refresh() async {
@@ -65,6 +77,7 @@ class _HomeScreenState extends State<HomeScreen> {
         _progress = p;
         _cleared = c;
         _stars = stars;
+        _devUnlock = p.devUnlockAll();
       });
     } catch (_) {
       // Boot/home must never crash on a progress-store failure - the grid
@@ -75,6 +88,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
   bool _isUnlocked(String id) =>
       _qaUnlockAll ||
+      _devUnlock ||
       _cleared.contains(id) ||
       (_progress?.isUnlocked(id, _cleared) ?? false);
 

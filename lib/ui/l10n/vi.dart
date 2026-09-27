@@ -14,6 +14,7 @@ const Map<String, String> kVi = {
   'next': 'Tiếp',
   'retry': 'Thử lại',
   'play': 'Chơi',
+  'continue': 'Chơi tiếp',
   'settings': 'Cài đặt',
   'sound': 'Âm thanh',
   'language': 'Ngôn ngữ',

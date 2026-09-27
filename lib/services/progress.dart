@@ -72,6 +72,20 @@ class ProgressStore {
     await _prefs.setStringList('stars_v1', encoded);
   }
 
+  /// 개발자 모드 - 메인 화면 제목을 일곱 번 두드리면 켜진다. 켜진 기기에서는
+  /// 모든 판이 열린다. 기기 안에만 저장되므로 만든 사람 폰에서만 쓰인다.
+  bool devUnlockAll() => _prefs.getBool('dev_unlock_all_v1') ?? false;
+
+  Future<void> setDevUnlockAll(bool on) async {
+    await _prefs.setBool('dev_unlock_all_v1', on);
+  }
+
+  /// 이어하기로 열 판 - 아직 안 깬 첫 판. 다 깼으면 마지막 판.
+  String nextStage(Set<String> cleared) => stageOrder.firstWhere(
+    (id) => !cleared.contains(id),
+    orElse: () => stageOrder.last,
+  );
+
   /// Check if a stage is unlocked based on progression rules.
   /// Unlocked if:
   /// - it's the first stage in stageOrder, OR

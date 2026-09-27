@@ -14,6 +14,7 @@ const Map<String, String> kFr = {
   'next': 'Suite',
   'retry': 'Encore',
   'play': 'Jouer',
+  'continue': 'Continuer',
   'settings': 'Réglages',
   'sound': 'Son',
   'language': 'Langue',

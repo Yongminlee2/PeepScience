@@ -14,6 +14,7 @@ const Map<String, String> kPt = {
   'next': 'Próxima',
   'retry': 'De novo',
   'play': 'Jogar',
+  'continue': 'Continuar',
   'settings': 'Ajustes',
   'sound': 'Som',
   'language': 'Idioma',

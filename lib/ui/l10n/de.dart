@@ -14,6 +14,7 @@ const Map<String, String> kDe = {
   'next': 'Weiter',
   'retry': 'Nochmal',
   'play': 'Spielen',
+  'continue': 'Weiterspielen',
   'settings': 'Einstellungen',
   'sound': 'Ton',
   'language': 'Sprache',

@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:piyak_science/services/progress.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:piyak_science/ui/home_screen.dart';
 import 'package:piyak_science/ui/title_screen.dart';
 
@@ -14,5 +16,25 @@ void main() {
     await t.pumpAndSettle();
 
     expect(find.byType(HomeScreen), findsOneWidget);
+  });
+
+  // 제목 일곱 번 = 개발자 모드(모든 판 열기). 여섯 번까지는 아무 일도 없어야
+  // 아이가 우연히 켜지 않는다.
+  testWidgets('제목을 일곱 번 두드리면 개발자 모드가 켜진다', (t) async {
+    SharedPreferences.setMockInitialValues({});
+    await t.pumpWidget(const MaterialApp(home: TitleScreen()));
+    await t.pumpAndSettle();
+    final secret = find.byKey(const ValueKey('title_secret'));
+
+    for (var i = 0; i < 6; i++) {
+      await t.tap(secret);
+      await t.pump(const Duration(milliseconds: 100));
+    }
+    await t.pumpAndSettle();
+    expect((await ProgressStore.init()).devUnlockAll(), isFalse);
+
+    await t.tap(secret);
+    await t.pumpAndSettle();
+    expect((await ProgressStore.init()).devUnlockAll(), isTrue);
   });
 }
