@@ -61,7 +61,12 @@ class Ads {
       await MobileAds.instance.initialize();
       // 그림체가 유아 친화적이라 전체이용가 등급 광고만 받는다.
       await MobileAds.instance.updateRequestConfiguration(
-        RequestConfiguration(maxAdContentRating: MaxAdContentRating.g),
+        RequestConfiguration(
+          maxAdContentRating: MaxAdContentRating.g,
+          // 개발용 폰(갤럭시 A16). 여기서는 실제 광고 단위도 테스트 광고로
+          // 나온다 - 내 폰에서 진짜 광고를 보거나 누르면 무효 트래픽이 된다.
+          testDeviceIds: const ['65DD4798CBA90E4F86391464BEE11CB0'],
+        ),
       );
       await _requestConsent();
       _ready = true;
