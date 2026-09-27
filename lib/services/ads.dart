@@ -67,10 +67,10 @@ class Ads {
     _initStarted = true;
     try {
       await MobileAds.instance.initialize();
-      // 그림체가 유아 친화적이라 전체이용가 등급 광고만 받는다.
+      // 앱 대상이 만 13세 이상이라 광고도 13세 이상(T) 등급까지 받는다.
       await MobileAds.instance.updateRequestConfiguration(
         RequestConfiguration(
-          maxAdContentRating: MaxAdContentRating.g,
+          maxAdContentRating: MaxAdContentRating.t,
           // 개발용 폰(갤럭시 A16). 여기서는 실제 광고 단위도 테스트 광고로
           // 나온다 - 내 폰에서 진짜 광고를 보거나 누르면 무효 트래픽이 된다.
           testDeviceIds: const ['65DD4798CBA90E4F86391464BEE11CB0'],
