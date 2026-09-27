@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../services/app_update.dart';
 import '../services/progress.dart';
 import '../services/sound.dart';
 import '../sim/catalog.dart';
@@ -36,6 +37,11 @@ class _TitleScreenState extends State<TitleScreen> {
   void initState() {
     super.initState();
     _refresh();
+    // 첫 화면이 뜬 뒤에 스토어 새 버전을 확인한다(화면이 붙기 전에는 플레이의
+    // 업데이트 화면을 띄울 수 없다).
+    WidgetsBinding.instance.addPostFrameCallback(
+      (_) => AppUpdate.checkOnLaunch(),
+    );
   }
 
   Future<void> _refresh() async {
